@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">MyGarage</string>
+    <string name="nav_garage">Garage</string>
+    <string name="nav_camera">Camera</string>
+    <string name="nav_service">Service</string>
+    <string name="garage_screen_title">Garage Destination</string>
+    <string name="camera_screen_title">Camera Destination</string>
+    <string name="service_screen_title">Service Destination</string>
+    <string name="app_header_title">ATELIER</string>
+    <string name="profile_description">User Profile</string>
+    <string name="notifications_description">Notifications</string>
 </resources>
