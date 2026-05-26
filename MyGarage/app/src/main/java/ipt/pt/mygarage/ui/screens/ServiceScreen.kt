@@ -45,27 +45,25 @@ fun ServiceScreen(
                 style = MaterialTheme.typography.labelSmall,
                 color = MyGarageColors.primary
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             Text(
                 text = stringResource(id = R.string.nav_service),
                 style = MaterialTheme.typography.displayLarge,
                 color = MyGarageColors.onBackground
             )
-            
+
             Spacer(modifier = Modifier.height(32.dp))
-            
-            // Timeline Title
+
             Text(
                 text = "SERVICE HISTORY",
                 style = MaterialTheme.typography.labelSmall,
                 color = MyGarageColors.onSurfaceVariant
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            // Custom Automotive Timeline
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -73,7 +71,7 @@ fun ServiceScreen(
             ) {
                 TimelineItem(
                     title = "Engine Oil & Filter replacement",
-                    subtitle = "Completed at 14,200 km - MOTUL 8100 5W-40",
+                        subtitle = "Completed at 14,200 mi - MOTUL 8100 5W-40",
                     isLast = false
                 )
                 TimelineItem(
@@ -100,14 +98,12 @@ fun TimelineItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min) // Forces the line to fill vertical height of the item
+            .height(IntrinsicSize.Min)
     ) {
-        // Timeline node column
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.width(32.dp)
         ) {
-            // Node circle in surface_container_highest
             Box(
                 modifier = Modifier
                     .size(16.dp)
@@ -115,7 +111,6 @@ fun TimelineItem(
                     .background(MyGarageColors.surfaceContainerHighest),
                 contentAlignment = Alignment.Center
             ) {
-                // Outer ring center dot
                 Box(
                     modifier = Modifier
                         .size(8.dp)
@@ -123,9 +118,8 @@ fun TimelineItem(
                         .background(MyGarageColors.primary)
                 )
             }
-            
+
             if (!isLast) {
-                // Vertical 2px primary colored line
                 Box(
                     modifier = Modifier
                         .width(2.dp)
@@ -135,8 +129,7 @@ fun TimelineItem(
                 )
             }
         }
-        
-        // Content column
+
         Column(
             modifier = Modifier
                 .weight(1f)

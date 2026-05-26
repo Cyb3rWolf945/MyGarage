@@ -15,22 +15,11 @@ import androidx.compose.ui.unit.dp
 import ipt.pt.mygarage.Screen
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 
-/**
- * The Mechanical Atelier bottom navigation bar.
- *
- * Design spec:
- *  - Racing Blue (#0040a1) active indicator, zero tonal elevation (no drop-shadow)
- *  - White icon on selected state; muted onSurfaceVariant when unselected
- *  - surfaceContainerLow background to obey the tonal layering hierarchy
- *
- * @param items       The ordered list of [Screen] destinations.
- * @param currentRoute The currently active back-stack route, used to compute selection state.
- * @param onItemClick  Called with the clicked [Screen] so the caller can drive navigation.
- */
+import androidx.compose.foundation.pager.PagerState
 @Composable
 fun AtelierBottomNav(
     items: List<Screen>,
-    currentRoute: String?,
+    pagerState: PagerState,
     onItemClick: (Screen) -> Unit
 ) {
     NavigationBar(
@@ -38,8 +27,8 @@ fun AtelierBottomNav(
         tonalElevation = 0.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        items.forEach { screen ->
-            val selected = currentRoute == screen.route
+        items.forEachIndexed { index, screen ->
+            val selected = pagerState.currentPage == index
 
             NavigationBarItem(
                 selected = selected,

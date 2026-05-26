@@ -9,4 +9,26 @@
     <string name="app_header_title">ATELIER</string>
     <string name="profile_description">User Profile</string>
     <string name="notifications_description">Notifications</string>
+    <string name="back_to_garage">BACK TO GARAGE</string>
+    <string name="specifications_header">SPECIFICATIONS</string>
+    <string name="spec_year">Year</string>
+    <string name="spec_fuel_type">Type of Fuel</string>
+    <string name="spec_owner">Owner</string>
+    <string name="spec_engine_capacity">Engine Capacity</string>
+    <string name="spec_oil_type">Oil Type</string>
+    <string name="spec_seat_count">Seats</string>
+    <string name="spec_door_count">Doors</string>
+    <string name="service_history_header">Service History</string>
+    <string name="live_location_header">Live Location</string>
+    <string name="action_diagnostic">INITIALIZE DIAGNOSTIC SCAN</string>
+    <string name="action_schedule">SCHEDULE REGULAR SERVICE</string>
+    <string name="stat_mileage">Mileage</string>
+    <string name="stat_inspection_date">Inspection</string>
+    <string name="stat_mileage_to_next_service">Mileage to Next Service</string>
+    <string name="stat_iuc_value">IUC</string>
+    <string name="currency_euro_prefix">€ %1$s</string>
+    <string name="tab_specs">Specs</string>
+    <string name="tab_history">History</string>
+    <string name="tab_location">Location</string>
+    <string name="action_log_maintenance">LOG MAINTENANCE</string>
 </resources>

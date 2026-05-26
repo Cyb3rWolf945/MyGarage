@@ -16,7 +16,7 @@ fun MyGarageTheme(
 ) {
     val colorScheme = lightColorScheme(
         primary = MyGarageColors.primary,
-        onPrimary = MyGarageColors.surfaceContainerLowest, // White
+        onPrimary = MyGarageColors.surfaceContainerLowest,
         primaryContainer = MyGarageColors.primaryContainer,
         background = MyGarageColors.background,
         onBackground = MyGarageColors.onBackground,
