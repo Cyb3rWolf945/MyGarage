@@ -40,18 +40,17 @@ fun CameraScreen(
                 style = MaterialTheme.typography.labelSmall,
                 color = MyGarageColors.primary
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             Text(
                 text = stringResource(id = R.string.nav_camera),
                 style = MaterialTheme.typography.displayLarge,
                 color = MyGarageColors.onBackground
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
-            // Camera Scan Card
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

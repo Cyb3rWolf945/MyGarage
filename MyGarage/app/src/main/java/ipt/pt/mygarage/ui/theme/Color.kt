@@ -5,10 +5,6 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import ipt.pt.mygarage.R
-
-/**
- * Color system mapping dynamically to Android resources to avoid hardcoded values in Compose UI.
- */
 object MyGarageColors {
     val primary: Color
         @Composable
