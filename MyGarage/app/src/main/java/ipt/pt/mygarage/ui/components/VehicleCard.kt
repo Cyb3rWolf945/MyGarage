@@ -19,39 +19,30 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 
-/**
- * A single vehicle entry card.
- *
- * Design spec (Mechanical Atelier):
- *  - Tonal layering: surfaceContainerLowest (white) lifted over the background surface
- *  - No borders, no drop-shadows — depth is achieved purely through colour shift
- *  - Status chip uses the supplied [statusColor] at 10 % alpha so it feels lightweight
- *
- * @param model       Vehicle model name shown as the primary headline.
- * @param plate       Registration / plate string shown as a spec-sheet label below the model.
- * @param status      Short status label (e.g. "READY", "IN SERVICE") inside the chip.
- * @param statusColor Colour applied to the chip text and its translucent background tint.
- */
+import androidx.compose.foundation.clickable
 @Composable
 fun VehicleCard(
     model: String,
     plate: String,
     status: String,
     statusColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(MyGarageColors.surfaceContainerLowest)
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+            )
             .padding(20.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // ── Vehicle info ────────────────────────────────────────────────
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = model,
@@ -66,7 +57,6 @@ fun VehicleCard(
                 )
             }
 
-            // ── Status chip ─────────────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))

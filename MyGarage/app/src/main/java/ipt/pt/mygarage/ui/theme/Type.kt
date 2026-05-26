@@ -9,7 +9,6 @@ import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.unit.sp
 import ipt.pt.mygarage.R
 
-// Google Font Provider Setup
 val provider = GoogleFont.Provider(
     providerAuthority = "com.google.android.gms.fonts",
     providerPackage = "com.google.android.gms",
@@ -22,7 +21,6 @@ val InterFontFamily = FontFamily(
     Font(googleFont = fontName, fontProvider = provider)
 )
 
-// Set of Material typography styles mapping the 'Inter' font scale and system rules
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = InterFontFamily,

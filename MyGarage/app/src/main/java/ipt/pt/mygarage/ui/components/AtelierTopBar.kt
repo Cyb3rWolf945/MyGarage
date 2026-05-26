@@ -23,23 +23,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.ui.theme.MyGarageColors
-
-/**
- * The Mechanical Atelier top app bar.
- *
- * Design spec:
- *  - Profile avatar circle on the left, inside the title slot
- *  - 'ATELIER' brand word-mark next to it
- *  - Notification icon badge on the right (actions slot)
- *  - Glassmorphic container: surface colour at 80 % opacity / no elevation line
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AtelierTopBar() {
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // ── Profile avatar ───────────────────────────────────────────
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -57,7 +46,6 @@ fun AtelierTopBar() {
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // ── Brand word-mark ──────────────────────────────────────────
                 Text(
                     text = stringResource(id = R.string.app_header_title),
                     style = MaterialTheme.typography.headlineLarge,
@@ -65,25 +53,6 @@ fun AtelierTopBar() {
                 )
             }
         },
-        actions = {
-            // ── Notification badge ───────────────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(MyGarageColors.surfaceContainerHigh),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_notifications),
-                    contentDescription = stringResource(id = R.string.notifications_description),
-                    tint = MyGarageColors.primary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-        },
-
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MyGarageColors.surface.copy(alpha = 0.8f),
             titleContentColor = MyGarageColors.onBackground,
