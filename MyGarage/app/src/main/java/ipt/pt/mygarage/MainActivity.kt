@@ -4,12 +4,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -28,6 +32,7 @@ import ipt.pt.mygarage.ui.screens.vehicleprofile.ServiceHistoryItem
 import ipt.pt.mygarage.ui.screens.vehicleprofile.VehicleProfileUiState
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 import ipt.pt.mygarage.ui.theme.MyGarageTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String, val labelResId: Int, val iconResId: Int) {
@@ -39,8 +44,19 @@ sealed class Screen(val route: String, val labelResId: Int, val iconResId: Int) 
 private val bottomNavItems = listOf(Screen.Garage, Screen.Camera, Screen.Service)
 
 class MainActivity : ComponentActivity() {
+    private var isReady by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen().apply {
+            setKeepOnScreenCondition { !isReady }
+        }
         super.onCreate(savedInstanceState)
+
+        lifecycleScope.launch {
+            delay(2_000)
+            isReady = true
+        }
+
         enableEdgeToEdge()
         setContent {
             MyGarageTheme {
