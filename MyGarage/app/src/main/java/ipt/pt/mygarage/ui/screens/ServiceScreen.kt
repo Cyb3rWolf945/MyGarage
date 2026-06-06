@@ -82,6 +82,8 @@ fun ServiceScreen(
     onLogServiceWithParts: (ServiceLogEntity) -> Unit,
     onAddTemporaryPart: (String, Int, String?) -> Unit,
     onRemoveTemporaryPart: (String) -> Unit,
+    formErrors: Map<String, Int> = emptyMap(),
+    onFieldChanged: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -286,16 +288,26 @@ fun ServiceScreen(
 
                     OutlinedTextField(
                         value = description,
-                        onValueChange = { description = it },
+                        onValueChange = {
+                            description = it
+                            onFieldChanged("description")
+                        },
                         label = { Text("Description") },
+                        isError = formErrors.containsKey("description"),
+                        supportingText = { formErrors["description"]?.let { Text(stringResource(it)) } },
                         colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     OutlinedTextField(
                         value = mileage,
-                        onValueChange = { mileage = it },
+                        onValueChange = {
+                            mileage = it
+                            onFieldChanged("mileage")
+                        },
                         label = { Text("Mileage at Service") },
+                        isError = formErrors.containsKey("mileage"),
+                        supportingText = { formErrors["mileage"]?.let { Text(stringResource(it)) } },
                         colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -468,10 +480,10 @@ fun ServiceScreen(
 
                     Button(
                         onClick = {
-                            if (description.isNotBlank() && mileage.isNotBlank()) {
+                            if (description.isNotBlank() && mileage.isNotBlank() && selectedVehicleId != null) {
                                 val log = ServiceLogEntity(
                                     id = UUID.randomUUID(),
-                                    vehicleId = selectedVehicleId,
+                                    vehicleId = selectedVehicleId!!,
                                     date = serviceDate,
                                     description = description,
                                     mileage = if (mileage.contains("mi")) mileage else "$mileage mi",
@@ -482,7 +494,6 @@ fun ServiceScreen(
                                 } else {
                                     onLogService(log)
                                 }
-                                
                                 // Reset form inputs (except date)
                                 description = ""
                                 partsSearchQuery = ""
