@@ -526,7 +526,6 @@ fun VehicleEditDialog(
                         if (owner.isBlank()) errors["owner"] = R.string.error_field_required
                         if (fuelType.isBlank()) errors["fuelType"] = R.string.error_field_required
                         if (engineCapacity.isBlank()) errors["engineCapacity"] = R.string.error_field_required
-                        if (mileageToNextService.isBlank()) errors["mileageToNextService"] = R.string.error_field_required
                         localErrors = errors
                         if (errors.isEmpty()) {
                             val result = VehicleEntity(
@@ -543,7 +542,7 @@ fun VehicleEditDialog(
                                 fuelType = fuelType,
                                 engineCapacity = engineCapacity,
                                 iucValue = iucValue.ifBlank { null },
-                                mileageToNextService = mileageToNextService,
+                                mileageToNextService = mileageToNextService.ifBlank { null },
                                 locationAddress = locationAddress.ifBlank { null }
                             )
                             onConfirm(result)
