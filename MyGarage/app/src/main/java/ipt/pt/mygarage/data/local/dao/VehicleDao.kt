@@ -1,6 +1,7 @@
 package ipt.pt.mygarage.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -28,6 +29,9 @@ interface VehicleDao {
 
     @Update
     suspend fun updateVehicle(vehicle: VehicleEntity)
+
+    @Delete
+    suspend fun deleteVehicle(vehicle: VehicleEntity)
 
     @Query("SELECT * FROM vehicles WHERE id = :vehicleId")
     suspend fun getVehicleById(vehicleId: String): VehicleEntity?

@@ -27,6 +27,36 @@ class VehicleProfileViewModel(
     private val _formErrors = MutableStateFlow<Map<String, Int>>(emptyMap())
     val formErrors: StateFlow<Map<String, Int>> = _formErrors.asStateFlow()
 
+    // Delete confirmation state
+    private val _showDeleteConfirmation = MutableStateFlow(false)
+    val showDeleteConfirmation: StateFlow<Boolean> = _showDeleteConfirmation.asStateFlow()
+
+    // One-time navigation event: emitted after successful deletion, pop backstack
+    private val _deleteCompleted = MutableStateFlow(false)
+    val deleteCompleted: StateFlow<Boolean> = _deleteCompleted.asStateFlow()
+
+    fun showDeleteDialog() {
+        _showDeleteConfirmation.value = true
+    }
+
+    fun dismissDeleteDialog() {
+        _showDeleteConfirmation.value = false
+    }
+
+    fun confirmDelete() {
+        val vehicleWithServices = _uiState.value ?: return
+        viewModelScope.launch {
+            repository.deleteVehicle(vehicleWithServices.vehicle)
+            _showDeleteConfirmation.value = false
+            _deleteCompleted.value = true
+        }
+    }
+
+    /** Consume the one-shot navigation event after handling it. */
+    fun onDeleteCompletedHandled() {
+        _deleteCompleted.value = false
+    }
+
     /**
      * Starts collecting the vehicle and its services from Room.
      */

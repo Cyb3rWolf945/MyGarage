@@ -37,4 +37,8 @@
     <string name="fuel_electric">Electric</string>
     <string name="not_available">N/A</string>
     <string name="error_field_required">This field is required</string>
+    <string name="delete_vehicle_title">Delete Vehicle?</string>
+    <string name="delete_vehicle_message">Are you sure you want to remove this vehicle? All associated service logs and parts will be permanently deleted.</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
 </resources>

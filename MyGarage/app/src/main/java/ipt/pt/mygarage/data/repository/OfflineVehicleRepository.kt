@@ -32,6 +32,10 @@ class OfflineVehicleRepository(
         vehicleDao.updateVehicle(vehicle)
     }
 
+    override suspend fun deleteVehicle(vehicle: VehicleEntity) {
+        vehicleDao.deleteVehicle(vehicle)
+    }
+
     override fun getAllVehicles(): Flow<List<VehicleEntity>> {
         return vehicleDao.getAllVehicles()
     }
