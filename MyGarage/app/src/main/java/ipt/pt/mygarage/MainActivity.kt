@@ -83,9 +83,11 @@ fun MainScreen() {
     val serviceViewModel: ServiceViewModel = viewModel(factory = ServiceViewModel.factory(repository))
 
     val vehicles by garageViewModel.vehiclesState.collectAsState()
+    val garageFormErrors by garageViewModel.formErrors.collectAsState()
     val selectedVehicleId by serviceViewModel.selectedVehicleId.collectAsState()
     val selectedVehicleWithServices by serviceViewModel.selectedVehicleWithServices.collectAsState()
     val temporaryParts by serviceViewModel.temporaryParts.collectAsState()
+    val serviceFormErrors by serviceViewModel.formErrors.collectAsState()
 
     val navController = rememberNavController()
     val pagerState = rememberPagerState(pageCount = { bottomNavItems.size })
@@ -145,7 +147,9 @@ fun MainScreen() {
                             },
                             onAddVehicleClick = { newVehicle ->
                                 garageViewModel.insertVehicle(newVehicle)
-                            }
+                            },
+                            formErrors = garageFormErrors,
+                            onFieldChanged = garageViewModel::clearFieldError
                         )
                         Screen.Camera -> CameraScreen()
                         Screen.Service -> ServiceScreen(
@@ -167,7 +171,9 @@ fun MainScreen() {
                             },
                             onRemoveTemporaryPart = { partId ->
                                 serviceViewModel.removeTemporaryPart(partId)
-                            }
+                            },
+                            formErrors = serviceFormErrors,
+                            onFieldChanged = serviceViewModel::clearFieldError
                         )
                     }
                 }
@@ -183,9 +189,10 @@ fun MainScreen() {
                 }
 
                 val vehicleWithServices by profileViewModel.uiState.collectAsState()
+                val profileFormErrors by profileViewModel.formErrors.collectAsState()
 
                 vehicleWithServices?.let { ws ->
-                    val uiState = remember(ws) {
+                    val uiState = remember(ws, profileFormErrors) {
                         VehicleProfileUiState(
                             name = ws.vehicle.name,
                             year = ws.vehicle.year,
@@ -205,7 +212,8 @@ fun MainScreen() {
                                     title = log.description,
                                     subtitle = "Completed at ${log.mileage} - Date: ${log.date} [Type: ${log.type}]"
                                 )
-                            }
+                            },
+                            formErrors = profileFormErrors
                         )
                     }
 
@@ -228,7 +236,8 @@ fun MainScreen() {
                         },
                         onUpdateVehicle = { updatedVehicle ->
                             profileViewModel.updateVehicle(updatedVehicle)
-                        }
+                        },
+                        onFieldChanged = profileViewModel::clearFieldError
                     )
                 }
             }
