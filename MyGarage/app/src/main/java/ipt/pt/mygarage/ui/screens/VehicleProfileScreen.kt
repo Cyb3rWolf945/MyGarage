@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -45,18 +46,37 @@ import androidx.compose.ui.text.style.TextAlign
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 import ipt.pt.mygarage.ui.screens.vehicleprofile.VehicleProfileUiState
+import ipt.pt.mygarage.data.local.entity.VehicleEntity
+import ipt.pt.mygarage.ui.components.VehicleEditDialog
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.IconButton
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Composable
 fun VehicleProfileScreen(
     uiState: VehicleProfileUiState,
+    vehicleEntity: VehicleEntity,
     onBackClick: () -> Unit,
     onNavigateToService: () -> Unit,
+    onUpdateVehicle: (VehicleEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
     var selectedTab by remember { mutableStateOf(0) }
+    var showEditDialog by remember { mutableStateOf(false) }
+
+    if (showEditDialog) {
+        VehicleEditDialog(
+            vehicle = vehicleEntity,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { updatedVehicle ->
+                onUpdateVehicle(updatedVehicle)
+                showEditDialog = false
+            }
+        )
+    }
 
     Box(
         modifier = modifier
@@ -119,18 +139,31 @@ fun VehicleProfileScreen(
                         )
                     }
 
-                    Column {
-                        Text(
-                            text = stringResource(id = R.string.app_header_title),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MyGarageColors.primary
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = uiState.modelName,
-                            style = MaterialTheme.typography.displayLarge,
-                            color = MyGarageColors.onBackground
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(id = R.string.app_header_title),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MyGarageColors.primary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = uiState.name,
+                                style = MaterialTheme.typography.displayLarge,
+                                color = MyGarageColors.onBackground
+                            )
+                        }
+                        IconButton(onClick = { showEditDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Vehicle",
+                                tint = MyGarageColors.primary
+                            )
+                        }
                     }
                 }
             }
@@ -151,7 +184,7 @@ fun VehicleProfileScreen(
                     )
                     BentoCell(
                         label = stringResource(id = R.string.stat_inspection_date),
-                        value = formatCompactDate(uiState.inspectionDate),
+                        value = uiState.inspectionDate?.let { formatCompactDate(it) },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -167,7 +200,9 @@ fun VehicleProfileScreen(
                     )
                     BentoCell(
                         label = stringResource(id = R.string.stat_iuc_value),
-                        value = stringResource(id = R.string.currency_euro_prefix, uiState.iucValue),
+                        value = uiState.iucValue?.let {
+                            stringResource(id = R.string.currency_euro_prefix, it)
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -260,6 +295,18 @@ private fun SpecsTabContent(uiState: VehicleProfileUiState) {
                 rightLabel = stringResource(id = R.string.spec_engine_capacity),
                 rightValue = uiState.engineCapacity
             )
+            SpecsGridRow(
+                leftLabel = stringResource(id = R.string.spec_oil_type),
+                leftValue = uiState.oilType,
+                rightLabel = stringResource(id = R.string.spec_seat_count),
+                rightValue = uiState.seatCount
+            )
+            SpecsGridRow(
+                leftLabel = stringResource(id = R.string.spec_door_count),
+                leftValue = uiState.doorCount,
+                rightLabel = "",
+                rightValue = ""
+            )
         }
     }
 }
@@ -283,12 +330,13 @@ private fun HistoryTabContent(
                 color = MyGarageColors.onSurfaceVariant
             )
 
-            uiState.serviceHistory.forEachIndexed { index, item ->
+            val displayHistory = uiState.serviceHistory.take(2)
+            displayHistory.forEachIndexed { index, item ->
                 TimelineItem(
                     title = item.title,
                     subtitle = item.subtitle,
                     isFirst = index == 0,
-                    isLast = index == uiState.serviceHistory.size - 1
+                    isLast = index == displayHistory.size - 1
                 )
             }
 
@@ -339,8 +387,11 @@ private fun LocationTabContent(uiState: VehicleProfileUiState) {
             )
             Spacer(modifier = Modifier.height(12.dp))
 
+            val locationIsMissing = uiState.locationAddress.isNullOrBlank()
             Text(
-                text = uiState.locationAddress,
+                text = if (locationIsMissing) stringResource(id = R.string.not_available)
+                    else uiState.locationAddress!!,
+                modifier = if (locationIsMissing) Modifier.alpha(0.5f) else Modifier,
                 style = MaterialTheme.typography.headlineLarge,
                 color = MyGarageColors.onSurface
             )
@@ -383,9 +434,11 @@ private fun LocationTabContent(uiState: VehicleProfileUiState) {
 @Composable
 private fun BentoCell(
     label: String,
-    value: String,
+    value: String?,
     modifier: Modifier = Modifier
 ) {
+    val isMissing = value.isNullOrBlank()
+    val displayValue = if (isMissing) stringResource(id = R.string.not_available) else value!!
     Box(
         modifier = modifier
             .height(120.dp)
@@ -401,7 +454,8 @@ private fun BentoCell(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = value,
+                text = displayValue,
+                modifier = if (isMissing) Modifier.alpha(0.5f) else Modifier,
                 style = MaterialTheme.typography.headlineMedium,
                 color = MyGarageColors.onSurface,
                 maxLines = 2,
@@ -414,9 +468,9 @@ private fun BentoCell(
 @Composable
 private fun SpecsGridRow(
     leftLabel: String,
-    leftValue: String,
+    leftValue: String?,
     rightLabel: String,
-    rightValue: String
+    rightValue: String?
 ) {
     Row(
         modifier = Modifier
@@ -439,9 +493,11 @@ private fun SpecsGridRow(
 @Composable
 private fun SpecGridItem(
     label: String,
-    value: String,
+    value: String?,
     modifier: Modifier = Modifier
 ) {
+    val isMissing = value.isNullOrBlank()
+    val displayValue = if (isMissing) stringResource(id = R.string.not_available) else value!!
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
@@ -459,8 +515,10 @@ private fun SpecGridItem(
                 textAlign = TextAlign.Start
             )
             Text(
-                text = value,
-                modifier = Modifier.fillMaxWidth(),
+                text = displayValue,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (isMissing) Modifier.alpha(0.5f) else Modifier),
                 style = MaterialTheme.typography.titleLarge,
                 color = MyGarageColors.onSurface,
                 textAlign = TextAlign.Start,

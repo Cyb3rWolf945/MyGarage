@@ -8,6 +8,7 @@ import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
 import ipt.pt.mygarage.data.local.converter.Converters
 import ipt.pt.mygarage.data.local.dao.VehicleDao
+import ipt.pt.mygarage.data.local.entity.PartEntity
 import ipt.pt.mygarage.data.local.entity.PieceEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogPieceCrossRef
@@ -20,10 +21,11 @@ import ipt.pt.mygarage.data.local.entity.VehicleEntity
     entities = [
         VehicleEntity::class,
         ServiceLogEntity::class,
+        PartEntity::class,
         PieceEntity::class,
         ServiceLogPieceCrossRef::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -42,6 +44,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "my_garage_database"
                 )
+                .fallbackToDestructiveMigration()
                 .addCallback(DatabaseSeederCallback())
                 .build()
                 .also { Instance = it }
@@ -63,7 +66,7 @@ abstract class AppDatabase : RoomDatabase() {
             // Seed Vehicles
             db.execSQL("""
                 INSERT INTO vehicles (
-                    id, plate, modelName, year, mileage, inspectionDate, oilType, owner, 
+                    id, plate, name, year, mileage, inspectionDate, oilType, owner, 
                     seatCount, doorCount, fuelType, engineCapacity, iucValue, 
                     mileageToNextService, locationAddress
                 ) VALUES (
@@ -75,7 +78,7 @@ abstract class AppDatabase : RoomDatabase() {
 
             db.execSQL("""
                 INSERT INTO vehicles (
-                    id, plate, modelName, year, mileage, inspectionDate, oilType, owner, 
+                    id, plate, name, year, mileage, inspectionDate, oilType, owner, 
                     seatCount, doorCount, fuelType, engineCapacity, iucValue, 
                     mileageToNextService, locationAddress
                 ) VALUES (

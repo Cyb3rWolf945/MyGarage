@@ -14,17 +14,17 @@ data class VehicleEntity(
     @PrimaryKey
     val id: String = UUID.randomUUID().toString(),
     val plate: String,
-    val modelName: String,
+    val name: String,
     val year: String,
     val mileage: String,
-    val inspectionDate: String,
-    val oilType: String,
+    val inspectionDate: String? = null,
+    val oilType: String? = null,
     val owner: String,
-    val seatCount: String,
-    val doorCount: String,
+    val seatCount: String? = null,
+    val doorCount: String? = null,
     val fuelType: String,
     val engineCapacity: String,
-    val iucValue: String,
+    val iucValue: String? = null,
     val mileageToNextService: String,
-    val locationAddress: String
+    val locationAddress: String? = null
 )

@@ -1,10 +1,12 @@
 package ipt.pt.mygarage.data.repository
 
 import ipt.pt.mygarage.data.local.dao.VehicleDao
+import ipt.pt.mygarage.data.local.entity.PartEntity
 import ipt.pt.mygarage.data.local.entity.PieceEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogPieceCrossRef
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
+import ipt.pt.mygarage.data.local.relation.ServiceLogWithParts
 import ipt.pt.mygarage.data.local.relation.ServiceLogWithPieces
 import ipt.pt.mygarage.data.local.relation.VehicleWithServices
 import ipt.pt.mygarage.domain.repository.VehicleRepository
@@ -58,6 +60,14 @@ class OfflineVehicleRepository(
 
     override fun getServiceLogWithPieces(serviceLogId: UUID): Flow<ServiceLogWithPieces> {
         return vehicleDao.getServiceLogWithPieces(serviceLogId)
+    }
+
+    override suspend fun insertPart(part: PartEntity) {
+        vehicleDao.insertPart(part)
+    }
+
+    override fun getServiceLogWithParts(serviceLogId: String): Flow<ServiceLogWithParts> {
+        return vehicleDao.getServiceLogWithParts(serviceLogId)
     }
 
     /**
