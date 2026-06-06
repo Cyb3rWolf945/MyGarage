@@ -3,6 +3,7 @@ package ipt.pt.mygarage.presentation.service
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.PartEntity
 import ipt.pt.mygarage.data.local.entity.PieceEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogEntity
@@ -53,6 +54,34 @@ class ServiceViewModel(
     private val _temporaryParts = MutableStateFlow<List<PartEntity>>(emptyList())
     val temporaryParts: StateFlow<List<PartEntity>> = _temporaryParts.asStateFlow()
 
+    // Form validation errors for the service log form
+    private val _formErrors = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val formErrors: StateFlow<Map<String, Int>> = _formErrors.asStateFlow()
+
+    /** Removes the error for the given field so it disappears as the user types. */
+    fun clearFieldError(fieldName: String) {
+        if (_formErrors.value.containsKey(fieldName)) {
+            _formErrors.update { it - fieldName }
+        }
+    }
+
+    /**
+     * Validates mandatory service log fields.
+     * Returns true if all required fields are present, false otherwise.
+     */
+    private fun validateServiceLogFields(
+        description: String,
+        mileage: String,
+        selectedVehicleId: String?
+    ): Boolean {
+        val errors = mutableMapOf<String, Int>()
+        if (selectedVehicleId.isNullOrBlank()) errors["vehicle"] = R.string.error_field_required
+        if (description.isBlank()) errors["description"] = R.string.error_field_required
+        if (mileage.isBlank()) errors["mileage"] = R.string.error_field_required
+        _formErrors.value = errors
+        return errors.isEmpty()
+    }
+
     /**
      * Changes the current selected vehicle and retrieves its complete service history.
      */
@@ -69,6 +98,11 @@ class ServiceViewModel(
     }
 
     fun insertServiceLog(serviceLog: ServiceLogEntity) {
+        if (!validateServiceLogFields(
+                description = serviceLog.description,
+                mileage = serviceLog.mileage,
+                selectedVehicleId = serviceLog.vehicleId
+            )) return
         viewModelScope.launch {
             repository.insertServiceLog(serviceLog)
         }
@@ -110,6 +144,11 @@ class ServiceViewModel(
      * assigning them the newly created service log ID.
      */
     fun insertServiceLogWithParts(serviceLog: ServiceLogEntity) {
+        if (!validateServiceLogFields(
+                description = serviceLog.description,
+                mileage = serviceLog.mileage,
+                selectedVehicleId = serviceLog.vehicleId
+            )) return
         viewModelScope.launch {
             repository.insertServiceLog(serviceLog)
             val partsToInsert = _temporaryParts.value.map { part ->

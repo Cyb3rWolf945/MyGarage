@@ -84,7 +84,9 @@ private fun formatPortuguesePlate(raw: String): String {
 fun VehicleEditDialog(
     vehicle: VehicleEntity?,
     onDismiss: () -> Unit,
-    onConfirm: (VehicleEntity) -> Unit
+    onConfirm: (VehicleEntity) -> Unit,
+    formErrors: Map<String, Int> = emptyMap(),
+    onFieldChanged: (String) -> Unit = {}
 ) {
     var name by remember { mutableStateOf(vehicle?.name ?: "") }
     var plate by remember { mutableStateOf(vehicle?.plate ?: "") }
@@ -100,6 +102,15 @@ fun VehicleEditDialog(
     var iucValue by remember { mutableStateOf(vehicle?.iucValue ?: "") }
     var mileageToNextService by remember { mutableStateOf(vehicle?.mileageToNextService ?: "") }
     var locationAddress by remember { mutableStateOf(vehicle?.locationAddress ?: "") }
+
+    // Local validation errors merged with ViewModel errors for display
+    var localErrors by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    val allErrors = localErrors + formErrors
+
+    fun clearFieldError(field: String) {
+        if (localErrors.containsKey(field)) localErrors = localErrors - field
+        onFieldChanged(field)
+    }
 
     var engineCapacityExpanded by remember { mutableStateOf(false) }
     var doorCountExpanded by remember { mutableStateOf(false) }
@@ -180,8 +191,13 @@ fun VehicleEditDialog(
             // Name
             OutlinedTextField(
                 value = name,
-                onValueChange = { name = it },
+                onValueChange = {
+                    name = it
+                    clearFieldError("name")
+                },
                 label = { Text("Name") },
+                isError = allErrors.containsKey("name"),
+                supportingText = { allErrors["name"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -192,9 +208,12 @@ fun VehicleEditDialog(
                 value = plate,
                 onValueChange = { raw ->
                     plate = formatPortuguesePlate(raw)
+                    clearFieldError("plate")
                 },
                 label = { Text("License Plate") },
                 placeholder = { Text("XX-XX-XX") },
+                isError = allErrors.containsKey("plate"),
+                supportingText = { allErrors["plate"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -206,9 +225,12 @@ fun VehicleEditDialog(
                 onValueChange = {
                     if (it.length <= 4 && it.all { c -> c.isDigit() }) {
                         year = it
+                        clearFieldError("year")
                     }
                 },
                 label = { Text("Year") },
+                isError = allErrors.containsKey("year"),
+                supportingText = { allErrors["year"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -221,8 +243,11 @@ fun VehicleEditDialog(
                 onValueChange = {
                     mileage = it
                     autoCalcNextService(it)
+                    clearFieldError("mileage")
                 },
                 label = { Text("Mileage (e.g. 12,450 mi)") },
+                isError = allErrors.containsKey("mileage"),
+                supportingText = { allErrors["mileage"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -252,8 +277,13 @@ fun VehicleEditDialog(
             // Oil Type
             OutlinedTextField(
                 value = oilType,
-                onValueChange = { oilType = it },
+                onValueChange = {
+                    oilType = it
+                    clearFieldError("oilType")
+                },
                 label = { Text("Oil Type") },
+                isError = allErrors.containsKey("oilType"),
+                supportingText = { allErrors["oilType"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -262,8 +292,13 @@ fun VehicleEditDialog(
             // Owner
             OutlinedTextField(
                 value = owner,
-                onValueChange = { owner = it },
+                onValueChange = {
+                    owner = it
+                    clearFieldError("owner")
+                },
                 label = { Text("Owner") },
+                isError = allErrors.containsKey("owner"),
+                supportingText = { allErrors["owner"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -279,6 +314,8 @@ fun VehicleEditDialog(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Seat Count") },
+                    isError = allErrors.containsKey("seatCount"),
+                    supportingText = { allErrors["seatCount"]?.let { Text(stringResource(it)) } },
                     colors = textFieldColors,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -312,6 +349,8 @@ fun VehicleEditDialog(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Door Count") },
+                    isError = allErrors.containsKey("doorCount"),
+                    supportingText = { allErrors["doorCount"]?.let { Text(stringResource(it)) } },
                     colors = textFieldColors,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -351,6 +390,8 @@ fun VehicleEditDialog(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(id = R.string.fuel_type)) },
+                    isError = allErrors.containsKey("fuelType"),
+                    supportingText = { allErrors["fuelType"]?.let { Text(stringResource(it)) } },
                     colors = textFieldColors,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -368,6 +409,7 @@ fun VehicleEditDialog(
                             onClick = {
                                 fuelType = option
                                 fuelTypeExpanded = false
+                                clearFieldError("fuelType")
                             }
                         )
                     }
@@ -384,6 +426,8 @@ fun VehicleEditDialog(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Engine Capacity") },
+                    isError = allErrors.containsKey("engineCapacity"),
+                    supportingText = { allErrors["engineCapacity"]?.let { Text(stringResource(it)) } },
                     colors = textFieldColors,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -401,6 +445,7 @@ fun VehicleEditDialog(
                             onClick = {
                                 engineCapacity = option
                                 engineCapacityExpanded = false
+                                clearFieldError("engineCapacity")
                             }
                         )
                     }
@@ -410,8 +455,13 @@ fun VehicleEditDialog(
             // IUC Value
             OutlinedTextField(
                 value = iucValue,
-                onValueChange = { iucValue = it },
+                onValueChange = {
+                    iucValue = it
+                    clearFieldError("iucValue")
+                },
                 label = { Text("IUC Value (€)") },
+                isError = allErrors.containsKey("iucValue"),
+                supportingText = { allErrors["iucValue"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -422,18 +472,27 @@ fun VehicleEditDialog(
                 value = mileageToNextService,
                 onValueChange = {},
                 label = { Text("Mileage to Next Service") },
+                isError = allErrors.containsKey("mileageToNextService"),
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 readOnly = true,
                 singleLine = true,
-                supportingText = { Text("Auto-calculated (mileage + 10,000)", style = MaterialTheme.typography.labelSmall) }
+                supportingText = {
+                    allErrors["mileageToNextService"]?.let { Text(stringResource(it)) }
+                        ?: Text("Auto-calculated (mileage + 10,000)", style = MaterialTheme.typography.labelSmall)
+                }
             )
 
             // Location Address
             OutlinedTextField(
                 value = locationAddress,
-                onValueChange = { locationAddress = it },
+                onValueChange = {
+                    locationAddress = it
+                    clearFieldError("locationAddress")
+                },
                 label = { Text("Location Address") },
+                isError = allErrors.containsKey("locationAddress"),
+                supportingText = { allErrors["locationAddress"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -459,7 +518,17 @@ fun VehicleEditDialog(
 
                 Button(
                     onClick = {
-                        if (name.isNotBlank() && plate.isNotBlank()) {
+                        val errors = mutableMapOf<String, Int>()
+                        if (name.isBlank()) errors["name"] = R.string.error_field_required
+                        if (plate.isBlank()) errors["plate"] = R.string.error_field_required
+                        if (year.isBlank()) errors["year"] = R.string.error_field_required
+                        if (mileage.isBlank()) errors["mileage"] = R.string.error_field_required
+                        if (owner.isBlank()) errors["owner"] = R.string.error_field_required
+                        if (fuelType.isBlank()) errors["fuelType"] = R.string.error_field_required
+                        if (engineCapacity.isBlank()) errors["engineCapacity"] = R.string.error_field_required
+                        if (mileageToNextService.isBlank()) errors["mileageToNextService"] = R.string.error_field_required
+                        localErrors = errors
+                        if (errors.isEmpty()) {
                             val result = VehicleEntity(
                                 id = vehicle?.id ?: java.util.UUID.randomUUID().toString(),
                                 plate = plate,
