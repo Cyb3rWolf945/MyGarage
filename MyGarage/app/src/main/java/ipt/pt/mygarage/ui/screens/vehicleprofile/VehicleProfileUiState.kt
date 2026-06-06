@@ -12,7 +12,8 @@ data class VehicleProfileUiState(
     val fuelType: String,
     val engineCapacity: String,
     val iucValue: String? = null,
-    val mileageToNextService: String,
+    val mileageToNextService: String? = null,
     val locationAddress: String? = null,
-    val serviceHistory: List<ServiceHistoryItem>
+    val serviceHistory: List<ServiceHistoryItem>,
+    val formErrors: Map<String, Int> = emptyMap()
 )

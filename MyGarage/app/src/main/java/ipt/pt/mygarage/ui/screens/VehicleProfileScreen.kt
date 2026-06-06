@@ -61,6 +61,7 @@ fun VehicleProfileScreen(
     onBackClick: () -> Unit,
     onNavigateToService: () -> Unit,
     onUpdateVehicle: (VehicleEntity) -> Unit,
+    onFieldChanged: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -74,7 +75,9 @@ fun VehicleProfileScreen(
             onConfirm = { updatedVehicle ->
                 onUpdateVehicle(updatedVehicle)
                 showEditDialog = false
-            }
+            },
+            formErrors = uiState.formErrors,
+            onFieldChanged = onFieldChanged
         )
     }
 

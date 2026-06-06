@@ -41,6 +41,8 @@ fun GarageScreen(
     vehicles: List<VehicleEntity>,
     onVehicleClick: (String) -> Unit,
     onAddVehicleClick: (VehicleEntity) -> Unit,
+    formErrors: Map<String, Int> = emptyMap(),
+    onFieldChanged: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
@@ -52,7 +54,9 @@ fun GarageScreen(
             onConfirm = { newVehicle ->
                 onAddVehicleClick(newVehicle)
                 showAddDialog = false
-            }
+            },
+            formErrors = formErrors,
+            onFieldChanged = onFieldChanged
         )
     }
 

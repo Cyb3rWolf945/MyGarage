@@ -78,7 +78,7 @@ class OfflineVehicleRepository(
             // Rule: Increase 4 349.59835 miles to mileageToNextService
             val vehicle = vehicleDao.getVehicleById(serviceLog.vehicleId) ?: return
             
-            val currentMileageStr = vehicle.mileageToNextService
+            val currentMileageStr = vehicle.mileageToNextService ?: return
             // Clean non-numeric characters (except decimals/periods)
             val cleanStr = currentMileageStr.replace(",", "").replace(Regex("[^0-9.]"), "")
             val currentMileage = cleanStr.toDoubleOrNull() ?: 0.0

@@ -25,6 +25,6 @@ data class VehicleEntity(
     val fuelType: String,
     val engineCapacity: String,
     val iucValue: String? = null,
-    val mileageToNextService: String,
+    val mileageToNextService: String? = null,
     val locationAddress: String? = null
 )
