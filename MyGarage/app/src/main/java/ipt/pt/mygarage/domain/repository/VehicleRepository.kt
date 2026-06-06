@@ -20,6 +20,8 @@ interface VehicleRepository {
 
     suspend fun updateVehicle(vehicle: VehicleEntity)
 
+    suspend fun deleteVehicle(vehicle: VehicleEntity)
+
     fun getAllVehicles(): Flow<List<VehicleEntity>>
 
     fun getVehicleWithServices(vehicleId: String): Flow<VehicleWithServices>

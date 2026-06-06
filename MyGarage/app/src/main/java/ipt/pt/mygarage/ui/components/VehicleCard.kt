@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,6 +21,11 @@ import androidx.compose.ui.unit.dp
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+
 @Composable
 fun VehicleCard(
     model: String,
@@ -27,7 +33,8 @@ fun VehicleCard(
     status: String,
     statusColor: Color,
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    onDeleteClick: (() -> Unit)? = null
 ) {
     Box(
         modifier = modifier
@@ -55,6 +62,17 @@ fun VehicleCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MyGarageColors.onSurfaceVariant
                 )
+            }
+
+            if (onDeleteClick != null) {
+                IconButton(onClick = onDeleteClick) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete vehicle",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
             }
 
             Box(

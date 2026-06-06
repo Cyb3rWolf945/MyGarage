@@ -32,6 +32,32 @@ class GarageViewModel(
     private val _formErrors = MutableStateFlow<Map<String, Int>>(emptyMap())
     val formErrors: StateFlow<Map<String, Int>> = _formErrors.asStateFlow()
 
+    // Delete confirmation state
+    private val _vehicleToDelete = MutableStateFlow<VehicleEntity?>(null)
+    val vehicleToDelete: StateFlow<VehicleEntity?> = _vehicleToDelete.asStateFlow()
+
+    private val _showDeleteConfirmation = MutableStateFlow(false)
+    val showDeleteConfirmation: StateFlow<Boolean> = _showDeleteConfirmation.asStateFlow()
+
+    fun showDeleteDialog(vehicle: VehicleEntity) {
+        _vehicleToDelete.value = vehicle
+        _showDeleteConfirmation.value = true
+    }
+
+    fun dismissDeleteDialog() {
+        _showDeleteConfirmation.value = false
+        _vehicleToDelete.value = null
+    }
+
+    fun confirmDelete() {
+        val vehicle = _vehicleToDelete.value ?: return
+        viewModelScope.launch {
+            repository.deleteVehicle(vehicle)
+            _showDeleteConfirmation.value = false
+            _vehicleToDelete.value = null
+        }
+    }
+
     /** Removes the error for the given field so it disappears as the user types. */
     fun clearFieldError(fieldName: String) {
         if (_formErrors.value.containsKey(fieldName)) {

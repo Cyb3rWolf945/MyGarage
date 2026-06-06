@@ -32,6 +32,7 @@ import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.ui.components.VehicleCard
 import ipt.pt.mygarage.ui.components.VehicleEditDialog
 import ipt.pt.mygarage.ui.theme.MyGarageColors
+import ipt.pt.mygarage.ui.components.DeleteConfirmationDialog
 
 /**
  * Screen displaying the list of all registered vehicles with insertion capabilities.
@@ -41,6 +42,11 @@ fun GarageScreen(
     vehicles: List<VehicleEntity>,
     onVehicleClick: (String) -> Unit,
     onAddVehicleClick: (VehicleEntity) -> Unit,
+    onDeleteVehicle: (VehicleEntity) -> Unit = {},
+    showDeleteConfirmation: Boolean = false,
+    vehicleToDelete: VehicleEntity? = null,
+    onDismissDeleteDialog: () -> Unit = {},
+    onConfirmDelete: () -> Unit = {},
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {},
     modifier: Modifier = Modifier
@@ -57,6 +63,13 @@ fun GarageScreen(
             },
             formErrors = formErrors,
             onFieldChanged = onFieldChanged
+        )
+    }
+
+    if (showDeleteConfirmation && vehicleToDelete != null) {
+        DeleteConfirmationDialog(
+            onDismiss = onDismissDeleteDialog,
+            onConfirm = onConfirmDelete
         )
     }
 
@@ -107,7 +120,8 @@ fun GarageScreen(
                             plate = vehicle.plate,
                             status = if (isBmw) "IN SERVICE" else "READY",
                             statusColor = if (isBmw) MyGarageColors.onSurfaceVariant else MyGarageColors.primary,
-                            onClick = { onVehicleClick(vehicle.id) }
+                            onClick = { onVehicleClick(vehicle.id) },
+                            onDeleteClick = { onDeleteVehicle(vehicle) }
                         )
                     }
                 }
