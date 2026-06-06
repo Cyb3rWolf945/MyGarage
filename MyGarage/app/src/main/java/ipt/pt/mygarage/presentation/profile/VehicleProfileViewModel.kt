@@ -61,7 +61,6 @@ class VehicleProfileViewModel(
         if (vehicle.owner.isBlank()) errors["owner"] = R.string.error_field_required
         if (vehicle.fuelType.isBlank()) errors["fuelType"] = R.string.error_field_required
         if (vehicle.engineCapacity.isBlank()) errors["engineCapacity"] = R.string.error_field_required
-        if (vehicle.mileageToNextService.isBlank()) errors["mileageToNextService"] = R.string.error_field_required
         _formErrors.value = errors
         return errors.isEmpty()
     }

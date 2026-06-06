@@ -110,6 +110,10 @@ fun ServiceScreen(
     var partsSearchQuery by remember { mutableStateOf("") }
     var showAddPartDialog by remember { mutableStateOf(false) }
 
+    // Local validation errors merged with ViewModel errors for display
+    var localErrors by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    val allFormErrors = localErrors + formErrors
+
     // When the selected vehicle changes, pre-populate its current mileage as default for the service log
     LaunchedEffect(selectedVehicleId, selectedVehicleWithServices) {
         selectedVehicleWithServices?.vehicle?.mileage?.let {
@@ -290,11 +294,14 @@ fun ServiceScreen(
                         value = description,
                         onValueChange = {
                             description = it
+                            if (localErrors.containsKey("description")) {
+                                localErrors = localErrors - "description"
+                            }
                             onFieldChanged("description")
                         },
                         label = { Text("Description") },
-                        isError = formErrors.containsKey("description"),
-                        supportingText = { formErrors["description"]?.let { Text(stringResource(it)) } },
+                        isError = allFormErrors.containsKey("description"),
+                        supportingText = { allFormErrors["description"]?.let { Text(stringResource(it)) } },
                         colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -303,11 +310,14 @@ fun ServiceScreen(
                         value = mileage,
                         onValueChange = {
                             mileage = it
+                            if (localErrors.containsKey("mileage")) {
+                                localErrors = localErrors - "mileage"
+                            }
                             onFieldChanged("mileage")
                         },
                         label = { Text("Mileage at Service") },
-                        isError = formErrors.containsKey("mileage"),
-                        supportingText = { formErrors["mileage"]?.let { Text(stringResource(it)) } },
+                        isError = allFormErrors.containsKey("mileage"),
+                        supportingText = { allFormErrors["mileage"]?.let { Text(stringResource(it)) } },
                         colors = textFieldColors,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -480,7 +490,12 @@ fun ServiceScreen(
 
                     Button(
                         onClick = {
-                            if (description.isNotBlank() && mileage.isNotBlank() && selectedVehicleId != null) {
+                            val errors = mutableMapOf<String, Int>()
+                            if (selectedVehicleId.isNullOrBlank()) errors["vehicle"] = R.string.error_field_required
+                            if (description.isBlank()) errors["description"] = R.string.error_field_required
+                            if (mileage.isBlank()) errors["mileage"] = R.string.error_field_required
+                            localErrors = errors
+                            if (errors.isEmpty()) {
                                 val log = ServiceLogEntity(
                                     id = UUID.randomUUID(),
                                     vehicleId = selectedVehicleId!!,
@@ -558,6 +573,9 @@ private fun AddPartDialog(
     var partQuantity by remember { mutableStateOf("") }
     var partReference by remember { mutableStateOf("") }
 
+    // Local validation errors
+    var partErrors by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
@@ -586,9 +604,14 @@ private fun AddPartDialog(
 
             OutlinedTextField(
                 value = partName,
-                onValueChange = { partName = it },
+                onValueChange = {
+                    partName = it
+                    if (partErrors.containsKey("partName")) partErrors = partErrors - "partName"
+                },
                 label = { Text("Part Name") },
                 placeholder = { Text("e.g. Oil Filter, Brake Pads...") },
+                isError = partErrors.containsKey("partName"),
+                supportingText = { partErrors["partName"]?.let { Text(stringResource(it)) } },
                 colors = dialogTextFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -599,10 +622,13 @@ private fun AddPartDialog(
                 onValueChange = { newValue ->
                     if (newValue.all { c -> c.isDigit() } && newValue.length <= 4) {
                         partQuantity = newValue
+                        if (partErrors.containsKey("partQuantity")) partErrors = partErrors - "partQuantity"
                     }
                 },
                 label = { Text("Quantity") },
                 placeholder = { Text("1") },
+                isError = partErrors.containsKey("partQuantity"),
+                supportingText = { partErrors["partQuantity"]?.let { Text(stringResource(it)) } },
                 colors = dialogTextFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -632,8 +658,12 @@ private fun AddPartDialog(
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
                     onClick = {
-                        val qty = partQuantity.toIntOrNull() ?: 1
-                        if (partName.isNotBlank() && qty > 0) {
+                        val qty = partQuantity.toIntOrNull() ?: 0
+                        val errors = mutableMapOf<String, Int>()
+                        if (partName.isBlank()) errors["partName"] = R.string.error_field_required
+                        if (partQuantity.isBlank() || qty <= 0) errors["partQuantity"] = R.string.error_field_required
+                        partErrors = errors
+                        if (errors.isEmpty()) {
                             onConfirm(partName.trim(), qty, partReference.trim().ifBlank { null })
                         }
                     },
