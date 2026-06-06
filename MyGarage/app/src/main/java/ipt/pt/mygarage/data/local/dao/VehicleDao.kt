@@ -6,10 +6,12 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import ipt.pt.mygarage.data.local.entity.PartEntity
 import ipt.pt.mygarage.data.local.entity.PieceEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogPieceCrossRef
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
+import ipt.pt.mygarage.data.local.relation.ServiceLogWithParts
 import ipt.pt.mygarage.data.local.relation.ServiceLogWithPieces
 import ipt.pt.mygarage.data.local.relation.VehicleWithServices
 import kotlinx.coroutines.flow.Flow
@@ -52,4 +54,12 @@ interface VehicleDao {
     @Transaction
     @Query("SELECT * FROM service_logs WHERE id = :serviceLogId")
     fun getServiceLogWithPieces(serviceLogId: UUID): Flow<ServiceLogWithPieces>
+
+    // PartEntity operations
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPart(part: PartEntity)
+
+    @Transaction
+    @Query("SELECT * FROM service_logs WHERE id = :serviceLogId")
+    fun getServiceLogWithParts(serviceLogId: String): Flow<ServiceLogWithParts>
 }

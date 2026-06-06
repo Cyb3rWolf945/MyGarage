@@ -1,9 +1,11 @@
 package ipt.pt.mygarage.domain.repository
 
+import ipt.pt.mygarage.data.local.entity.PartEntity
 import ipt.pt.mygarage.data.local.entity.PieceEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogPieceCrossRef
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
+import ipt.pt.mygarage.data.local.relation.ServiceLogWithParts
 import ipt.pt.mygarage.data.local.relation.ServiceLogWithPieces
 import ipt.pt.mygarage.data.local.relation.VehicleWithServices
 import kotlinx.coroutines.flow.Flow
@@ -29,4 +31,8 @@ interface VehicleRepository {
     suspend fun insertServiceLogWithPieces(serviceLog: ServiceLogEntity, pieces: List<ServiceLogPieceCrossRef>)
 
     fun getServiceLogWithPieces(serviceLogId: UUID): Flow<ServiceLogWithPieces>
+
+    suspend fun insertPart(part: PartEntity)
+
+    fun getServiceLogWithParts(serviceLogId: String): Flow<ServiceLogWithParts>
 }

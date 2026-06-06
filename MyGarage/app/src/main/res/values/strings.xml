@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">MyGarage</string>
     <string name="nav_garage">Garage</string>
-    <string name="nav_camera">Camera</string>
+    <string name="nav_camera">PLATE SCANNER</string>
     <string name="nav_service">Service</string>
     <string name="garage_screen_title">Garage Destination</string>
     <string name="camera_screen_title">Camera Destination</string>
@@ -31,4 +31,9 @@
     <string name="tab_history">History</string>
     <string name="tab_location">Location</string>
     <string name="action_log_maintenance">LOG MAINTENANCE</string>
+    <string name="fuel_type">Fuel Type</string>
+    <string name="fuel_gasoline">Gasoline</string>
+    <string name="fuel_diesel">Diesel</string>
+    <string name="fuel_electric">Electric</string>
+    <string name="not_available">N/A</string>
 </resources>
