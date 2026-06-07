@@ -12,8 +12,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,17 +29,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
+import ipt.pt.mygarage.ui.components.DeleteConfirmationDialog
 import ipt.pt.mygarage.ui.components.VehicleCard
 import ipt.pt.mygarage.ui.components.VehicleEditDialog
 import ipt.pt.mygarage.ui.theme.MyGarageColors
-import ipt.pt.mygarage.ui.components.DeleteConfirmationDialog
 
 /**
- * Screen displaying the list of all registered vehicles with insertion capabilities.
+ * Screen displaying the list of all registered vehicles with long-press options
+ * and add/edit/delete capabilities via Unidirectional Data Flow (UDF).
  */
 @Composable
 fun GarageScreen(
@@ -49,23 +55,45 @@ fun GarageScreen(
     onConfirmDelete: () -> Unit = {},
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {},
+    // ── Long-Press Options Menu (UDF) ──────────────────────────────────────
+    selectedVehicleForOptions: VehicleEntity? = null,
+    onVehicleLongPressed: (VehicleEntity) -> Unit = {},
+    onDismissOptionsMenu: () -> Unit = {},
+    onSelectEdit: (VehicleEntity) -> Unit = {},
+    onSelectDelete: (VehicleEntity) -> Unit = {},
+    // ── Edit Dialog State (UDF) ────────────────────────────────────────────
+    vehicleToEdit: VehicleEntity? = null,
+    onDismissEditDialog: () -> Unit = {},
+    onConfirmEdit: (VehicleEntity) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
 
-    if (showAddDialog) {
+    // ── Add / Edit Dialog ──────────────────────────────────────────────────
+    val isEditDialogVisible = vehicleToEdit != null || showAddDialog
+
+    if (isEditDialogVisible) {
         VehicleEditDialog(
-            vehicle = null,
-            onDismiss = { showAddDialog = false },
-            onConfirm = { newVehicle ->
-                onAddVehicleClick(newVehicle)
+            vehicle = vehicleToEdit,
+            onDismiss = {
                 showAddDialog = false
+                onDismissEditDialog()
+            },
+            onConfirm = { updatedVehicle ->
+                if (vehicleToEdit != null) {
+                    onConfirmEdit(updatedVehicle)
+                    onDismissEditDialog()
+                } else {
+                    onAddVehicleClick(updatedVehicle)
+                    showAddDialog = false
+                }
             },
             formErrors = formErrors,
             onFieldChanged = onFieldChanged
         )
     }
 
+    // ── Delete Confirmation Dialog ─────────────────────────────────────────
     if (showDeleteConfirmation && vehicleToDelete != null) {
         DeleteConfirmationDialog(
             onDismiss = onDismissDeleteDialog,
@@ -121,9 +149,65 @@ fun GarageScreen(
                             status = if (isBmw) "IN SERVICE" else "READY",
                             statusColor = if (isBmw) MyGarageColors.onSurfaceVariant else MyGarageColors.primary,
                             onClick = { onVehicleClick(vehicle.id) },
-                            onDeleteClick = { onDeleteVehicle(vehicle) }
+                            onLongClick = { onVehicleLongPressed(vehicle) }
                         )
                     }
+                }
+            }
+        }
+
+        // ── Long-Press Context Menu ────────────────────────────────────────
+        if (selectedVehicleForOptions != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MyGarageColors.onBackground.copy(alpha = 0.15f))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onDismissOptionsMenu
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(0.72f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MyGarageColors.surfaceContainerLow)
+                        .padding(8.dp)
+                ) {
+                    // Edit option
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(id = R.string.action_edit),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MyGarageColors.onSurface
+                            )
+                        },
+                        onClick = {
+                            selectedVehicleForOptions?.let { onSelectEdit(it) }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                    )
+                    // Delete option
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(id = R.string.action_delete),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        onClick = {
+                            selectedVehicleForOptions?.let { onSelectDelete(it) }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                    )
                 }
             }
         }
