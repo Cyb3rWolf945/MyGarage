@@ -91,6 +91,17 @@ fun ServiceScreen(
     onRemoveTemporaryPart: (String) -> Unit,
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {},
+    // ── Form state driven by ViewModel (Add/Edit dual mode) ───────────────
+    editingLogId: String? = null,
+    serviceDate: String = "",
+    description: String = "",
+    mileage: String = "",
+    selectedType: String = "regular",
+    onDateChanged: (String) -> Unit = {},
+    onDescriptionChanged: (String) -> Unit = {},
+    onMileageChanged: (String) -> Unit = {},
+    onTypeChanged: (String) -> Unit = {},
+    onSave: () -> Unit = {},
     // ── Long-Press Options Menu (UDF) ──────────────────────────────────────
     selectedLogForOptions: ServiceLogEntity? = null,
     onLogLongPressed: (ServiceLogEntity) -> Unit = {},
@@ -105,15 +116,13 @@ fun ServiceScreen(
 ) {
     val scrollState = rememberScrollState()
 
-    // Form inputs state
+    // NOTE: Form inputs are now driven by ViewModel state for Add/Edit dual mode.
+    // Local remember is replaced by the parameters above.
+
     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
     val todayDateStr = remember { dateFormat.format(Date()) }
-    var serviceDate by remember { mutableStateOf(todayDateStr) }
-    var description by remember { mutableStateOf("") }
-    var mileage by remember { mutableStateOf("") }
-    
+
     val serviceTypes = listOf("regular", "revision", "Inspection")
-    var selectedType by remember { mutableStateOf("regular") }
 
     // Date picker state
     var showDatePicker by remember { mutableStateOf(false) }
@@ -131,10 +140,17 @@ fun ServiceScreen(
     var localErrors by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     val allFormErrors = localErrors + formErrors
 
-    // When the selected vehicle changes, pre-populate its current mileage as default for the service log
+    // When the selected vehicle changes, pre-populate its current mileage as default
+    // for the service log — only in Add mode (not during Edit)
     LaunchedEffect(selectedVehicleId, selectedVehicleWithServices) {
-        selectedVehicleWithServices?.vehicle?.mileage?.let {
-            mileage = it
+        if (editingLogId == null) {
+            selectedVehicleWithServices?.vehicle?.mileage?.let { vehicleMileage ->
+                onMileageChanged(vehicleMileage)
+            }
+            // Set today's date as default when entering Add mode
+            if (serviceDate.isBlank()) {
+                onDateChanged(todayDateStr)
+            }
         }
     }
 
@@ -145,7 +161,7 @@ fun ServiceScreen(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        serviceDate = dateFormat.format(Date(millis))
+                        onDateChanged(dateFormat.format(Date(millis)))
                     }
                     showDatePicker = false
                 }) {
@@ -256,7 +272,10 @@ fun ServiceScreen(
             // Service Log Form
             if (selectedVehicleId != null) {
                 Text(
-                    text = "LOG MAINTENANCE",
+                    text = stringResource(
+                        id = if (editingLogId != null) R.string.service_form_title_edit
+                        else R.string.service_form_title_add
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MyGarageColors.onSurfaceVariant
                 )
@@ -311,11 +330,10 @@ fun ServiceScreen(
                     OutlinedTextField(
                         value = description,
                         onValueChange = {
-                            description = it
+                            onDescriptionChanged(it)
                             if (localErrors.containsKey("description")) {
                                 localErrors = localErrors - "description"
                             }
-                            onFieldChanged("description")
                         },
                         label = { Text("Description") },
                         isError = allFormErrors.containsKey("description"),
@@ -327,11 +345,10 @@ fun ServiceScreen(
                     OutlinedTextField(
                         value = mileage,
                         onValueChange = {
-                            mileage = it
+                            onMileageChanged(it)
                             if (localErrors.containsKey("mileage")) {
                                 localErrors = localErrors - "mileage"
                             }
-                            onFieldChanged("mileage")
                         },
                         label = { Text("Mileage at Service") },
                         isError = allFormErrors.containsKey("mileage"),
@@ -358,7 +375,7 @@ fun ServiceScreen(
                                     .weight(1f)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(if (isSelected) MyGarageColors.primary else MyGarageColors.surfaceContainerLow)
-                                    .clickable { selectedType = type }
+                                    .clickable { onTypeChanged(type) }
                                     .padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -508,28 +525,15 @@ fun ServiceScreen(
 
                     Button(
                         onClick = {
+                            // Validate locally first for instant visual feedback,
+                            // then delegate to ViewModel for the full save flow
                             val errors = mutableMapOf<String, Int>()
                             if (selectedVehicleId.isNullOrBlank()) errors["vehicle"] = R.string.error_field_required
                             if (description.isBlank()) errors["description"] = R.string.error_field_required
                             if (mileage.isBlank()) errors["mileage"] = R.string.error_field_required
                             localErrors = errors
                             if (errors.isEmpty()) {
-                                val log = ServiceLogEntity(
-                                    id = UUID.randomUUID(),
-                                    vehicleId = selectedVehicleId!!,
-                                    date = serviceDate,
-                                    description = description,
-                                    mileage = if (mileage.contains("mi")) mileage else "$mileage mi",
-                                    type = selectedType
-                                )
-                                if (selectedType == "revision") {
-                                    onLogServiceWithParts(log)
-                                } else {
-                                    onLogService(log)
-                                }
-                                // Reset form inputs (except date)
-                                description = ""
-                                partsSearchQuery = ""
+                                onSave()
                             }
                         },
                         colors = ButtonDefaults.buttonColors(
@@ -542,7 +546,10 @@ fun ServiceScreen(
                             .height(50.dp)
                     ) {
                         Text(
-                            text = "LOG MAINTENANCE SERVICE",
+                            text = stringResource(
+                                id = if (editingLogId != null) R.string.action_update_service
+                                else R.string.action_log_maintenance
+                            ),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }

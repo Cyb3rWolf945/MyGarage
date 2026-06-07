@@ -94,6 +94,12 @@ fun MainScreen() {
     val serviceFormErrors by serviceViewModel.formErrors.collectAsState()
     val serviceSelectedLogForOptions by serviceViewModel.selectedLogForOptions.collectAsState()
     val serviceLogToDelete by serviceViewModel.logToDelete.collectAsState()
+    // ── Edit mode form state ───────────────────────────────────────────────
+    val serviceEditingLogId by serviceViewModel.editingLogId.collectAsState()
+    val serviceDate by serviceViewModel.serviceDate.collectAsState()
+    val serviceDescription by serviceViewModel.description.collectAsState()
+    val serviceMileage by serviceViewModel.mileage.collectAsState()
+    val serviceSelectedType by serviceViewModel.selectedType.collectAsState()
 
     val navController = rememberNavController()
     val pagerState = rememberPagerState(pageCount = { bottomNavItems.size })
@@ -197,6 +203,17 @@ fun MainScreen() {
                             },
                             formErrors = serviceFormErrors,
                             onFieldChanged = serviceViewModel::clearFieldError,
+                            // ── Edit Mode: ViewModel-driven form state ───
+                            editingLogId = serviceEditingLogId,
+                            serviceDate = serviceDate,
+                            description = serviceDescription,
+                            mileage = serviceMileage,
+                            selectedType = serviceSelectedType,
+                            onDateChanged = serviceViewModel::onDateChanged,
+                            onDescriptionChanged = serviceViewModel::onDescriptionChanged,
+                            onMileageChanged = serviceViewModel::onMileageChanged,
+                            onTypeChanged = serviceViewModel::onTypeChanged,
+                            onSave = serviceViewModel::onSaveServiceLog,
                             // ── Long-Press Options Menu ──────────────────
                             selectedLogForOptions = serviceSelectedLogForOptions,
                             onLogLongPressed = serviceViewModel::onLogLongPressed,
