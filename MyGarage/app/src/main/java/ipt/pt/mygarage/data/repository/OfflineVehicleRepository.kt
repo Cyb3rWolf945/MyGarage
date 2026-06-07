@@ -74,6 +74,19 @@ class OfflineVehicleRepository(
         return vehicleDao.getServiceLogWithParts(serviceLogId)
     }
 
+    override suspend fun updateServiceLogWithParts(
+        serviceLog: ServiceLogEntity,
+        parts: List<PartEntity>
+    ) {
+        // 1. Update the ServiceLogEntity
+        vehicleDao.updateServiceLog(serviceLog)
+        // 2. Delete all existing parts for this service log
+        vehicleDao.deletePartsByServiceId(serviceLog.id.toString())
+        // 3. Insert the updated list of parts
+        parts.forEach { vehicleDao.insertPart(it) }
+        handleServiceLogSideEffects(serviceLog)
+    }
+
     override suspend fun deleteServiceLog(serviceLog: ServiceLogEntity) {
         vehicleDao.deleteServiceLog(serviceLog)
     }
