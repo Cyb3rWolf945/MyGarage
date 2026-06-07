@@ -37,4 +37,6 @@ interface VehicleRepository {
     suspend fun insertPart(part: PartEntity)
 
     fun getServiceLogWithParts(serviceLogId: String): Flow<ServiceLogWithParts>
+
+    suspend fun deleteServiceLog(serviceLog: ServiceLogEntity)
 }

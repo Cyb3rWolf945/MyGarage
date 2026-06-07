@@ -1,7 +1,9 @@
 package ipt.pt.mygarage.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,20 +29,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -84,6 +91,16 @@ fun ServiceScreen(
     onRemoveTemporaryPart: (String) -> Unit,
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {},
+    // ── Long-Press Options Menu (UDF) ──────────────────────────────────────
+    selectedLogForOptions: ServiceLogEntity? = null,
+    onLogLongPressed: (ServiceLogEntity) -> Unit = {},
+    onDismissOptionsMenu: () -> Unit = {},
+    onSelectEdit: (ServiceLogEntity) -> Unit = {},
+    onSelectDelete: (ServiceLogEntity) -> Unit = {},
+    // ── Delete Confirmation Dialog (UDF) ───────────────────────────────────
+    logToDelete: ServiceLogEntity? = null,
+    onDismissDeleteDialog: () -> Unit = {},
+    onConfirmDeleteLog: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -227,7 +244,8 @@ fun ServiceScreen(
                         TimelineItem(
                             title = log.description,
                             subtitle = displaySubtitle,
-                            isLast = index == services.size - 1
+                            isLast = index == services.size - 1,
+                            onLongClick = { onLogLongPressed(log) }
                         )
                     }
                 }
@@ -558,6 +576,88 @@ fun ServiceScreen(
             }
         )
     }
+
+    // ── Options Bottom Sheet ───────────────────────────────────────────────
+    if (selectedLogForOptions != null) {
+        val sheetState = rememberModalBottomSheetState()
+        ModalBottomSheet(
+            onDismissRequest = onDismissOptionsMenu,
+            sheetState = sheetState,
+            containerColor = MyGarageColors.surfaceContainerLow,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
+            ) {
+                // Edit option
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = {
+                                selectedLogForOptions?.let { onSelectEdit(it) }
+                            },
+                            onLongClick = null
+                        )
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = MyGarageColors.onSurface
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = stringResource(id = R.string.action_edit),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MyGarageColors.onSurface
+                    )
+                }
+
+                HorizontalDivider(
+                    color = MyGarageColors.surfaceContainerHigh,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+
+                // Delete option
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = {
+                                selectedLogForOptions?.let { onSelectDelete(it) }
+                            },
+                            onLongClick = null
+                        )
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = stringResource(id = R.string.action_delete),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+    }
+
+    // ── Delete Confirmation Dialog ─────────────────────────────────────────
+    if (logToDelete != null) {
+        DeleteServiceDialog(
+            onDismiss = onDismissDeleteDialog,
+            onConfirm = onConfirmDeleteLog
+        )
+    }
 }
 
 /**
@@ -683,16 +783,28 @@ private fun AddPartDialog(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TimelineItem(
     title: String,
     subtitle: String,
-    isLast: Boolean
+    isLast: Boolean,
+    onLongClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
+            .then(
+                if (onLongClick != null) {
+                    Modifier.combinedClickable(
+                        onClick = {},
+                        onLongClick = onLongClick
+                    )
+                } else {
+                    Modifier
+                }
+            )
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -740,6 +852,68 @@ fun TimelineItem(
                 style = MaterialTheme.typography.labelSmall,
                 color = MyGarageColors.onSurfaceVariant
             )
+        }
+    }
+}
+
+/**
+ * Confirmation dialog for deleting a service log.
+ * Follows the "Mechanical Atelier" design system with surface_container_low,
+ * 16dp rounded corners, and a destructive Delete button in error color.
+ */
+@Composable
+private fun DeleteServiceDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MyGarageColors.surfaceContainerLow)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.delete_service_title),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MyGarageColors.onSurface
+            )
+
+            Text(
+                text = stringResource(id = R.string.delete_service_message),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MyGarageColors.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        text = stringResource(id = R.string.action_cancel),
+                        color = MyGarageColors.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = onConfirm,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    ),
+                    shape = RoundedCornerShape(50)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.action_delete),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
         }
     }
 }
