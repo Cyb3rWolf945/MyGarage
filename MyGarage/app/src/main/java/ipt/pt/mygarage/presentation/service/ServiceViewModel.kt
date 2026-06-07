@@ -62,6 +62,23 @@ class ServiceViewModel(
     private val _selectedLogForOptions = MutableStateFlow<ServiceLogEntity?>(null)
     val selectedLogForOptions: StateFlow<ServiceLogEntity?> = _selectedLogForOptions.asStateFlow()
 
+    // ── Edit Mode State ────────────────────────────────────────────────────
+    private val _editingLogId = MutableStateFlow<String?>(null)
+    val editingLogId: StateFlow<String?> = _editingLogId.asStateFlow()
+
+    // ── Form Field State (driven by ViewModel for Add/Edit modes) ──────────
+    private val _serviceDate = MutableStateFlow("")
+    val serviceDate: StateFlow<String> = _serviceDate.asStateFlow()
+
+    private val _description = MutableStateFlow("")
+    val description: StateFlow<String> = _description.asStateFlow()
+
+    private val _mileage = MutableStateFlow("")
+    val mileage: StateFlow<String> = _mileage.asStateFlow()
+
+    private val _selectedType = MutableStateFlow("regular")
+    val selectedType: StateFlow<String> = _selectedType.asStateFlow()
+
     // ── Delete Confirmation State ──────────────────────────────────────────
     private val _logToDelete = MutableStateFlow<ServiceLogEntity?>(null)
     val logToDelete: StateFlow<ServiceLogEntity?> = _logToDelete.asStateFlow()
@@ -71,6 +88,27 @@ class ServiceViewModel(
         if (_formErrors.value.containsKey(fieldName)) {
             _formErrors.update { it - fieldName }
         }
+    }
+
+    // ── Form Field Change Intents ──────────────────────────────────────────
+
+    fun onDateChanged(date: String) {
+        _serviceDate.value = date
+        clearFieldError("date")
+    }
+
+    fun onDescriptionChanged(description: String) {
+        _description.value = description
+        clearFieldError("description")
+    }
+
+    fun onMileageChanged(mileage: String) {
+        _mileage.value = mileage
+        clearFieldError("mileage")
+    }
+
+    fun onTypeChanged(type: String) {
+        _selectedType.value = type
     }
 
     /**
@@ -167,6 +205,77 @@ class ServiceViewModel(
         }
     }
 
+    /**
+     * Unified save intent for both Add and Edit flows.
+     * Validates mandatory fields first; if valid, either inserts a new
+     * service log or updates an existing one based on [editingLogId].
+     */
+    fun onSaveServiceLog() {
+        val desc = _description.value
+        val mileage = _mileage.value
+        val vehicleId = _selectedVehicleId.value
+        val date = _serviceDate.value
+        val type = _selectedType.value
+
+        if (!validateServiceLogFields(
+                description = desc,
+                mileage = mileage,
+                selectedVehicleId = vehicleId
+            )) return
+
+        val editingId = _editingLogId.value
+        viewModelScope.launch {
+            if (editingId != null) {
+                // ── EDIT MODE: update existing log with current parts ──────
+                val updatedLog = ServiceLogEntity(
+                    id = UUID.fromString(editingId),
+                    vehicleId = vehicleId!!,
+                    date = date,
+                    description = desc,
+                    mileage = if (mileage.contains("mi")) mileage else "$mileage mi",
+                    type = type
+                )
+                val partsToSave = _temporaryParts.value.map { part ->
+                    part.copy(serviceLogId = editingId)
+                }
+                repository.updateServiceLogWithParts(updatedLog, partsToSave)
+            } else {
+                // ── ADD MODE: insert new log with current parts ────────────
+                val newLog = ServiceLogEntity(
+                    id = UUID.randomUUID(),
+                    vehicleId = vehicleId!!,
+                    date = date,
+                    description = desc,
+                    mileage = if (mileage.contains("mi")) mileage else "$mileage mi",
+                    type = type
+                )
+                if (type == "revision") {
+                    repository.insertServiceLog(newLog)
+                    val partsToInsert = _temporaryParts.value.map { part ->
+                        part.copy(serviceLogId = newLog.id.toString())
+                    }
+                    partsToInsert.forEach { repository.insertPart(it) }
+                } else {
+                    repository.insertServiceLog(newLog)
+                }
+            }
+
+            // Clear state and close the form upon success
+            clearFormState()
+        }
+    }
+
+    /** Resets form state back to defaults after a successful save. */
+    private fun clearFormState() {
+        _editingLogId.value = null
+        _serviceDate.value = ""
+        _description.value = ""
+        _mileage.value = ""
+        _selectedType.value = "regular"
+        _temporaryParts.value = emptyList()
+        _formErrors.value = emptyMap()
+    }
+
     // ── Long-Press Options Menu Intents ────────────────────────────────────
 
     fun onLogLongPressed(serviceLog: ServiceLogEntity) {
@@ -179,7 +288,23 @@ class ServiceViewModel(
 
     fun onSelectEdit(serviceLog: ServiceLogEntity) {
         _selectedLogForOptions.value = null
-        // TODO: Edit functionality to be implemented in a future iteration
+        _editingLogId.value = serviceLog.id.toString()
+
+        // Populate form fields with the selected log's existing data
+        _serviceDate.value = serviceLog.date
+        _description.value = serviceLog.description
+        _mileage.value = serviceLog.mileage
+        _selectedType.value = serviceLog.type
+        _formErrors.value = emptyMap()
+
+        // Load existing parts for this service log
+        viewModelScope.launch {
+            repository.getServiceLogWithParts(serviceLog.id.toString())
+                .catch { e -> e.printStackTrace() }
+                .collect { serviceWithParts ->
+                    _temporaryParts.value = serviceWithParts.parts
+                }
+        }
     }
 
     fun onSelectDelete(serviceLog: ServiceLogEntity) {
