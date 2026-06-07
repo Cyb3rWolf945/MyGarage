@@ -66,4 +66,7 @@ interface VehicleDao {
     @Transaction
     @Query("SELECT * FROM service_logs WHERE id = :serviceLogId")
     fun getServiceLogWithParts(serviceLogId: String): Flow<ServiceLogWithParts>
+
+    @Delete
+    suspend fun deleteServiceLog(serviceLog: ServiceLogEntity)
 }

@@ -58,6 +58,14 @@ class ServiceViewModel(
     private val _formErrors = MutableStateFlow<Map<String, Int>>(emptyMap())
     val formErrors: StateFlow<Map<String, Int>> = _formErrors.asStateFlow()
 
+    // ── Long-Press Options Menu State ──────────────────────────────────────
+    private val _selectedLogForOptions = MutableStateFlow<ServiceLogEntity?>(null)
+    val selectedLogForOptions: StateFlow<ServiceLogEntity?> = _selectedLogForOptions.asStateFlow()
+
+    // ── Delete Confirmation State ──────────────────────────────────────────
+    private val _logToDelete = MutableStateFlow<ServiceLogEntity?>(null)
+    val logToDelete: StateFlow<ServiceLogEntity?> = _logToDelete.asStateFlow()
+
     /** Removes the error for the given field so it disappears as the user types. */
     fun clearFieldError(fieldName: String) {
         if (_formErrors.value.containsKey(fieldName)) {
@@ -156,6 +164,38 @@ class ServiceViewModel(
             }
             partsToInsert.forEach { repository.insertPart(it) }
             _temporaryParts.value = emptyList()
+        }
+    }
+
+    // ── Long-Press Options Menu Intents ────────────────────────────────────
+
+    fun onLogLongPressed(serviceLog: ServiceLogEntity) {
+        _selectedLogForOptions.value = serviceLog
+    }
+
+    fun onDismissOptionsMenu() {
+        _selectedLogForOptions.value = null
+    }
+
+    fun onSelectEdit(serviceLog: ServiceLogEntity) {
+        _selectedLogForOptions.value = null
+        // TODO: Edit functionality to be implemented in a future iteration
+    }
+
+    fun onSelectDelete(serviceLog: ServiceLogEntity) {
+        _selectedLogForOptions.value = null
+        _logToDelete.value = serviceLog
+    }
+
+    fun onDismissDeleteDialog() {
+        _logToDelete.value = null
+    }
+
+    fun onConfirmDeleteLog() {
+        val log = _logToDelete.value ?: return
+        viewModelScope.launch {
+            repository.deleteServiceLog(log)
+            _logToDelete.value = null
         }
     }
 
