@@ -84,6 +84,10 @@ fun MainScreen() {
 
     val vehicles by garageViewModel.vehiclesState.collectAsState()
     val garageFormErrors by garageViewModel.formErrors.collectAsState()
+    val garageShowDelete by garageViewModel.showDeleteConfirmation.collectAsState()
+    val garageVehicleToDelete by garageViewModel.vehicleToDelete.collectAsState()
+    val garageSelectedForOptions by garageViewModel.selectedVehicleForOptions.collectAsState()
+    val garageVehicleToEdit by garageViewModel.vehicleToEdit.collectAsState()
     val selectedVehicleId by serviceViewModel.selectedVehicleId.collectAsState()
     val selectedVehicleWithServices by serviceViewModel.selectedVehicleWithServices.collectAsState()
     val temporaryParts by serviceViewModel.temporaryParts.collectAsState()
@@ -148,8 +152,25 @@ fun MainScreen() {
                             onAddVehicleClick = { newVehicle ->
                                 garageViewModel.insertVehicle(newVehicle)
                             },
+                            onDeleteVehicle = { vehicle ->
+                                garageViewModel.showDeleteDialog(vehicle)
+                            },
+                            showDeleteConfirmation = garageShowDelete,
+                            vehicleToDelete = garageVehicleToDelete,
+                            onDismissDeleteDialog = garageViewModel::dismissDeleteDialog,
+                            onConfirmDelete = garageViewModel::confirmDelete,
                             formErrors = garageFormErrors,
-                            onFieldChanged = garageViewModel::clearFieldError
+                            onFieldChanged = garageViewModel::clearFieldError,
+                            // ── Long-Press Options Menu ──────────────────
+                            selectedVehicleForOptions = garageSelectedForOptions,
+                            onVehicleLongPressed = garageViewModel::onVehicleLongPressed,
+                            onDismissOptionsMenu = garageViewModel::onDismissOptionsMenu,
+                            onSelectEdit = garageViewModel::onSelectEdit,
+                            onSelectDelete = garageViewModel::onSelectDelete,
+                            // ── Edit Dialog State ────────────────────────
+                            vehicleToEdit = garageVehicleToEdit,
+                            onDismissEditDialog = garageViewModel::onDismissEditDialog,
+                            onConfirmEdit = garageViewModel::confirmEdit
                         )
                         Screen.Camera -> CameraScreen()
                         Screen.Service -> ServiceScreen(
@@ -190,6 +211,8 @@ fun MainScreen() {
 
                 val vehicleWithServices by profileViewModel.uiState.collectAsState()
                 val profileFormErrors by profileViewModel.formErrors.collectAsState()
+                val profileShowDelete by profileViewModel.showDeleteConfirmation.collectAsState()
+                val profileDeleteCompleted by profileViewModel.deleteCompleted.collectAsState()
 
                 vehicleWithServices?.let { ws ->
                     val uiState = remember(ws, profileFormErrors) {
@@ -217,6 +240,14 @@ fun MainScreen() {
                         )
                     }
 
+                    // Handle delete-completed navigation event
+                    LaunchedEffect(profileDeleteCompleted) {
+                        if (profileDeleteCompleted) {
+                            profileViewModel.onDeleteCompletedHandled()
+                            navController.popBackStack()
+                        }
+                    }
+
                     VehicleProfileScreen(
                         uiState = uiState,
                         vehicleEntity = ws.vehicle,
@@ -237,6 +268,12 @@ fun MainScreen() {
                         onUpdateVehicle = { updatedVehicle ->
                             profileViewModel.updateVehicle(updatedVehicle)
                         },
+                        onDeleteVehicle = {
+                            profileViewModel.showDeleteDialog()
+                        },
+                        showDeleteConfirmation = profileShowDelete,
+                        onDismissDeleteDialog = profileViewModel::dismissDeleteDialog,
+                        onConfirmDelete = profileViewModel::confirmDelete,
                         onFieldChanged = profileViewModel::clearFieldError
                     )
                 }
