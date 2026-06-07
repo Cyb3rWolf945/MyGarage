@@ -32,12 +32,52 @@ class GarageViewModel(
     private val _formErrors = MutableStateFlow<Map<String, Int>>(emptyMap())
     val formErrors: StateFlow<Map<String, Int>> = _formErrors.asStateFlow()
 
+    // Long-press options menu state
+    private val _selectedVehicleForOptions = MutableStateFlow<VehicleEntity?>(null)
+    val selectedVehicleForOptions: StateFlow<VehicleEntity?> = _selectedVehicleForOptions.asStateFlow()
+
+    // Edit dialog state (for both Add and Edit flows)
+    private val _vehicleToEdit = MutableStateFlow<VehicleEntity?>(null)
+    val vehicleToEdit: StateFlow<VehicleEntity?> = _vehicleToEdit.asStateFlow()
+
     // Delete confirmation state
     private val _vehicleToDelete = MutableStateFlow<VehicleEntity?>(null)
     val vehicleToDelete: StateFlow<VehicleEntity?> = _vehicleToDelete.asStateFlow()
 
     private val _showDeleteConfirmation = MutableStateFlow(false)
     val showDeleteConfirmation: StateFlow<Boolean> = _showDeleteConfirmation.asStateFlow()
+
+    // ── Long-Press Options Menu Intents ─────────────────────────────────────
+
+    fun onVehicleLongPressed(vehicle: VehicleEntity) {
+        _selectedVehicleForOptions.value = vehicle
+    }
+
+    fun onDismissOptionsMenu() {
+        _selectedVehicleForOptions.value = null
+    }
+
+    fun onSelectEdit(vehicle: VehicleEntity) {
+        _selectedVehicleForOptions.value = null
+        _vehicleToEdit.value = vehicle
+    }
+
+    fun onSelectDelete(vehicle: VehicleEntity) {
+        _selectedVehicleForOptions.value = null
+        showDeleteDialog(vehicle)
+    }
+
+    fun onDismissEditDialog() {
+        _vehicleToEdit.value = null
+    }
+
+    fun confirmEdit(vehicle: VehicleEntity) {
+        viewModelScope.launch {
+            repository.updateVehicle(vehicle)
+        }
+    }
+
+    // ── Delete Confirmation Intents ─────────────────────────────────────────
 
     fun showDeleteDialog(vehicle: VehicleEntity) {
         _vehicleToDelete.value = vehicle
