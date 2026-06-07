@@ -92,6 +92,8 @@ fun MainScreen() {
     val selectedVehicleWithServices by serviceViewModel.selectedVehicleWithServices.collectAsState()
     val temporaryParts by serviceViewModel.temporaryParts.collectAsState()
     val serviceFormErrors by serviceViewModel.formErrors.collectAsState()
+    val serviceSelectedLogForOptions by serviceViewModel.selectedLogForOptions.collectAsState()
+    val serviceLogToDelete by serviceViewModel.logToDelete.collectAsState()
 
     val navController = rememberNavController()
     val pagerState = rememberPagerState(pageCount = { bottomNavItems.size })
@@ -194,7 +196,17 @@ fun MainScreen() {
                                 serviceViewModel.removeTemporaryPart(partId)
                             },
                             formErrors = serviceFormErrors,
-                            onFieldChanged = serviceViewModel::clearFieldError
+                            onFieldChanged = serviceViewModel::clearFieldError,
+                            // ── Long-Press Options Menu ──────────────────
+                            selectedLogForOptions = serviceSelectedLogForOptions,
+                            onLogLongPressed = serviceViewModel::onLogLongPressed,
+                            onDismissOptionsMenu = serviceViewModel::onDismissOptionsMenu,
+                            onSelectEdit = serviceViewModel::onSelectEdit,
+                            onSelectDelete = serviceViewModel::onSelectDelete,
+                            // ── Delete Confirmation Dialog ───────────────
+                            logToDelete = serviceLogToDelete,
+                            onDismissDeleteDialog = serviceViewModel::onDismissDeleteDialog,
+                            onConfirmDeleteLog = serviceViewModel::onConfirmDeleteLog
                         )
                     }
                 }
