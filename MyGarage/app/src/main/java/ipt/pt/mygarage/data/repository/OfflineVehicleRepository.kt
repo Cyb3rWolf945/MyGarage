@@ -74,6 +74,10 @@ class OfflineVehicleRepository(
         return vehicleDao.getServiceLogWithParts(serviceLogId)
     }
 
+    override suspend fun deleteServiceLog(serviceLog: ServiceLogEntity) {
+        vehicleDao.deleteServiceLog(serviceLog)
+    }
+
     /**
      * Executes business rules based on the type of registered service.
      */
