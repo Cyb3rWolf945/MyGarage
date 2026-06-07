@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -57,21 +58,6 @@ private val engineCapacityOptions = listOf(
 private val doorCountOptions = listOf("2", "3", "4", "5")
 private val seatCountOptions = listOf("2", "4", "5", "7")
 private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-
-/**
- * Formats a raw license plate input into the Portuguese XX-XX-XX format.
- * Strips non-alphanumeric characters, uppercases, and inserts hyphens
- * after every second character (max 8 chars including hyphens).
- */
-private fun formatPortuguesePlate(raw: String): String {
-    val alphanumeric = raw.filter { it.isLetterOrDigit() }.take(6).uppercase()
-    return buildString {
-        alphanumeric.forEachIndexed { index, c ->
-            if (index > 0 && index % 2 == 0) append('-')
-            append(c)
-        }
-    }
-}
 
 /**
  * Dialog for adding a new vehicle or editing properties of an existing one.
@@ -203,20 +189,24 @@ fun VehicleEditDialog(
                 singleLine = true
             )
 
-            // License Plate — auto-formatted to Portuguese XX-XX-XX
+            // License Plate — raw storage, hyphens injected via VisualTransformation
             OutlinedTextField(
                 value = plate,
                 onValueChange = { raw ->
-                    plate = formatPortuguesePlate(raw)
+                    plate = raw.filter { it.isLetterOrDigit() }.take(6).uppercase()
                     clearFieldError("plate")
                 },
                 label = { Text("License Plate") },
                 placeholder = { Text("XX-XX-XX") },
+                visualTransformation = LicensePlateVisualTransformation,
                 isError = allErrors.containsKey("plate"),
                 supportingText = { allErrors["plate"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters
+                )
             )
 
             // Year - numeric only, 4-char limit
