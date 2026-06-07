@@ -48,8 +48,10 @@ import ipt.pt.mygarage.ui.theme.MyGarageColors
 import ipt.pt.mygarage.ui.screens.vehicleprofile.VehicleProfileUiState
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.ui.components.VehicleEditDialog
+import ipt.pt.mygarage.ui.components.DeleteConfirmationDialog
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.IconButton
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -61,6 +63,10 @@ fun VehicleProfileScreen(
     onBackClick: () -> Unit,
     onNavigateToService: () -> Unit,
     onUpdateVehicle: (VehicleEntity) -> Unit,
+    onDeleteVehicle: () -> Unit = {},
+    showDeleteConfirmation: Boolean = false,
+    onDismissDeleteDialog: () -> Unit = {},
+    onConfirmDelete: () -> Unit = {},
     onFieldChanged: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -78,6 +84,13 @@ fun VehicleProfileScreen(
             },
             formErrors = uiState.formErrors,
             onFieldChanged = onFieldChanged
+        )
+    }
+
+    if (showDeleteConfirmation) {
+        DeleteConfirmationDialog(
+            onDismiss = onDismissDeleteDialog,
+            onConfirm = onConfirmDelete
         )
     }
 
@@ -160,12 +173,21 @@ fun VehicleProfileScreen(
                                 color = MyGarageColors.onBackground
                             )
                         }
-                        IconButton(onClick = { showEditDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Vehicle",
-                                tint = MyGarageColors.primary
-                            )
+                        Row {
+                            IconButton(onClick = { showEditDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit Vehicle",
+                                    tint = MyGarageColors.primary
+                                )
+                            }
+                            IconButton(onClick = onDeleteVehicle) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete Vehicle",
+                                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                                )
+                            }
                         }
                     }
                 }
