@@ -1,10 +1,12 @@
 package ipt.pt.mygarage.presentation.garage
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
+import ipt.pt.mygarage.data.repository.UserPreferencesRepository
 import ipt.pt.mygarage.domain.repository.VehicleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,10 +18,18 @@ import kotlinx.coroutines.launch
 
 /**
  * ViewModel for managing the main garage screen.
+ * Combines vehicle management (Room) with user preferences (DataStore).
  */
-class GarageViewModel(
-    private val repository: VehicleRepository
-) : ViewModel() {
+class GarageViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val userPreferencesRepository = UserPreferencesRepository(application)
+    private val repository: VehicleRepository = (application as MyGarageApplication).repository
+
+    // ── User Preferences (garage name) ────────────────────────────────────
+    private val _uiState = MutableStateFlow(GarageUiState())
+    val uiState: StateFlow<GarageUiState> = _uiState.asStateFlow()
+
+    // ── Vehicle management ────────────────────────────────────────────────
 
     // Expose vehicles from local Room persistence as a read-only StateFlow
     val vehiclesState: StateFlow<List<VehicleEntity>> = repository.getAllVehicles()
@@ -46,6 +56,16 @@ class GarageViewModel(
 
     private val _showDeleteConfirmation = MutableStateFlow(false)
     val showDeleteConfirmation: StateFlow<Boolean> = _showDeleteConfirmation.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            userPreferencesRepository.userPreferencesFlow.collect { preferences ->
+                _uiState.value = _uiState.value.copy(
+                    garageName = preferences.garageName
+                )
+            }
+        }
+    }
 
     // ── Long-Press Options Menu Intents ─────────────────────────────────────
 
@@ -128,15 +148,5 @@ class GarageViewModel(
         viewModelScope.launch {
             repository.insertVehicle(vehicle)
         }
-    }
-
-    companion object {
-        fun factory(repository: VehicleRepository): ViewModelProvider.Factory =
-            object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return GarageViewModel(repository) as T
-                }
-            }
     }
 }
