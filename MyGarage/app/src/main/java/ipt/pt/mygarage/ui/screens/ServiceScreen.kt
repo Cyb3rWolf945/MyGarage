@@ -18,49 +18,34 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import ipt.pt.mygarage.R
@@ -68,16 +53,17 @@ import ipt.pt.mygarage.data.local.entity.PartEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogEntity
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.data.local.relation.VehicleWithServices
+import ipt.pt.mygarage.ui.components.ServiceLogActionDialog
+import ipt.pt.mygarage.ui.screens.servicelog.ServiceDialogMode
 import ipt.pt.mygarage.ui.theme.MyGarageColors
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.UUID
 
-/**
- * Screen displaying selectable vehicles, their service history timeline, and a form to log new services.
- */
-@OptIn(ExperimentalMaterial3Api::class)
+// ─────────────────────────────────────────────────────────────────────────────
+//  ServiceScreen — refactored with unified multi-mode dialog
+//  Follows RULES.md (UDF, formErrors, "N/A" alpha rule) and
+//  DESIGN.md (tonal layering, no 1px borders, surface_container_low dialogs)
+// ─────────────────────────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ServiceScreen(
     vehicles: List<VehicleEntity>,
@@ -85,14 +71,15 @@ fun ServiceScreen(
     selectedVehicleWithServices: VehicleWithServices?,
     temporaryParts: List<PartEntity>,
     onVehicleSelected: (String) -> Unit,
-    onLogService: (ServiceLogEntity) -> Unit,
-    onLogServiceWithParts: (ServiceLogEntity) -> Unit,
     onAddTemporaryPart: (String, Int, String?) -> Unit,
     onRemoveTemporaryPart: (String) -> Unit,
+    // ── Unified Dialog State ────────────────────────────────────────────
+    dialogMode: ServiceDialogMode = ServiceDialogMode.HIDDEN,
+    selectedLog: ServiceLogEntity? = null,
+    selectedLogParts: List<PartEntity> = emptyList(),
+    // ── Form state driven by ViewModel (Add / Edit modes) ───────────────
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {},
-    // ── Form state driven by ViewModel (Add/Edit dual mode) ───────────────
-    editingLogId: String? = null,
     serviceDate: String = "",
     description: String = "",
     mileage: String = "",
@@ -101,487 +88,157 @@ fun ServiceScreen(
     onDescriptionChanged: (String) -> Unit = {},
     onMileageChanged: (String) -> Unit = {},
     onTypeChanged: (String) -> Unit = {},
+    // ── Dialog Intents ──────────────────────────────────────────────────
+    onAddFabClicked: () -> Unit = {},
+    onLogClicked: (ServiceLogEntity) -> Unit = {},
     onSave: () -> Unit = {},
-    // ── Long-Press Options Menu (UDF) ──────────────────────────────────────
+    onDismissDialog: () -> Unit = {},
+    // ── Long-Press Options Menu (UDF) ───────────────────────────────────
     selectedLogForOptions: ServiceLogEntity? = null,
     onLogLongPressed: (ServiceLogEntity) -> Unit = {},
     onDismissOptionsMenu: () -> Unit = {},
     onSelectEdit: (ServiceLogEntity) -> Unit = {},
     onSelectDelete: (ServiceLogEntity) -> Unit = {},
-    // ── Delete Confirmation Dialog (UDF) ───────────────────────────────────
+    // ── Delete Confirmation Dialog (UDF) ────────────────────────────────
     logToDelete: ServiceLogEntity? = null,
     onDismissDeleteDialog: () -> Unit = {},
     onConfirmDeleteLog: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val scrollState = rememberScrollState()
-
-    // NOTE: Form inputs are now driven by ViewModel state for Add/Edit dual mode.
-    // Local remember is replaced by the parameters above.
-
-    val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
-    val todayDateStr = remember { dateFormat.format(Date()) }
-
-    val serviceTypes = listOf("regular", "revision", "Inspection")
-
-    // Date picker state
-    var showDatePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = runCatching {
-            dateFormat.parse(serviceDate)?.time
-        }.getOrNull() ?: System.currentTimeMillis()
-    )
-
-    // Parts Used: search query and add-part dialog state
-    var partsSearchQuery by remember { mutableStateOf("") }
-    var showAddPartDialog by remember { mutableStateOf(false) }
-
-    // Local validation errors merged with ViewModel errors for display
-    var localErrors by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
-    val allFormErrors = localErrors + formErrors
-
-    // When the selected vehicle changes, pre-populate its current mileage as default
-    // for the service log — only in Add mode (not during Edit)
-    LaunchedEffect(selectedVehicleId, selectedVehicleWithServices) {
-        if (editingLogId == null) {
-            selectedVehicleWithServices?.vehicle?.mileage?.let { vehicleMileage ->
-                onMileageChanged(vehicleMileage)
-            }
-            // Set today's date as default when entering Add mode
-            if (serviceDate.isBlank()) {
-                onDateChanged(todayDateStr)
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        containerColor = MyGarageColors.background,
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onAddFabClicked,
+                containerColor = MyGarageColors.primary,
+                contentColor = MyGarageColors.surfaceContainerLowest
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Service Log"
+                )
             }
         }
-    }
-
-    // Date Picker Dialog
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        onDateChanged(dateFormat.format(Date(millis)))
-                    }
-                    showDatePicker = false
-                }) {
-                    Text("OK", color = MyGarageColors.primary)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = MyGarageColors.onSurfaceVariant)
-                }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MyGarageColors.background)
-    ) {
-        Column(
+    ) { innerPadding ->
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp)
-                .verticalScroll(scrollState)
-        ) {            Spacer(modifier = Modifier.height(16.dp))            
-
-            Text(
-                text = stringResource(id = R.string.nav_service),
-                style = MaterialTheme.typography.displayLarge,
-                color = MyGarageColors.onBackground
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Vehicle Selector Chips
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                items(vehicles) { vehicle ->
-                    val isSelected = vehicle.id == selectedVehicleId
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(if (isSelected) MyGarageColors.primary else MyGarageColors.surfaceContainerLowest)
-                            .clickable { onVehicleSelected(vehicle.id) }
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = vehicle.name,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (isSelected) MyGarageColors.surfaceContainerLowest else MyGarageColors.onSurface
-                        )
-                    }
-                }
+                .padding(innerPadding)
+                .padding(horizontal = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            // ── Page Title ──────────────────────────────────────────────
+            item(key = "header_spacer") {
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Timeline Header
-            Text(
-                text = "SERVICE HISTORY",
-                style = MaterialTheme.typography.labelSmall,
-                color = MyGarageColors.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Timeline Items
-            val services = selectedVehicleWithServices?.services ?: emptyList()
-            if (services.isEmpty()) {
+            item(key = "page_title") {
                 Text(
-                    text = "No service history found for the selected vehicle.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MyGarageColors.onSurfaceVariant,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    text = stringResource(id = R.string.nav_service),
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MyGarageColors.onBackground
                 )
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 8.dp)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // ── Vehicle Selector Chips ──────────────────────────────────
+            item(key = "vehicle_chips") {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    services.forEachIndexed { index, log ->
-                        val displaySubtitle = buildString {
-                            append("Completed at ")
-                            append(log.mileage)
-                            append(" - Date: ")
-                            append(log.date)
-                            append(" [Type: ")
-                            append(log.type)
-                            append("]")
+                    items(vehicles) { vehicle ->
+                        val isSelected = vehicle.id == selectedVehicleId
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(
+                                    if (isSelected) MyGarageColors.primary
+                                    else MyGarageColors.surfaceContainerLowest
+                                )
+                                .clickable { onVehicleSelected(vehicle.id) }
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = vehicle.name,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (isSelected) MyGarageColors.surfaceContainerLowest
+                                else MyGarageColors.onSurface
+                            )
                         }
-                        TimelineItem(
-                            title = log.description,
-                            subtitle = displaySubtitle,
-                            isLast = index == services.size - 1,
-                            onLongClick = { onLogLongPressed(log) }
-                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Service Log Form
-            if (selectedVehicleId != null) {
+            // ── Timeline Header ─────────────────────────────────────────
+            item(key = "timeline_header") {
                 Text(
-                    text = stringResource(
-                        id = if (editingLogId != null) R.string.service_form_title_edit
-                        else R.string.service_form_title_add
-                    ),
+                    text = "SERVICE HISTORY",
                     style = MaterialTheme.typography.labelSmall,
                     color = MyGarageColors.onSurfaceVariant
                 )
-
                 Spacer(modifier = Modifier.height(16.dp))
+            }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MyGarageColors.surfaceContainerLowest)
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    val textFieldColors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MyGarageColors.primary,
-                        unfocusedBorderColor = MyGarageColors.surfaceContainerHigh,
-                        focusedLabelColor = MyGarageColors.primary,
-                        unfocusedLabelColor = MyGarageColors.onSurfaceVariant,
-                        focusedTextColor = MyGarageColors.onSurface,
-                        unfocusedTextColor = MyGarageColors.onSurface,
-                        focusedContainerColor = MyGarageColors.background,
-                        unfocusedContainerColor = MyGarageColors.background
-                    )
-
-                    // Service Date — tap to open DatePickerDialog
-                    Box(modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true }) {
-                        OutlinedTextField(
-                            value = serviceDate,
-                            onValueChange = {},
-                            label = { Text("Service Date") },
-                            colors = textFieldColors,
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = false,
-                            singleLine = true,
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.DateRange,
-                                    contentDescription = "Pick date",
-                                    tint = MyGarageColors.onSurfaceVariant
-                                )
-                            },
-                            supportingText = {
-                                Text(
-                                    "Tap to select date",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                        )
-                    }
-
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = {
-                            onDescriptionChanged(it)
-                            if (localErrors.containsKey("description")) {
-                                localErrors = localErrors - "description"
-                            }
-                        },
-                        label = { Text("Description") },
-                        isError = allFormErrors.containsKey("description"),
-                        supportingText = { allFormErrors["description"]?.let { Text(stringResource(it)) } },
-                        colors = textFieldColors,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = mileage,
-                        onValueChange = {
-                            onMileageChanged(it)
-                            if (localErrors.containsKey("mileage")) {
-                                localErrors = localErrors - "mileage"
-                            }
-                        },
-                        label = { Text("Mileage at Service") },
-                        isError = allFormErrors.containsKey("mileage"),
-                        supportingText = { allFormErrors["mileage"]?.let { Text(stringResource(it)) } },
-                        colors = textFieldColors,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    // Service Type Chips
+            // ── Timeline Items (or empty state) ─────────────────────────
+            val services = selectedVehicleWithServices?.services ?: emptyList()
+            if (services.isEmpty()) {
+                item(key = "empty_timeline") {
                     Text(
-                        text = "SERVICE TYPE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MyGarageColors.onSurfaceVariant
+                        text = "No service history found for the selected vehicle.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MyGarageColors.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        serviceTypes.forEach { type ->
-                            val isSelected = type == selectedType
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSelected) MyGarageColors.primary else MyGarageColors.surfaceContainerLow)
-                                    .clickable { onTypeChanged(type) }
-                                    .padding(vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = type.uppercase(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (isSelected) MyGarageColors.surfaceContainerLowest else MyGarageColors.onSurface
-                                )
-                            }
-                        }
-                    }
-
-                    // Parts Used Section (for revision type)
-                    if (selectedType == "revision") {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "PARTS USED",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MyGarageColors.onSurfaceVariant
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Search Bar
-                        OutlinedTextField(
-                            value = partsSearchQuery,
-                            onValueChange = { partsSearchQuery = it },
-                            placeholder = { Text("Search parts...") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Search",
-                                    tint = MyGarageColors.onSurfaceVariant
-                                )
-                            },
-                            trailingIcon = {
-                                if (partsSearchQuery.isNotEmpty()) {
-                                    IconButton(onClick = { partsSearchQuery = "" }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "Clear search",
-                                            tint = MyGarageColors.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            },
-                            colors = textFieldColors,
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Filtered Parts List
-                        val filteredParts = if (partsSearchQuery.isBlank()) {
-                            temporaryParts
-                        } else {
-                            temporaryParts.filter {
-                                it.name.contains(partsSearchQuery, ignoreCase = true)
-                            }
-                        }
-
-                        if (filteredParts.isEmpty()) {
-                            Text(
-                                text = if (temporaryParts.isEmpty()) "No parts added yet."
-                                else "No parts match \"$partsSearchQuery\".",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MyGarageColors.onSurfaceVariant,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                        } else {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MyGarageColors.surfaceContainerLow)
-                                    .padding(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                filteredParts.forEach { part ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(MyGarageColors.surfaceContainerLowest)
-                                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = part.name,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MyGarageColors.onSurface
-                                            )
-                                            Text(
-                                                text = "Qty: ${part.quantity}",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MyGarageColors.onSurfaceVariant
-                                            )
-                                            if (!part.reference.isNullOrBlank()) {
-                                                Text(
-                                                    text = "Ref: ${part.reference}",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MyGarageColors.onSurfaceVariant
-                                                )
-                                            }
-                                        }
-                                        IconButton(onClick = { onRemoveTemporaryPart(part.id) }) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "Remove ${part.name}",
-                                                tint = MyGarageColors.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Add Part Button
-                        Button(
-                            onClick = { showAddPartDialog = true },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MyGarageColors.surfaceContainerLow
-                            ),
-                            shape = RoundedCornerShape(50),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                tint = MyGarageColors.primary
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "ADD PART",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MyGarageColors.primary
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Button(
-                        onClick = {
-                            // Validate locally first for instant visual feedback,
-                            // then delegate to ViewModel for the full save flow
-                            val errors = mutableMapOf<String, Int>()
-                            if (selectedVehicleId.isNullOrBlank()) errors["vehicle"] = R.string.error_field_required
-                            if (description.isBlank()) errors["description"] = R.string.error_field_required
-                            if (mileage.isBlank()) errors["mileage"] = R.string.error_field_required
-                            localErrors = errors
-                            if (errors.isEmpty()) {
-                                onSave()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MyGarageColors.primary,
-                            contentColor = MyGarageColors.surfaceContainerLowest
-                        ),
-                        shape = RoundedCornerShape(50),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    ) {
-                        Text(
-                            text = stringResource(
-                                id = if (editingLogId != null) R.string.action_update_service
-                                else R.string.action_log_maintenance
-                            ),
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
                 }
             } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Please select a vehicle to log services.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MyGarageColors.onSurfaceVariant
+                itemsIndexed(
+                    items = services,
+                    key = { _, log -> log.id.toString() }
+                ) { index, log ->
+                    val displaySubtitle = buildString {
+                        append("Completed at ")
+                        append(log.mileage)
+                        append(" - Date: ")
+                        append(log.date)
+                        append(" [Type: ")
+                        append(log.type)
+                        append("]")
+                    }
+                    TimelineItem(
+                        title = log.description,
+                        subtitle = displaySubtitle,
+                        isLast = index == services.size - 1,
+                        onClick = { onLogClicked(log) },
+                        onLongClick = { onLogLongPressed(log) }
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
-        }
-    }
-
-    // Add Part Dialog
-    if (showAddPartDialog) {
-        AddPartDialog(
-            onDismiss = { showAddPartDialog = false },
-            onConfirm = { name, quantity, reference ->
-                onAddTemporaryPart(name, quantity, reference)
-                showAddPartDialog = false
+            // ── No-vehicle-selected hint ────────────────────────────────
+            if (selectedVehicleId == null) {
+                item(key = "no_vehicle_hint") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Please select a vehicle to log services.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MyGarageColors.onSurfaceVariant
+                        )
+                    }
+                }
             }
-        )
+
+            // ── Bottom spacer so FAB does not obscure last item ─────────
+            item(key = "bottom_spacer") {
+                Spacer(modifier = Modifier.height(80.dp))
+            }
+        }
     }
 
     // ── Options Bottom Sheet ───────────────────────────────────────────────
@@ -658,6 +315,27 @@ fun ServiceScreen(
         }
     }
 
+    // ── Unified Service Log Dialog ─────────────────────────────────────────
+    ServiceLogActionDialog(
+        dialogMode = dialogMode,
+        selectedLog = selectedLog,
+        selectedLogParts = selectedLogParts,
+        serviceDate = serviceDate,
+        description = description,
+        mileage = mileage,
+        selectedType = selectedType,
+        temporaryParts = temporaryParts,
+        formErrors = formErrors,
+        onDateChanged = onDateChanged,
+        onDescriptionChanged = onDescriptionChanged,
+        onMileageChanged = onMileageChanged,
+        onTypeChanged = onTypeChanged,
+        onSave = onSave,
+        onDismiss = onDismissDialog,
+        onAddTemporaryPart = onAddTemporaryPart,
+        onRemoveTemporaryPart = onRemoveTemporaryPart
+    )
+
     // ── Delete Confirmation Dialog ─────────────────────────────────────────
     if (logToDelete != null) {
         DeleteServiceDialog(
@@ -667,128 +345,9 @@ fun ServiceScreen(
     }
 }
 
-/**
- * Elegant dialog for adding a new part to the temporary parts list.
- * Follows the "Mechanical Atelier" design system with rounded corners and tonal layering.
- */
-@Composable
-private fun AddPartDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (name: String, quantity: Int, reference: String?) -> Unit
-) {
-    var partName by remember { mutableStateOf("") }
-    var partQuantity by remember { mutableStateOf("") }
-    var partReference by remember { mutableStateOf("") }
-
-    // Local validation errors
-    var partErrors by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(MyGarageColors.surfaceContainerLowest)
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = "ADD PART",
-                style = MaterialTheme.typography.labelSmall,
-                color = MyGarageColors.primary
-            )
-
-            val dialogTextFieldColors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MyGarageColors.primary,
-                unfocusedBorderColor = MyGarageColors.surfaceContainerHigh,
-                focusedLabelColor = MyGarageColors.primary,
-                unfocusedLabelColor = MyGarageColors.onSurfaceVariant,
-                focusedTextColor = MyGarageColors.onSurface,
-                unfocusedTextColor = MyGarageColors.onSurface,
-                focusedContainerColor = MyGarageColors.surfaceContainerLow,
-                unfocusedContainerColor = MyGarageColors.surfaceContainerLow
-            )
-
-            OutlinedTextField(
-                value = partName,
-                onValueChange = {
-                    partName = it
-                    if (partErrors.containsKey("partName")) partErrors = partErrors - "partName"
-                },
-                label = { Text("Part Name") },
-                placeholder = { Text("e.g. Oil Filter, Brake Pads...") },
-                isError = partErrors.containsKey("partName"),
-                supportingText = { partErrors["partName"]?.let { Text(stringResource(it)) } },
-                colors = dialogTextFieldColors,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = partQuantity,
-                onValueChange = { newValue ->
-                    if (newValue.all { c -> c.isDigit() } && newValue.length <= 4) {
-                        partQuantity = newValue
-                        if (partErrors.containsKey("partQuantity")) partErrors = partErrors - "partQuantity"
-                    }
-                },
-                label = { Text("Quantity") },
-                placeholder = { Text("1") },
-                isError = partErrors.containsKey("partQuantity"),
-                supportingText = { partErrors["partQuantity"]?.let { Text(stringResource(it)) } },
-                colors = dialogTextFieldColors,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-
-            OutlinedTextField(
-                value = partReference,
-                onValueChange = { partReference = it },
-                label = { Text("Reference") },
-                placeholder = { Text("e.g. OEM Part Number, SKU...") },
-                colors = dialogTextFieldColors,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(onClick = onDismiss) {
-                    Text(
-                        "CANCEL",
-                        color = MyGarageColors.onSurfaceVariant
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        val qty = partQuantity.toIntOrNull() ?: 0
-                        val errors = mutableMapOf<String, Int>()
-                        if (partName.isBlank()) errors["partName"] = R.string.error_field_required
-                        if (partQuantity.isBlank() || qty <= 0) errors["partQuantity"] = R.string.error_field_required
-                        partErrors = errors
-                        if (errors.isEmpty()) {
-                            onConfirm(partName.trim(), qty, partReference.trim().ifBlank { null })
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MyGarageColors.primary,
-                        contentColor = MyGarageColors.surfaceContainerLowest
-                    ),
-                    shape = RoundedCornerShape(50)
-                ) {
-                    Text(
-                        "ADD",
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
-        }
-    }
-}
+// ─────────────────────────────────────────────────────────────────────────────
+//  TimelineItem — automotive vertical timeline per DESIGN.md
+// ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -796,6 +355,7 @@ fun TimelineItem(
     title: String,
     subtitle: String,
     isLast: Boolean,
+    onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null
 ) {
     Row(
@@ -803,16 +363,17 @@ fun TimelineItem(
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
             .then(
-                if (onLongClick != null) {
+                if (onClick != null || onLongClick != null) {
                     Modifier.combinedClickable(
-                        onClick = {},
-                        onLongClick = onLongClick
+                        onClick = { onClick?.invoke() },
+                        onLongClick = { onLongClick?.invoke() }
                     )
                 } else {
                     Modifier
                 }
             )
     ) {
+        // ── Timeline node & line ───────────────────────────────────────
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.width(32.dp)
@@ -843,6 +404,7 @@ fun TimelineItem(
             }
         }
 
+        // ── Text content ───────────────────────────────────────────────
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -863,11 +425,10 @@ fun TimelineItem(
     }
 }
 
-/**
- * Confirmation dialog for deleting a service log.
- * Follows the "Mechanical Atelier" design system with surface_container_low,
- * 16dp rounded corners, and a destructive Delete button in error color.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+//  DeleteServiceDialog — "Mechanical Atelier" design per DESIGN.md
+// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
 private fun DeleteServiceDialog(
     onDismiss: () -> Unit,
