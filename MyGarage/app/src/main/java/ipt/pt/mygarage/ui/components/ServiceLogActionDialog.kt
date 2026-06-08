@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -381,9 +382,11 @@ fun ServiceLogActionDialog(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .heightIn(max = 250.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(MyGarageColors.surfaceContainerLow)
-                                    .padding(8.dp),
+                                    .padding(8.dp)
+                                    .verticalScroll(rememberScrollState()),
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 filteredParts.forEach { part ->
