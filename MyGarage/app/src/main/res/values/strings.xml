@@ -42,9 +42,8 @@
     <string name="action_edit">Edit</string>
     <string name="action_delete">Delete</string>
     <string name="action_cancel">Cancel</string>
+    <string name="action_close">CLOSE</string>
     <string name="action_update_service">UPDATE SERVICE</string>
-    <string name="service_form_title_add">ADD SERVICE</string>
-    <string name="service_form_title_edit">EDIT SERVICE</string>
     <string name="delete_service_title">Delete Service Log?</string>
     <string name="delete_service_message">Are you sure you want to delete this maintenance record? All parts associated with this service will also be permanently removed.</string>
 </resources>
