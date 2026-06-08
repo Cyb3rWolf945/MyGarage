@@ -11,6 +11,7 @@ import ipt.pt.mygarage.data.local.entity.ServiceLogPieceCrossRef
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.data.local.relation.VehicleWithServices
 import ipt.pt.mygarage.domain.repository.VehicleRepository
+import ipt.pt.mygarage.ui.screens.servicelog.ServiceDialogMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -82,6 +83,16 @@ class ServiceViewModel(
     // ── Delete Confirmation State ──────────────────────────────────────────
     private val _logToDelete = MutableStateFlow<ServiceLogEntity?>(null)
     val logToDelete: StateFlow<ServiceLogEntity?> = _logToDelete.asStateFlow()
+
+    // ── Unified Dialog Mode State ──────────────────────────────────────────
+    private val _dialogMode = MutableStateFlow(ServiceDialogMode.HIDDEN)
+    val dialogMode: StateFlow<ServiceDialogMode> = _dialogMode.asStateFlow()
+
+    private val _selectedLog = MutableStateFlow<ServiceLogEntity?>(null)
+    val selectedLog: StateFlow<ServiceLogEntity?> = _selectedLog.asStateFlow()
+
+    private val _selectedLogParts = MutableStateFlow<List<PartEntity>>(emptyList())
+    val selectedLogParts: StateFlow<List<PartEntity>> = _selectedLogParts.asStateFlow()
 
     /** Removes the error for the given field so it disappears as the user types. */
     fun clearFieldError(fieldName: String) {
@@ -208,9 +219,13 @@ class ServiceViewModel(
     /**
      * Unified save intent for both Add and Edit flows.
      * Validates mandatory fields first; if valid, either inserts a new
-     * service log or updates an existing one based on [editingLogId].
+     * service log or updates an existing one.
+     * Only executes when [dialogMode] is ADD or EDIT.
      */
     fun onSaveServiceLog() {
+        val mode = _dialogMode.value
+        if (mode != ServiceDialogMode.ADD && mode != ServiceDialogMode.EDIT) return
+
         val desc = _description.value
         val mileage = _mileage.value
         val vehicleId = _selectedVehicleId.value
@@ -223,12 +238,12 @@ class ServiceViewModel(
                 selectedVehicleId = vehicleId
             )) return
 
-        val editingId = _editingLogId.value
         viewModelScope.launch {
-            if (editingId != null) {
+            if (mode == ServiceDialogMode.EDIT) {
                 // ── EDIT MODE: update existing log with current parts ──────
+                val editingId = _selectedLog.value?.id ?: return@launch
                 val updatedLog = ServiceLogEntity(
-                    id = UUID.fromString(editingId),
+                    id = editingId,
                     vehicleId = vehicleId!!,
                     date = date,
                     description = desc,
@@ -236,7 +251,7 @@ class ServiceViewModel(
                     type = type
                 )
                 val partsToSave = _temporaryParts.value.map { part ->
-                    part.copy(serviceLogId = editingId)
+                    part.copy(serviceLogId = editingId.toString())
                 }
                 repository.updateServiceLogWithParts(updatedLog, partsToSave)
             } else {
@@ -265,8 +280,11 @@ class ServiceViewModel(
         }
     }
 
-    /** Resets form state back to defaults after a successful save. */
+    /** Resets form and dialog state back to defaults after a successful save or dismiss. */
     private fun clearFormState() {
+        _dialogMode.value = ServiceDialogMode.HIDDEN
+        _selectedLog.value = null
+        _selectedLogParts.value = emptyList()
         _editingLogId.value = null
         _serviceDate.value = ""
         _description.value = ""
@@ -288,7 +306,9 @@ class ServiceViewModel(
 
     fun onSelectEdit(serviceLog: ServiceLogEntity) {
         _selectedLogForOptions.value = null
+        _selectedLog.value = serviceLog
         _editingLogId.value = serviceLog.id.toString()
+        _dialogMode.value = ServiceDialogMode.EDIT
 
         // Populate form fields with the selected log's existing data
         _serviceDate.value = serviceLog.date
@@ -302,9 +322,43 @@ class ServiceViewModel(
             repository.getServiceLogWithParts(serviceLog.id.toString())
                 .catch { e -> e.printStackTrace() }
                 .collect { serviceWithParts ->
+                    _selectedLogParts.value = serviceWithParts.parts
                     _temporaryParts.value = serviceWithParts.parts
                 }
         }
+    }
+
+    /**
+     * FAB tapped — opens the dialog in ADD mode with a clean form slate.
+     */
+    fun onAddFabClicked() {
+        clearFormState()
+        _dialogMode.value = ServiceDialogMode.ADD
+    }
+
+    /**
+     * A service log card was tapped in the timeline — opens the dialog
+     * in VIEW (read-only) mode, loading the log and its parts.
+     */
+    fun onLogClicked(serviceLog: ServiceLogEntity) {
+        _selectedLog.value = serviceLog
+        _dialogMode.value = ServiceDialogMode.VIEW
+        _selectedLogParts.value = emptyList()
+
+        viewModelScope.launch {
+            repository.getServiceLogWithParts(serviceLog.id.toString())
+                .catch { e -> e.printStackTrace() }
+                .collect { serviceWithParts ->
+                    _selectedLogParts.value = serviceWithParts.parts
+                }
+        }
+    }
+
+    /**
+     * User dismissed the unified dialog — reset everything to HIDDEN.
+     */
+    fun onDismissDialog() {
+        clearFormState()
     }
 
     fun onSelectDelete(serviceLog: ServiceLogEntity) {
