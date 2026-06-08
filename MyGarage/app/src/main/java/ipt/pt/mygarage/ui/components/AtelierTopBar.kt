@@ -1,6 +1,7 @@
 package ipt.pt.mygarage.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,7 +26,10 @@ import ipt.pt.mygarage.R
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AtelierTopBar() {
+fun AtelierTopBar(
+    garageName: String = "My Garage",
+    onAvatarClick: (() -> Unit)? = null
+) {
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -33,7 +37,11 @@ fun AtelierTopBar() {
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(MyGarageColors.surfaceContainerHigh),
+                        .background(MyGarageColors.surfaceContainerHigh)
+                        .then(
+                            if (onAvatarClick != null) Modifier.clickable(onClick = onAvatarClick)
+                            else Modifier
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -47,7 +55,7 @@ fun AtelierTopBar() {
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Text(
-                    text = stringResource(id = R.string.app_header_title),
+                    text = garageName,
                     style = MaterialTheme.typography.headlineLarge,
                     color = MyGarageColors.onBackground
                 )
