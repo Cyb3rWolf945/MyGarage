@@ -238,6 +238,17 @@ class ServiceViewModel(
                 selectedVehicleId = vehicleId
             )) return
 
+        // ── Business Rule: service mileage must not be lower than the vehicle's current mileage ──
+        val vehicleCurrentMileage = _selectedVehicleWithServices.value?.vehicle?.mileage
+        if (vehicleCurrentMileage != null) {
+            val inputMileageNum = mileage.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
+            val currentMileageNum = vehicleCurrentMileage.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
+            if (inputMileageNum < currentMileageNum) {
+                _formErrors.update { it + ("mileage" to R.string.error_mileage_lower_than_current) }
+                return
+            }
+        }
+
         viewModelScope.launch {
             if (mode == ServiceDialogMode.EDIT) {
                 // ── EDIT MODE: update existing log with current parts ──────
