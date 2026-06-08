@@ -22,10 +22,15 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import ipt.pt.mygarage.presentation.garage.GarageViewModel
+import ipt.pt.mygarage.presentation.profile.ProfileViewModel
 import ipt.pt.mygarage.ui.components.AtelierBottomNav
 import ipt.pt.mygarage.ui.components.AtelierTopBar
 import ipt.pt.mygarage.ui.screens.CameraScreen
 import ipt.pt.mygarage.ui.screens.GarageScreen
+import ipt.pt.mygarage.ui.screens.ProfileScreen
 import ipt.pt.mygarage.ui.screens.ServiceScreen
 import ipt.pt.mygarage.ui.screens.VehicleProfileScreen
 import ipt.pt.mygarage.ui.screens.vehicleprofile.ServiceHistoryItem
@@ -76,26 +81,42 @@ fun MainScreen() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val garageViewModel: GarageViewModel = viewModel()
+    val garageState by garageViewModel.uiState.collectAsStateWithLifecycle()
+
     Scaffold(
         topBar = {
-            AtelierTopBar()
-        },
-        bottomBar = {
-            AtelierBottomNav(
-                items = bottomNavItems,
-                pagerState = pagerState,
-                onItemClick = { screen ->
-                    val pageIndex = bottomNavItems.indexOf(screen)
-                    if (pageIndex >= 0) {
-                        coroutineScope.launch {
-                            if (currentRoute != "main_pager" && currentRoute != null) {
-                                navController.popBackStack("main_pager", inclusive = false)
-                            }
-                            pagerState.animateScrollToPage(pageIndex)
+            AtelierTopBar(
+                garageName = garageState.garageName,
+                onAvatarClick = {
+                    navController.navigate("profile") {
+                        launchSingleTop = true
+                        restoreState = true
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
                         }
                     }
                 }
             )
+        },
+        bottomBar = {
+            if (currentRoute == null || currentRoute == "main_pager") {
+                AtelierBottomNav(
+                    items = bottomNavItems,
+                    pagerState = pagerState,
+                    onItemClick = { screen ->
+                        val pageIndex = bottomNavItems.indexOf(screen)
+                        if (pageIndex >= 0) {
+                            coroutineScope.launch {
+                                if (currentRoute != "main_pager" && currentRoute != null) {
+                                    navController.popBackStack("main_pager", inclusive = false)
+                                }
+                                pagerState.animateScrollToPage(pageIndex)
+                            }
+                        }
+                    }
+                )
+            }
         },
         containerColor = MyGarageColors.background
     ) { innerPadding ->
@@ -184,6 +205,18 @@ fun MainScreen() {
                                 pagerState.animateScrollToPage(servicePageIndex)
                             }
                         }
+                    }
+                )
+            }
+            composable("profile") {
+                val profileViewModel: ProfileViewModel = viewModel()
+                ProfileScreen(
+                    viewModel = profileViewModel,
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToGarage = {
+                        navController.popBackStack("main_pager", inclusive = false)
                     }
                 )
             }
