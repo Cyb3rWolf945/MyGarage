@@ -1,18 +1,19 @@
 package ipt.pt.mygarage.ui.screens.vehicleprofile
 
 data class VehicleProfileUiState(
-    val modelName: String,
+    val name: String,
     val year: String,
     val mileage: String,
-    val inspectionDate: String,
-    val oilType: String,
+    val inspectionDate: String? = null,
+    val oilType: String? = null,
     val owner: String,
-    val seatCount: String,
-    val doorCount: String,
+    val seatCount: String? = null,
+    val doorCount: String? = null,
     val fuelType: String,
     val engineCapacity: String,
-    val iucValue: String,
-    val mileageToNextService: String,
-    val locationAddress: String,
-    val serviceHistory: List<ServiceHistoryItem>
+    val iucValue: String? = null,
+    val mileageToNextService: String? = null,
+    val locationAddress: String? = null,
+    val serviceHistory: List<ServiceHistoryItem>,
+    val formErrors: Map<String, Int> = emptyMap()
 )
