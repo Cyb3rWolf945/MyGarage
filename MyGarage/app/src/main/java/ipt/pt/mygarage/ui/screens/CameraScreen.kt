@@ -159,14 +159,6 @@ private fun CameraScreenContent(
                 .padding(top = 16.dp)
         ) {
             Text(
-                text = "PLATE SCANNER COCKPIT",
-                style = MaterialTheme.typography.labelSmall,
-                color = MyGarageColors.primary
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
                 text = stringResource(id = R.string.nav_camera),
                 style = MaterialTheme.typography.displayLarge,
                 color = MyGarageColors.onBackground
