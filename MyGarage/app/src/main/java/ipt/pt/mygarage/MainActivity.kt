@@ -82,20 +82,28 @@ fun MainScreen() {
     val garageViewModel: GarageViewModel = viewModel(factory = GarageViewModel.factory(repository))
     val serviceViewModel: ServiceViewModel = viewModel(factory = ServiceViewModel.factory(repository))
 
+    // ── Garage state ──────────────────────────────────────────────────────
     val vehicles by garageViewModel.vehiclesState.collectAsState()
     val garageFormErrors by garageViewModel.formErrors.collectAsState()
     val garageShowDelete by garageViewModel.showDeleteConfirmation.collectAsState()
     val garageVehicleToDelete by garageViewModel.vehicleToDelete.collectAsState()
     val garageSelectedForOptions by garageViewModel.selectedVehicleForOptions.collectAsState()
     val garageVehicleToEdit by garageViewModel.vehicleToEdit.collectAsState()
+
+    // ── Service state ─────────────────────────────────────────────────────
     val selectedVehicleId by serviceViewModel.selectedVehicleId.collectAsState()
     val selectedVehicleWithServices by serviceViewModel.selectedVehicleWithServices.collectAsState()
     val temporaryParts by serviceViewModel.temporaryParts.collectAsState()
     val serviceFormErrors by serviceViewModel.formErrors.collectAsState()
     val serviceSelectedLogForOptions by serviceViewModel.selectedLogForOptions.collectAsState()
     val serviceLogToDelete by serviceViewModel.logToDelete.collectAsState()
-    // ── Edit mode form state ───────────────────────────────────────────────
-    val serviceEditingLogId by serviceViewModel.editingLogId.collectAsState()
+
+    // ── Unified Dialog state ──────────────────────────────────────────────
+    val serviceDialogMode by serviceViewModel.dialogMode.collectAsState()
+    val serviceSelectedLog by serviceViewModel.selectedLog.collectAsState()
+    val serviceSelectedLogParts by serviceViewModel.selectedLogParts.collectAsState()
+
+    // ── Form field state ──────────────────────────────────────────────────
     val serviceDate by serviceViewModel.serviceDate.collectAsState()
     val serviceDescription by serviceViewModel.description.collectAsState()
     val serviceMileage by serviceViewModel.mileage.collectAsState()
@@ -109,7 +117,7 @@ fun MainScreen() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Select the first vehicle by default once vehicles list is populated
+    // Select the first vehicle by default once the vehicles list is populated
     LaunchedEffect(vehicles) {
         if (selectedVehicleId == null && vehicles.isNotEmpty()) {
             serviceViewModel.selectVehicle(vehicles.first().id)
@@ -189,22 +197,19 @@ fun MainScreen() {
                             onVehicleSelected = { vehicleId ->
                                 serviceViewModel.selectVehicle(vehicleId)
                             },
-                            onLogService = { serviceLog ->
-                                serviceViewModel.insertServiceLog(serviceLog)
-                            },
-                            onLogServiceWithParts = { serviceLog ->
-                                serviceViewModel.insertServiceLogWithParts(serviceLog)
-                            },
                             onAddTemporaryPart = { name, quantity, reference ->
                                 serviceViewModel.addTemporaryPart(name, quantity, reference)
                             },
                             onRemoveTemporaryPart = { partId ->
                                 serviceViewModel.removeTemporaryPart(partId)
                             },
+                            // ── Unified Dialog State ────────────────────
+                            dialogMode = serviceDialogMode,
+                            selectedLog = serviceSelectedLog,
+                            selectedLogParts = serviceSelectedLogParts,
+                            // ── Form state & validation ─────────────────
                             formErrors = serviceFormErrors,
                             onFieldChanged = serviceViewModel::clearFieldError,
-                            // ── Edit Mode: ViewModel-driven form state ───
-                            editingLogId = serviceEditingLogId,
                             serviceDate = serviceDate,
                             description = serviceDescription,
                             mileage = serviceMileage,
@@ -213,14 +218,18 @@ fun MainScreen() {
                             onDescriptionChanged = serviceViewModel::onDescriptionChanged,
                             onMileageChanged = serviceViewModel::onMileageChanged,
                             onTypeChanged = serviceViewModel::onTypeChanged,
+                            // ── Dialog Intents ──────────────────────────
+                            onAddFabClicked = serviceViewModel::onAddFabClicked,
+                            onLogClicked = serviceViewModel::onLogClicked,
                             onSave = serviceViewModel::onSaveServiceLog,
-                            // ── Long-Press Options Menu ──────────────────
+                            onDismissDialog = serviceViewModel::onDismissDialog,
+                            // ── Long-Press Options Menu ─────────────────
                             selectedLogForOptions = serviceSelectedLogForOptions,
                             onLogLongPressed = serviceViewModel::onLogLongPressed,
                             onDismissOptionsMenu = serviceViewModel::onDismissOptionsMenu,
                             onSelectEdit = serviceViewModel::onSelectEdit,
                             onSelectDelete = serviceViewModel::onSelectDelete,
-                            // ── Delete Confirmation Dialog ───────────────
+                            // ── Delete Confirmation Dialog ──────────────
                             logToDelete = serviceLogToDelete,
                             onDismissDeleteDialog = serviceViewModel::onDismissDeleteDialog,
                             onConfirmDeleteLog = serviceViewModel::onConfirmDeleteLog
