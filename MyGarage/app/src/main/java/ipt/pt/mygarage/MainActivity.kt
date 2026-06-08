@@ -4,28 +4,32 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import ipt.pt.mygarage.presentation.garage.GarageViewModel
 import ipt.pt.mygarage.presentation.profile.ProfileViewModel
+import ipt.pt.mygarage.presentation.profile.VehicleProfileViewModel
+import ipt.pt.mygarage.presentation.service.ServiceViewModel
 import ipt.pt.mygarage.ui.components.AtelierBottomNav
 import ipt.pt.mygarage.ui.components.AtelierTopBar
 import ipt.pt.mygarage.ui.screens.CameraScreen
@@ -73,6 +77,40 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen() {
+    val context = LocalContext.current
+    val app = context.applicationContext as MyGarageApplication
+    val repository = app.repository
+
+    val garageViewModel: GarageViewModel = viewModel()
+    val serviceViewModel: ServiceViewModel = viewModel(factory = ServiceViewModel.factory(repository))
+
+    // ── Garage state ──────────────────────────────────────────────────────
+    val vehicles by garageViewModel.vehiclesState.collectAsState()
+    val garageFormErrors by garageViewModel.formErrors.collectAsState()
+    val garageShowDelete by garageViewModel.showDeleteConfirmation.collectAsState()
+    val garageVehicleToDelete by garageViewModel.vehicleToDelete.collectAsState()
+    val garageSelectedForOptions by garageViewModel.selectedVehicleForOptions.collectAsState()
+    val garageVehicleToEdit by garageViewModel.vehicleToEdit.collectAsState()
+
+    // ── Service state ─────────────────────────────────────────────────────
+    val selectedVehicleId by serviceViewModel.selectedVehicleId.collectAsState()
+    val selectedVehicleWithServices by serviceViewModel.selectedVehicleWithServices.collectAsState()
+    val temporaryParts by serviceViewModel.temporaryParts.collectAsState()
+    val serviceFormErrors by serviceViewModel.formErrors.collectAsState()
+    val serviceSelectedLogForOptions by serviceViewModel.selectedLogForOptions.collectAsState()
+    val serviceLogToDelete by serviceViewModel.logToDelete.collectAsState()
+
+    // ── Unified Dialog state ──────────────────────────────────────────────
+    val serviceDialogMode by serviceViewModel.dialogMode.collectAsState()
+    val serviceSelectedLog by serviceViewModel.selectedLog.collectAsState()
+    val serviceSelectedLogParts by serviceViewModel.selectedLogParts.collectAsState()
+
+    // ── Form field state ──────────────────────────────────────────────────
+    val serviceDate by serviceViewModel.serviceDate.collectAsState()
+    val serviceDescription by serviceViewModel.description.collectAsState()
+    val serviceMileage by serviceViewModel.mileage.collectAsState()
+    val serviceSelectedType by serviceViewModel.selectedType.collectAsState()
+
     val navController = rememberNavController()
     val pagerState = rememberPagerState(pageCount = { bottomNavItems.size })
     val coroutineScope = rememberCoroutineScope()
@@ -81,8 +119,14 @@ fun MainScreen() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val garageViewModel: GarageViewModel = viewModel()
     val garageState by garageViewModel.uiState.collectAsStateWithLifecycle()
+
+    // Select the first vehicle by default once the vehicles list is populated
+    LaunchedEffect(vehicles) {
+        if (selectedVehicleId == null && vehicles.isNotEmpty()) {
+            serviceViewModel.selectVehicle(vehicles.first().id)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -134,79 +178,160 @@ fun MainScreen() {
                 ) { page ->
                     when (bottomNavItems[page]) {
                         Screen.Garage -> GarageScreen(
-                            onVehicleClick = { vehicleName ->
-                                navController.navigate("vehicle_profile/$vehicleName")
-                            }
+                            vehicles = vehicles,
+                            onVehicleClick = { vehicleId ->
+                                navController.navigate("vehicle_profile/$vehicleId")
+                            },
+                            onAddVehicleClick = { newVehicle ->
+                                garageViewModel.insertVehicle(newVehicle)
+                            },
+                            onDeleteVehicle = { vehicle ->
+                                garageViewModel.showDeleteDialog(vehicle)
+                            },
+                            showDeleteConfirmation = garageShowDelete,
+                            vehicleToDelete = garageVehicleToDelete,
+                            onDismissDeleteDialog = garageViewModel::dismissDeleteDialog,
+                            onConfirmDelete = garageViewModel::confirmDelete,
+                            formErrors = garageFormErrors,
+                            onFieldChanged = garageViewModel::clearFieldError,
+                            // ── Long-Press Options Menu ──────────────────
+                            selectedVehicleForOptions = garageSelectedForOptions,
+                            onVehicleLongPressed = garageViewModel::onVehicleLongPressed,
+                            onDismissOptionsMenu = garageViewModel::onDismissOptionsMenu,
+                            onSelectEdit = garageViewModel::onSelectEdit,
+                            onSelectDelete = garageViewModel::onSelectDelete,
+                            // ── Edit Dialog State ────────────────────────
+                            vehicleToEdit = garageVehicleToEdit,
+                            onDismissEditDialog = garageViewModel::onDismissEditDialog,
+                            onConfirmEdit = garageViewModel::confirmEdit
                         )
                         Screen.Camera -> CameraScreen()
-                        Screen.Service -> ServiceScreen()
+                        Screen.Service -> ServiceScreen(
+                            vehicles = vehicles,
+                            selectedVehicleId = selectedVehicleId,
+                            selectedVehicleWithServices = selectedVehicleWithServices,
+                            temporaryParts = temporaryParts,
+                            onVehicleSelected = { vehicleId ->
+                                serviceViewModel.selectVehicle(vehicleId)
+                            },
+                            onAddTemporaryPart = { name, quantity, reference ->
+                                serviceViewModel.addTemporaryPart(name, quantity, reference)
+                            },
+                            onRemoveTemporaryPart = { partId ->
+                                serviceViewModel.removeTemporaryPart(partId)
+                            },
+                            // ── Unified Dialog State ────────────────────
+                            dialogMode = serviceDialogMode,
+                            selectedLog = serviceSelectedLog,
+                            selectedLogParts = serviceSelectedLogParts,
+                            // ── Form state & validation ─────────────────
+                            formErrors = serviceFormErrors,
+                            onFieldChanged = serviceViewModel::clearFieldError,
+                            serviceDate = serviceDate,
+                            description = serviceDescription,
+                            mileage = serviceMileage,
+                            selectedType = serviceSelectedType,
+                            onDateChanged = serviceViewModel::onDateChanged,
+                            onDescriptionChanged = serviceViewModel::onDescriptionChanged,
+                            onMileageChanged = serviceViewModel::onMileageChanged,
+                            onTypeChanged = serviceViewModel::onTypeChanged,
+                            // ── Dialog Intents ──────────────────────────
+                            onAddFabClicked = serviceViewModel::onAddFabClicked,
+                            onLogClicked = serviceViewModel::onLogClicked,
+                            onSave = serviceViewModel::onSaveServiceLog,
+                            onDismissDialog = serviceViewModel::onDismissDialog,
+                            // ── Long-Press Options Menu ─────────────────
+                            selectedLogForOptions = serviceSelectedLogForOptions,
+                            onLogLongPressed = serviceViewModel::onLogLongPressed,
+                            onDismissOptionsMenu = serviceViewModel::onDismissOptionsMenu,
+                            onSelectEdit = serviceViewModel::onSelectEdit,
+                            onSelectDelete = serviceViewModel::onSelectDelete,
+                            // ── Delete Confirmation Dialog ──────────────
+                            logToDelete = serviceLogToDelete,
+                            onDismissDeleteDialog = serviceViewModel::onDismissDeleteDialog,
+                            onConfirmDeleteLog = serviceViewModel::onConfirmDeleteLog
+                        )
                     }
                 }
             }
-            composable("vehicle_profile/{vehicleName}") { backStackEntry ->
-                val vehicleName = backStackEntry.arguments?.getString("vehicleName") ?: "Porsche 911"
+            composable("vehicle_profile/{vehicleId}") { backStackEntry ->
+                val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: ""
+                val profileViewModel: VehicleProfileViewModel = viewModel(
+                    factory = VehicleProfileViewModel.factory(repository)
+                )
 
-                val uiState = remember(vehicleName) {
-                    val isPorsche = vehicleName.contains("Porsche", ignoreCase = true)
-                    if (isPorsche) {
-                        VehicleProfileUiState(
-                            modelName = "Porsche 911",
-                            year = "2024",
-                            mileage = "12,450 mi",
-                            inspectionDate = "15/11/2026",
-                            oilType = "0W-40 Synthetic",
-                            owner = "Private Owner",
-                            seatCount = "4",
-                            doorCount = "2",
-                            fuelType = "Petrol",
-                            engineCapacity = "3,000 cc",
-                            iucValue = "218",
-                            mileageToNextService = "8,200 mi",
-                            serviceHistory = listOf(
-                                ServiceHistoryItem("Full Service & Oil Change", "Atelier Stuttgart Service Center"),
-                                ServiceHistoryItem("Tire Rotation & Balance", "Michelin Certified Partner")
-                            ),
-                            locationAddress = "Porscheplatz 1, 70435 Stuttgart, Germany"
-                        )
-                    } else {
-                        VehicleProfileUiState(
-                            modelName = "BMW M4 Competition",
-                            year = "2023",
-                            mileage = "8,920 mi",
-                            inspectionDate = "02/09/2026",
-                            oilType = "5W-30 Synthetic",
-                            owner = "Private Owner",
-                            seatCount = "4",
-                            doorCount = "2",
-                            fuelType = "Petrol",
-                            engineCapacity = "3,000 cc",
-                            iucValue = "196",
-                            mileageToNextService = "6,500 mi",
-                            serviceHistory = listOf(
-                                ServiceHistoryItem("Break-in Service", "Atelier Munich Service Center"),
-                                ServiceHistoryItem("Brake Fluid Flush", "BMW Certified Service")
-                            ),
-                            locationAddress = "Petuelring 130, 80809 Munich, Germany"
-                        )
-                    }
+                LaunchedEffect(vehicleId) {
+                    profileViewModel.loadVehicle(vehicleId)
                 }
 
-                VehicleProfileScreen(
-                    uiState = uiState,
-                    onBackClick = {
-                        navController.popBackStack()
-                    },
-                    onNavigateToService = {
-                        coroutineScope.launch {
-                            if (currentRoute != "main_pager" && currentRoute != null) {
-                                navController.popBackStack("main_pager", inclusive = false)
-                            }
-                            if (servicePageIndex >= 0) {
-                                pagerState.animateScrollToPage(servicePageIndex)
-                            }
+                val vehicleWithServices by profileViewModel.uiState.collectAsState()
+                val profileFormErrors by profileViewModel.formErrors.collectAsState()
+                val profileShowDelete by profileViewModel.showDeleteConfirmation.collectAsState()
+                val profileDeleteCompleted by profileViewModel.deleteCompleted.collectAsState()
+
+                vehicleWithServices?.let { ws ->
+                    val uiState = remember(ws, profileFormErrors) {
+                        VehicleProfileUiState(
+                            name = ws.vehicle.name,
+                            year = ws.vehicle.year,
+                            mileage = ws.vehicle.mileage,
+                            inspectionDate = ws.vehicle.inspectionDate,
+                            oilType = ws.vehicle.oilType,
+                            owner = ws.vehicle.owner,
+                            seatCount = ws.vehicle.seatCount,
+                            doorCount = ws.vehicle.doorCount,
+                            fuelType = ws.vehicle.fuelType,
+                            engineCapacity = ws.vehicle.engineCapacity,
+                            iucValue = ws.vehicle.iucValue,
+                            mileageToNextService = ws.vehicle.mileageToNextService,
+                            locationAddress = ws.vehicle.locationAddress,
+                            serviceHistory = ws.services.map { log ->
+                                ServiceHistoryItem(
+                                    title = log.description,
+                                    subtitle = "Completed at ${log.mileage} - Date: ${log.date} [Type: ${log.type}]"
+                                )
+                            },
+                            formErrors = profileFormErrors
+                        )
+                    }
+
+                    // Handle delete-completed navigation event
+                    LaunchedEffect(profileDeleteCompleted) {
+                        if (profileDeleteCompleted) {
+                            profileViewModel.onDeleteCompletedHandled()
+                            navController.popBackStack()
                         }
                     }
-                )
+
+                    VehicleProfileScreen(
+                        uiState = uiState,
+                        vehicleEntity = ws.vehicle,
+                        onBackClick = {
+                            navController.popBackStack()
+                        },
+                        onNavigateToService = {
+                            serviceViewModel.selectVehicle(ws.vehicle.id)
+                            coroutineScope.launch {
+                                if (navController.currentDestination?.route != "main_pager") {
+                                    navController.popBackStack("main_pager", inclusive = false)
+                                }
+                                if (servicePageIndex >= 0) {
+                                    pagerState.animateScrollToPage(servicePageIndex)
+                                }
+                            }
+                        },
+                        onUpdateVehicle = { updatedVehicle ->
+                            profileViewModel.updateVehicle(updatedVehicle)
+                        },
+                        onDeleteVehicle = {
+                            profileViewModel.showDeleteDialog()
+                        },
+                        showDeleteConfirmation = profileShowDelete,
+                        onDismissDeleteDialog = profileViewModel::dismissDeleteDialog,
+                        onConfirmDelete = profileViewModel::confirmDelete,
+                        onFieldChanged = profileViewModel::clearFieldError
+                    )
+                }
             }
             composable("profile") {
                 val profileViewModel: ProfileViewModel = viewModel()

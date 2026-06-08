@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">MyGarage</string>
     <string name="nav_garage">Garage</string>
-    <string name="nav_camera">Camera</string>
+    <string name="nav_camera">PLATE SCANNER</string>
     <string name="nav_service">Service</string>
     <string name="garage_screen_title">Garage Destination</string>
     <string name="camera_screen_title">Camera Destination</string>
@@ -50,4 +50,20 @@
     <string name="profile_action_cancel">CANCEL</string>
     <string name="error_user_name_required">User name cannot be empty</string>
     <string name="error_garage_name_required">Garage name cannot be empty</string>
+    <string name="fuel_type">Fuel Type</string>
+    <string name="fuel_gasoline">Gasoline</string>
+    <string name="fuel_diesel">Diesel</string>
+    <string name="fuel_electric">Electric</string>
+    <string name="not_available">N/A</string>
+    <string name="error_field_required">This field is required</string>
+    <string name="error_mileage_lower_than_current">Mileage cannot be lower than current vehicle mileage</string>
+    <string name="delete_vehicle_title">Delete Vehicle?</string>
+    <string name="delete_vehicle_message">Are you sure you want to remove this vehicle? All associated service logs and parts will be permanently deleted.</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_close">CLOSE</string>
+    <string name="action_update_service">UPDATE SERVICE</string>
+    <string name="delete_service_title">Delete Service Log?</string>
+    <string name="delete_service_message">Are you sure you want to delete this maintenance record? All parts associated with this service will also be permanently removed.</string>
 </resources>
