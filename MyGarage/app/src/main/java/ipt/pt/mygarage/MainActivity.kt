@@ -27,6 +27,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import ipt.pt.mygarage.presentation.garage.GarageViewModel
 import ipt.pt.mygarage.presentation.profile.ProfileViewModel
 import ipt.pt.mygarage.presentation.profile.VehicleProfileViewModel
 import ipt.pt.mygarage.presentation.service.ServiceViewModel
