@@ -381,11 +381,29 @@ class ServiceViewModel(
         _logToDelete.value = null
     }
 
+    /**
+     * Confirms deletion of the currently selected service log.
+     *
+     * Dismisses all dialogs and clears every state reference that could
+     * point to the soon-to-be-deleted entity BEFORE performing the database
+     * operation. This prevents the UI from attempting to render a deleted
+     * entity during the Room Flow re-emission.
+     */
     fun onConfirmDeleteLog() {
         val log = _logToDelete.value ?: return
+
+        // ── Dismiss dialogs & clear entity references BEFORE the delete ──
+        _logToDelete.value = null
+        _selectedLogForOptions.value = null
+
+        // If the deleted log is the one currently selected for viewing/editing,
+        // reset the dialog to HIDDEN so the UI does not try to render it.
+        if (_selectedLog.value?.id == log.id) {
+            clearFormState()
+        }
+
         viewModelScope.launch {
             repository.deleteServiceLog(log)
-            _logToDelete.value = null
         }
     }
 
