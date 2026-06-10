@@ -25,7 +25,7 @@ import ipt.pt.mygarage.data.local.entity.VehicleEntity
         PieceEntity::class,
         ServiceLogPieceCrossRef::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

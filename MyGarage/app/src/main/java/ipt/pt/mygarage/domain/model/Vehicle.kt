@@ -1,18 +1,15 @@
-package ipt.pt.mygarage.data.local.entity
-
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import java.util.UUID
+package ipt.pt.mygarage.domain.model
 
 /**
- * Represents a vehicle in the local database.
- * Attributes match [ipt.pt.mygarage.ui.screens.vehicleprofile.VehicleProfileUiState]
- * to ensure Unidirectional Data Flow (UDF) is clean and direct.
+ * Domain-level representation of a vehicle in the garage.
+ * Decoupled from any persistence or UI frameworks.
+ *
+ * Image fields support an offline-first strategy:
+ *   - [localImageFileName] for locally stored images.
+ *   - [remoteImageUrl] reserved for future cloud synchronization.
  */
-@Entity(tableName = "vehicles")
-data class VehicleEntity(
-    @PrimaryKey
-    val id: String = UUID.randomUUID().toString(),
+data class Vehicle(
+    val id: String,
     val plate: String,
     val name: String,
     val year: String,
