@@ -4,30 +4,38 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ipt.pt.mygarage.presentation.garage.GarageViewModel
+import ipt.pt.mygarage.presentation.main.MainViewModel
+import ipt.pt.mygarage.presentation.onboarding.OnboardingViewModel
 import ipt.pt.mygarage.presentation.profile.ProfileViewModel
 import ipt.pt.mygarage.presentation.profile.VehicleProfileViewModel
 import ipt.pt.mygarage.presentation.service.ServiceViewModel
@@ -35,6 +43,7 @@ import ipt.pt.mygarage.ui.components.AtelierBottomNav
 import ipt.pt.mygarage.ui.components.AtelierTopBar
 import ipt.pt.mygarage.ui.screens.CameraScreen
 import ipt.pt.mygarage.ui.screens.GarageScreen
+import ipt.pt.mygarage.ui.screens.OnboardingScreen
 import ipt.pt.mygarage.ui.screens.ProfileScreen
 import ipt.pt.mygarage.ui.screens.ServiceScreen
 import ipt.pt.mygarage.ui.screens.VehicleProfileScreen
@@ -42,7 +51,6 @@ import ipt.pt.mygarage.ui.screens.vehicleprofile.ServiceHistoryItem
 import ipt.pt.mygarage.ui.screens.vehicleprofile.VehicleProfileUiState
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 import ipt.pt.mygarage.ui.theme.MyGarageTheme
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String, val labelResId: Int, val iconResId: Int) {
@@ -54,33 +62,36 @@ sealed class Screen(val route: String, val labelResId: Int, val iconResId: Int) 
 private val bottomNavItems = listOf(Screen.Garage, Screen.Camera, Screen.Service)
 
 class MainActivity : ComponentActivity() {
-    private var isReady by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val mainViewModel by lazy { MainViewModel(application) }
+
         installSplashScreen().apply {
-            setKeepOnScreenCondition { !isReady }
+            setKeepOnScreenCondition {
+                mainViewModel.isLoading.value
+            }
         }
         super.onCreate(savedInstanceState)
-
-        lifecycleScope.launch {
-            delay(2_000)
-            isReady = true
-        }
 
         enableEdgeToEdge()
         setContent {
             MyGarageTheme {
-                MainScreen()
+                MainScreen(mainViewModel = mainViewModel)
             }
         }
     }
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    mainViewModel: MainViewModel = viewModel()
+) {
     val context = LocalContext.current
     val app = context.applicationContext as MyGarageApplication
     val repository = app.repository
+
+    val startDestination by mainViewModel.startDestination.collectAsStateWithLifecycle()
+    val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
 
     val garageViewModel: GarageViewModel = viewModel()
     val serviceViewModel: ServiceViewModel = viewModel(factory = ServiceViewModel.factory(repository))
@@ -129,23 +140,54 @@ fun MainScreen() {
         }
     }
 
+    // Wait until MainViewModel resolves the start destination
+    val resolvedStart = startDestination
+    if (resolvedStart == null || isLoading) {
+        // Show a minimal branded loading indicator while the splash is fading
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                color = MyGarageColors.primary,
+                strokeWidth = 2.dp
+            )
+        }
+        return
+    }
+
+    // Determine if we are on an onboarding screen (hide chrome)
+    val isOnboardingRoute = currentRoute == MainViewModel.ROUTE_ONBOARDING_GRAPH
+
     Scaffold(
         topBar = {
-            AtelierTopBar(
-                garageName = garageState.garageName,
-                onAvatarClick = {
-                    navController.navigate("profile") {
-                        launchSingleTop = true
-                        restoreState = true
-                        popUpTo(navController.graph.startDestinationId) {
-                            saveState = true
+            // Hide the top bar during onboarding
+            AnimatedVisibility(
+                visible = !isOnboardingRoute,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                AtelierTopBar(
+                    garageName = garageState.garageName,
+                    onAvatarClick = {
+                        navController.navigate("profile") {
+                            launchSingleTop = true
+                            restoreState = true
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
                         }
                     }
-                }
-            )
+                )
+            }
         },
         bottomBar = {
-            if (currentRoute == null || currentRoute == "main_pager") {
+            // Show bottom nav only on the garage graph pager
+            AnimatedVisibility(
+                visible = currentRoute == MainViewModel.ROUTE_GARAGE_GRAPH || currentRoute == null,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
                 AtelierBottomNav(
                     items = bottomNavItems,
                     pagerState = pagerState,
@@ -153,8 +195,11 @@ fun MainScreen() {
                         val pageIndex = bottomNavItems.indexOf(screen)
                         if (pageIndex >= 0) {
                             coroutineScope.launch {
-                                if (currentRoute != "main_pager" && currentRoute != null) {
-                                    navController.popBackStack("main_pager", inclusive = false)
+                                if (currentRoute != MainViewModel.ROUTE_GARAGE_GRAPH && currentRoute != null) {
+                                    navController.popBackStack(
+                                        MainViewModel.ROUTE_GARAGE_GRAPH,
+                                        inclusive = false
+                                    )
                                 }
                                 pagerState.animateScrollToPage(pageIndex)
                             }
@@ -167,12 +212,51 @@ fun MainScreen() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = "main_pager",
+            startDestination = resolvedStart,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            composable("main_pager") {
+            // ── Onboarding Graph ─────────────────────────────────────────
+            composable(MainViewModel.ROUTE_ONBOARDING_GRAPH) {
+                val onboardingViewModel: OnboardingViewModel = viewModel()
+                OnboardingScreen(
+                    viewModel = onboardingViewModel,
+                    onOnboardingComplete = {
+                        navController.navigate(MainViewModel.ROUTE_GARAGE_GRAPH) {
+                            popUpTo(MainViewModel.ROUTE_ONBOARDING_GRAPH) {
+                                inclusive = true
+                            }
+                        }
+                    },
+                    onNavigateToAuth = {
+                        // TODO: Implement Auth Graph navigation
+                        navController.navigate("auth_graph") {
+                            popUpTo(MainViewModel.ROUTE_ONBOARDING_GRAPH) {
+                                inclusive = true
+                            }
+                        }
+                    }
+                )
+            }
+
+            // ── Auth Graph (placeholder) ─────────────────────────────────
+            composable("auth_graph") {
+                // TODO: Replace with actual authentication screen
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Auth — Coming Soon",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MyGarageColors.onSurfaceVariant
+                    )
+                }
+            }
+
+            // ── Garage Graph (main pager) ─────────────────────────────────
+            composable(MainViewModel.ROUTE_GARAGE_GRAPH) {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize()
@@ -255,6 +339,8 @@ fun MainScreen() {
                     }
                 }
             }
+
+            // ── Vehicle Profile ──────────────────────────────────────────
             composable("vehicle_profile/{vehicleId}") { backStackEntry ->
                 val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: ""
                 val profileViewModel: VehicleProfileViewModel = viewModel(
@@ -313,8 +399,11 @@ fun MainScreen() {
                         onNavigateToService = {
                             serviceViewModel.selectVehicle(ws.vehicle.id)
                             coroutineScope.launch {
-                                if (navController.currentDestination?.route != "main_pager") {
-                                    navController.popBackStack("main_pager", inclusive = false)
+                                if (navController.currentDestination?.route != MainViewModel.ROUTE_GARAGE_GRAPH) {
+                                    navController.popBackStack(
+                                        MainViewModel.ROUTE_GARAGE_GRAPH,
+                                        inclusive = false
+                                    )
                                 }
                                 if (servicePageIndex >= 0) {
                                     pagerState.animateScrollToPage(servicePageIndex)
@@ -334,6 +423,8 @@ fun MainScreen() {
                     )
                 }
             }
+
+            // ── Profile Screen ───────────────────────────────────────────
             composable("profile") {
                 val profileViewModel: ProfileViewModel = viewModel()
                 ProfileScreen(
@@ -342,7 +433,10 @@ fun MainScreen() {
                         navController.popBackStack()
                     },
                     onNavigateToGarage = {
-                        navController.popBackStack("main_pager", inclusive = false)
+                        navController.popBackStack(
+                            MainViewModel.ROUTE_GARAGE_GRAPH,
+                            inclusive = false
+                        )
                     }
                 )
             }
