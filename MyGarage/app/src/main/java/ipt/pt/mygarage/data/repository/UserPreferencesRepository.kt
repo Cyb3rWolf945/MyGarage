@@ -19,13 +19,15 @@ class UserPreferencesRepository(private val context: Context) {
         val KEY_USER_NAME = stringPreferencesKey("user_name")
         val KEY_GARAGE_NAME = stringPreferencesKey("garage_name")
         val KEY_IS_GUEST_MODE = booleanPreferencesKey("is_guest_mode")
+        val KEY_HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
     }
 
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data.map { preferences ->
         UserPreferences(
             userName = preferences[KEY_USER_NAME] ?: "Driver",
             garageName = preferences[KEY_GARAGE_NAME] ?: "My Garage",
-            isGuestMode = preferences[KEY_IS_GUEST_MODE] ?: true
+            isGuestMode = preferences[KEY_IS_GUEST_MODE] ?: true,
+            hasCompletedOnboarding = preferences[KEY_HAS_COMPLETED_ONBOARDING] ?: false
         )
     }
 
@@ -44,6 +46,14 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setGuestMode(isGuest: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_IS_GUEST_MODE] = isGuest
+        }
+    }
+
+    suspend fun completeOnboarding(userName: String, garageName: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_USER_NAME] = userName
+            preferences[KEY_GARAGE_NAME] = garageName
+            preferences[KEY_HAS_COMPLETED_ONBOARDING] = true
         }
     }
 }

@@ -67,6 +67,32 @@
     <string name="delete_service_title">Delete Service Log?</string>
     <string name="delete_service_message">Are you sure you want to delete this maintenance record? All parts associated with this service will also be permanently removed.</string>
 
+    <!-- Onboarding Flow -->
+    <string name="onboarding_welcome_title">Welcome to MyGarage</string>
+    <string name="onboarding_welcome_subtitle">The digital cockpit for your fleet.</string>
+    <string name="onboarding_welcome_description">Track maintenance, scan plates, and manage every detail of your vehicles in one place.</string>
+
+    <string name="onboarding_authfork_title">Your Garage, Your Rules.</string>
+    <string name="onboarding_authfork_subtitle">Back up your data to the cloud, or keep everything strictly local on your device.</string>
+    <string name="onboarding_authfork_sign_in">Sign In / Create Account</string>
+    <string name="onboarding_authfork_continue_guest">Continue as Guest</string>
+
+    <string name="onboarding_setup_title">Set Up Your Workspace</string>
+    <string name="onboarding_setup_subtitle">Setting up your local workspace. You can always sync to the cloud later.</string>
+    <string name="onboarding_setup_user_name_label">User Name</string>
+    <string name="onboarding_setup_user_name_placeholder">Enter your name</string>
+    <string name="onboarding_setup_garage_name_label">Garage Name</string>
+    <string name="onboarding_setup_garage_name_placeholder">e.g. Wolf\'s Workshop</string>
+
+    <string name="onboarding_action_next">Next</string>
+    <string name="onboarding_action_finish">Finish &amp; Enter Garage</string>
+    <string name="onboarding_action_get_started">Get Started</string>
+
+    <string name="onboarding_page_indicator_description">Page %1$d of %2$d</string>
+
+    <string name="onboarding_error_user_name_blank">Please enter your name to continue</string>
+    <string name="onboarding_error_garage_name_blank">Please give your garage a name</string>
+
     <!-- Service History -->
     <string name="service_history_section_label">SERVICE HISTORY</string>
     <string name="service_history_empty_title">No service history found</string>
