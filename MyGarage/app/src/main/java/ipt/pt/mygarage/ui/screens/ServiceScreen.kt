@@ -136,23 +136,10 @@ fun ServiceScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 24.dp)
+                .padding(top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // ── Page Title ──────────────────────────────────────────────
-            item(key = "header_spacer") {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            item(key = "page_title") {
-                Text(
-                    text = stringResource(id = R.string.nav_service),
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MyGarageColors.onBackground
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
             // ── No-vehicle empty state ──────────────────────────────────
             if (vehicles.isEmpty()) {
                 item(key = "no_vehicle_empty") {
@@ -195,18 +182,6 @@ fun ServiceScreen(
                 }
             }
 
-            // ── Timeline Header ─────────────────────────────────────────
-            if (vehicles.isNotEmpty()) {
-                item(key = "timeline_header") {
-                    Text(
-                        text = stringResource(id = R.string.service_history_section_label),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MyGarageColors.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-            }
-
             // ── Timeline Items (or premium empty state) ─────────────────
             if (vehicles.isNotEmpty()) {
                 val services = selectedVehicleWithServices?.services ?: emptyList()
@@ -242,24 +217,6 @@ fun ServiceScreen(
                                 )
                             }
                         }
-                    }
-                }
-            }
-
-            // ── No-vehicle-selected hint ────────────────────────────────
-            if (selectedVehicleId == null) {
-                item(key = "no_vehicle_hint") {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.service_history_select_vehicle_hint),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MyGarageColors.onSurfaceVariant
-                        )
                     }
                 }
             }
