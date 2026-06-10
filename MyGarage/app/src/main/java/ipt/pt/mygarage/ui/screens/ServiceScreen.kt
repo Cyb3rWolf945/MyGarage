@@ -1,5 +1,9 @@
 package ipt.pt.mygarage.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,11 +25,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
@@ -46,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import ipt.pt.mygarage.R
@@ -109,15 +114,21 @@ fun ServiceScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = MyGarageColors.background,
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddFabClicked,
-                containerColor = MyGarageColors.primary,
-                contentColor = MyGarageColors.surfaceContainerLowest
+            AnimatedVisibility(
+                visible = vehicles.isNotEmpty(),
+                enter = fadeIn(),
+                exit = fadeOut()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Service Log"
-                )
+                FloatingActionButton(
+                    onClick = onAddFabClicked,
+                    containerColor = MyGarageColors.primary,
+                    contentColor = MyGarageColors.surfaceContainerLowest
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add Service Log"
+                    )
+                }
             }
         }
     ) { innerPadding ->
@@ -142,77 +153,96 @@ fun ServiceScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
+            // ── No-vehicle empty state ──────────────────────────────────
+            if (vehicles.isEmpty()) {
+                item(key = "no_vehicle_empty") {
+                    Crossfade(targetState = true, label = "no_vehicle_crossfade") {
+                        NoVehicleEmptyState(
+                            modifier = Modifier.fillParentMaxHeight()
+                        )
+                    }
+                }
+            }
+
             // ── Vehicle Selector Chips ──────────────────────────────────
-            item(key = "vehicle_chips") {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    items(vehicles) { vehicle ->
-                        val isSelected = vehicle.id == selectedVehicleId
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(
-                                    if (isSelected) MyGarageColors.primary
-                                    else MyGarageColors.surfaceContainerLowest
+            if (vehicles.isNotEmpty()) {
+                item(key = "vehicle_chips") {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        items(vehicles) { vehicle ->
+                            val isSelected = vehicle.id == selectedVehicleId
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(
+                                        if (isSelected) MyGarageColors.primary
+                                        else MyGarageColors.surfaceContainerLowest
+                                    )
+                                    .clickable { onVehicleSelected(vehicle.id) }
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = vehicle.name,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (isSelected) MyGarageColors.surfaceContainerLowest
+                                    else MyGarageColors.onSurface
                                 )
-                                .clickable { onVehicleSelected(vehicle.id) }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = vehicle.name,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (isSelected) MyGarageColors.surfaceContainerLowest
-                                else MyGarageColors.onSurface
-                            )
+                            }
                         }
                     }
                 }
             }
 
             // ── Timeline Header ─────────────────────────────────────────
-            item(key = "timeline_header") {
-                Text(
-                    text = "SERVICE HISTORY",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MyGarageColors.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+            if (vehicles.isNotEmpty()) {
+                item(key = "timeline_header") {
+                    Text(
+                        text = stringResource(id = R.string.service_history_section_label),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MyGarageColors.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
 
-            // ── Timeline Items (or empty state) ─────────────────────────
-            val services = selectedVehicleWithServices?.services ?: emptyList()
-            if (services.isEmpty()) {
-                item(key = "empty_timeline") {
-                    Text(
-                        text = "No service history found for the selected vehicle.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MyGarageColors.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                }
-            } else {
-                itemsIndexed(
-                    items = services,
-                    key = { _, log -> log.id.toString() }
-                ) { index, log ->
-                    val displaySubtitle = buildString {
-                        append("Completed at ")
-                        append(log.mileage)
-                        append(" - Date: ")
-                        append(log.date)
-                        append(" [Type: ")
-                        append(log.type)
-                        append("]")
+            // ── Timeline Items (or premium empty state) ─────────────────
+            if (vehicles.isNotEmpty()) {
+                val services = selectedVehicleWithServices?.services ?: emptyList()
+                item(key = "timeline_content") {
+                    AnimatedVisibility(
+                        visible = services.isEmpty(),
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        ServiceHistoryEmptyState()
                     }
-                    TimelineItem(
-                        title = log.description,
-                        subtitle = displaySubtitle,
-                        isLast = index == services.size - 1,
-                        onClick = { onLogClicked(log) },
-                        onLongClick = { onLogLongPressed(log) }
-                    )
+                    AnimatedVisibility(
+                        visible = services.isNotEmpty(),
+                        enter = fadeIn(),
+                        exit = fadeOut()
+                    ) {
+                        Column {
+                            for ((index, log) in services.withIndex()) {
+                                TimelineItem(
+                                    title = log.description,
+                                    subtitle = buildString {
+                                        append("Completed at ")
+                                        append(log.mileage)
+                                        append(" - Date: ")
+                                        append(log.date)
+                                        append(" [Type: ")
+                                        append(log.type)
+                                        append("]")
+                                    },
+                                    isLast = index == services.lastIndex,
+                                    onClick = { onLogClicked(log) },
+                                    onLongClick = { onLogLongPressed(log) }
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -226,7 +256,7 @@ fun ServiceScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Please select a vehicle to log services.",
+                            text = stringResource(id = R.string.service_history_select_vehicle_hint),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MyGarageColors.onSurfaceVariant
                         )
@@ -422,6 +452,93 @@ fun TimelineItem(
                 color = MyGarageColors.onSurfaceVariant
             )
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ServiceHistoryEmptyState — premium 'clean log' placeholder per DESIGN.md
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun ServiceHistoryEmptyState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp, vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(CircleShape)
+                .background(MyGarageColors.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Build,
+                contentDescription = null,
+                tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(36.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(
+            text = stringResource(id = R.string.service_history_empty_title),
+            style = MaterialTheme.typography.headlineLarge,
+            color = MyGarageColors.onSurface,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(id = R.string.service_history_empty_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MyGarageColors.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  NoVehicleEmptyState — shown when the user has no registered vehicles
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun NoVehicleEmptyState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MyGarageColors.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Build,
+                contentDescription = null,
+                tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(36.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = stringResource(id = R.string.service_no_vehicle_title),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MyGarageColors.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
