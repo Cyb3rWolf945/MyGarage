@@ -120,16 +120,8 @@ fun GarageScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
-                .padding(top = 16.dp)
+                .padding(top = 8.dp)
         ) {
-            Text(
-                text = stringResource(id = R.string.nav_garage),
-                style = MaterialTheme.typography.displayLarge,
-                color = MyGarageColors.onBackground
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
             Crossfade(targetState = vehicles.isEmpty(), label = "garage_empty_crossfade") { isEmpty ->
                 if (isEmpty) {
                     GarageEmptyState(
@@ -144,12 +136,9 @@ fun GarageScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(vehicles) { vehicle ->
-                            val isBmw = vehicle.name.contains("BMW", ignoreCase = true)
                             VehicleCard(
                                 model = vehicle.name,
                                 plate = vehicle.plate,
-                                status = if (isBmw) "IN SERVICE" else "READY",
-                                statusColor = if (isBmw) MyGarageColors.onSurfaceVariant else MyGarageColors.primary,
                                 onClick = { onVehicleClick(vehicle.id) },
                                 onLongClick = { onVehicleLongPressed(vehicle) }
                             )
