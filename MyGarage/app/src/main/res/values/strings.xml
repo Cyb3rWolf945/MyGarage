@@ -97,10 +97,22 @@
     <string name="service_history_section_label">SERVICE HISTORY</string>
     <string name="service_history_empty_title">No service history found</string>
     <string name="service_history_empty_subtitle">Your service log is clean. Tap the + button to log your first maintenance record.</string>
-    <string name="service_history_select_vehicle_hint">Please select a vehicle to log services.</string>
-
     <!-- Empty States -->
     <string name="garage_empty_title">Your garage is empty.</string>
     <string name="garage_empty_subtitle">Tap the + button to add your first vehicle.</string>
     <string name="service_no_vehicle_title">To start using the service log, please first add a vehicle in your Garage.</string>
+
+    <!-- Plate Scanner -->
+    <string name="scanner_ready_title">SCANNER READY</string>
+    <string name="scanner_ready_subtitle">Tap to start live plate recognition</string>
+    <string name="scanner_offline_title">SCANNER OFFLINE</string>
+    <string name="scanner_offline_subtitle">Tap to initialize vehicle tracking</string>
+    <string name="scanner_permission_denied_title">Camera Permission Required</string>
+    <string name="scanner_permission_denied_subtitle">The Plate Scanner needs camera access to recognize license plates. Please grant permission to continue.</string>
+    <string name="scanner_enable_camera">ENABLE CAMERA</string>
+    <string name="scanner_open_settings">OPEN SETTINGS</string>
+    <string name="scanner_plate_detected_label">Plate detected</string>
+    <string name="scanner_position_hint">Position the license plate within the frame</string>
+    <string name="scanner_tap_to_activate">Tap to activate scanner</string>
+    <string name="scanner_permanently_blocked">Camera access blocked. Tap to open Settings.</string>
 </resources>
