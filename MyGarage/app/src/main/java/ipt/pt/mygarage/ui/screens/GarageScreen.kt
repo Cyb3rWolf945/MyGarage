@@ -1,5 +1,6 @@
 package ipt.pt.mygarage.ui.screens
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ipt.pt.mygarage.R
@@ -128,37 +130,30 @@ fun GarageScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            if (vehicles.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No vehicles in your garage. Tap '+' to add one.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MyGarageColors.onSurfaceVariant
+            Crossfade(targetState = vehicles.isEmpty(), label = "garage_empty_crossfade") { isEmpty ->
+                if (isEmpty) {
+                    GarageEmptyState(
+                        modifier = Modifier.weight(1f)
                     )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentPadding = PaddingValues(bottom = 80.dp), // Extra padding to clear FAB
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(vehicles) { vehicle ->
-                        val isBmw = vehicle.name.contains("BMW", ignoreCase = true)
-                        VehicleCard(
-                            model = vehicle.name,
-                            plate = vehicle.plate,
-                            status = if (isBmw) "IN SERVICE" else "READY",
-                            statusColor = if (isBmw) MyGarageColors.onSurfaceVariant else MyGarageColors.primary,
-                            onClick = { onVehicleClick(vehicle.id) },
-                            onLongClick = { onVehicleLongPressed(vehicle) }
-                        )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentPadding = PaddingValues(bottom = 80.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(vehicles) { vehicle ->
+                            val isBmw = vehicle.name.contains("BMW", ignoreCase = true)
+                            VehicleCard(
+                                model = vehicle.name,
+                                plate = vehicle.plate,
+                                status = if (isBmw) "IN SERVICE" else "READY",
+                                statusColor = if (isBmw) MyGarageColors.onSurfaceVariant else MyGarageColors.primary,
+                                onClick = { onVehicleClick(vehicle.id) },
+                                onLongClick = { onVehicleLongPressed(vehicle) }
+                            )
+                        }
                     }
                 }
             }
@@ -249,5 +244,53 @@ fun GarageScreen(
                 contentDescription = "Add Vehicle"
             )
         }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  GarageEmptyState — premium placeholder per DESIGN.md
+// ─────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun GarageEmptyState(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MyGarageColors.surfaceContainerHigh),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_garage),
+                contentDescription = null,
+                tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(36.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = stringResource(id = R.string.garage_empty_title),
+            style = MaterialTheme.typography.headlineLarge,
+            color = MyGarageColors.onSurface,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(id = R.string.garage_empty_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MyGarageColors.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
     }
 }
