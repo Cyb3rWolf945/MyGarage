@@ -66,17 +66,8 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 24.dp)
-                .padding(top = 16.dp, bottom = 32.dp)
+                .padding(top = 8.dp, bottom = 32.dp)
         ) {
-            // Section label
-            Text(
-                text = stringResource(id = R.string.profile_screen_title),
-                style = MaterialTheme.typography.labelSmall,
-                color = MyGarageColors.primary
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
             if (state.isEditing) {
                 EditModeContent(
                     state = state,
