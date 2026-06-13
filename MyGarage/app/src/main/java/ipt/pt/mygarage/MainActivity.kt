@@ -39,6 +39,7 @@ import ipt.pt.mygarage.presentation.onboarding.OnboardingViewModel
 import ipt.pt.mygarage.presentation.profile.ProfileViewModel
 import ipt.pt.mygarage.presentation.profile.VehicleProfileViewModel
 import ipt.pt.mygarage.presentation.service.ServiceViewModel
+import ipt.pt.mygarage.data.repository.UserPreferencesRepository
 import ipt.pt.mygarage.ui.components.AtelierBottomNav
 import ipt.pt.mygarage.ui.components.AtelierTopBar
 import ipt.pt.mygarage.ui.screens.CameraScreen
@@ -95,7 +96,12 @@ fun MainScreen(
     val topBarAvatarFileName by mainViewModel.avatarFileName.collectAsStateWithLifecycle()
 
     val garageViewModel: GarageViewModel = viewModel()
-    val serviceViewModel: ServiceViewModel = viewModel(factory = ServiceViewModel.factory(repository))
+    val serviceViewModel: ServiceViewModel = viewModel(
+        factory = ServiceViewModel.factory(
+            repository,
+            UserPreferencesRepository(context)
+        )
+    )
 
     // ── Garage state ──────────────────────────────────────────────────────
     val vehicles by garageViewModel.vehiclesState.collectAsState()
