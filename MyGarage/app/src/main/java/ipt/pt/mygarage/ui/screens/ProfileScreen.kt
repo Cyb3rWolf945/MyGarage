@@ -1,5 +1,10 @@
 package ipt.pt.mygarage.ui.screens
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,7 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
@@ -33,16 +37,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.presentation.profile.ProfileUiState
 import ipt.pt.mygarage.presentation.profile.ProfileViewModel
 import ipt.pt.mygarage.ui.theme.MyGarageColors
+import java.io.File
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -55,6 +64,19 @@ fun ProfileScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    val app = context.applicationContext as MyGarageApplication
+    val imageStorageManager = app.imageStorageManager
+
+    // Resolve avatar file path from stored filename
+    val avatarPath = state.avatarFileName?.let { imageStorageManager.getImagePath(it) }
+
+    // Photo picker launcher
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) viewModel.onAvatarSelected(uri.toString())
+    }
 
     Box(
         modifier = modifier
@@ -68,15 +90,6 @@ fun ProfileScreen(
                 .padding(horizontal = 24.dp)
                 .padding(top = 16.dp, bottom = 32.dp)
         ) {
-            // Section label
-            Text(
-                text = stringResource(id = R.string.profile_screen_title),
-                style = MaterialTheme.typography.labelSmall,
-                color = MyGarageColors.primary
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
             if (state.isEditing) {
                 EditModeContent(
                     state = state,
@@ -88,6 +101,8 @@ fun ProfileScreen(
             } else {
                 ViewModeContent(
                     state = state,
+                    avatarPath = avatarPath,
+                    onAvatarClick = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                     onEditClick = viewModel::onEditToggled,
                     onNavigateToGarage = onNavigateToGarage,
                     onAuthActionClicked = viewModel::onAuthActionClicked
@@ -102,6 +117,8 @@ fun ProfileScreen(
 @Composable
 private fun ViewModeContent(
     state: ProfileUiState,
+    avatarPath: String?,
+    onAvatarClick: () -> Unit,
     onEditClick: () -> Unit,
     onNavigateToGarage: () -> Unit,
     onAuthActionClicked: () -> Unit
@@ -109,7 +126,9 @@ private fun ViewModeContent(
     // ═══ Hero Section ═══
     HeroSection(
         userName = state.userName,
-        garageName = state.garageName
+        garageName = state.garageName,
+        avatarPath = avatarPath,
+        onAvatarClick = onAvatarClick
     )
 
     Spacer(modifier = Modifier.height(20.dp))
@@ -188,48 +207,50 @@ private fun ViewModeContent(
 @Composable
 private fun HeroSection(
     userName: String,
-    garageName: String
+    garageName: String,
+    avatarPath: String?,
+    onAvatarClick: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Circular Avatar with Camera Badge
+        // Interactive Circular Avatar
         Box(
-            modifier = Modifier.size(88.dp),
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onAvatarClick),
             contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(88.dp)
-                    .clip(CircleShape)
-                    .background(MyGarageColors.surfaceContainerHigh),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = stringResource(id = R.string.profile_avatar_description),
-                    tint = MyGarageColors.primary,
-                    modifier = Modifier.size(48.dp)
-                )
-            }
-
-            // Camera badge
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .offset(x = 4.dp, y = 4.dp)
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(MyGarageColors.surfaceContainerHighest),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_camera),
-                    contentDescription = stringResource(id = R.string.profile_camera_badge_description),
-                    tint = MyGarageColors.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
+            Crossfade(
+                targetState = avatarPath,
+                label = "avatar_crossfade"
+            ) { path ->
+                val file = path?.let { File(it) }
+                if (file != null) {
+                    AsyncImage(
+                        model = file,
+                        contentDescription = stringResource(R.string.profile_avatar_description),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // Clean centered camera icon placeholder
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MyGarageColors.surfaceContainerHigh),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_camera),
+                            contentDescription = stringResource(R.string.profile_camera_badge_description),
+                            tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
             }
         }
 

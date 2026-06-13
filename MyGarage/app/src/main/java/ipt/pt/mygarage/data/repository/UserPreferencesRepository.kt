@@ -20,6 +20,7 @@ class UserPreferencesRepository(private val context: Context) {
         val KEY_GARAGE_NAME = stringPreferencesKey("garage_name")
         val KEY_IS_GUEST_MODE = booleanPreferencesKey("is_guest_mode")
         val KEY_HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
+        val KEY_AVATAR_FILE_NAME = stringPreferencesKey("avatar_file_name")
     }
 
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data.map { preferences ->
@@ -27,7 +28,8 @@ class UserPreferencesRepository(private val context: Context) {
             userName = preferences[KEY_USER_NAME] ?: "Driver",
             garageName = preferences[KEY_GARAGE_NAME] ?: "My Garage",
             isGuestMode = preferences[KEY_IS_GUEST_MODE] ?: true,
-            hasCompletedOnboarding = preferences[KEY_HAS_COMPLETED_ONBOARDING] ?: false
+            hasCompletedOnboarding = preferences[KEY_HAS_COMPLETED_ONBOARDING] ?: false,
+            avatarFileName = preferences[KEY_AVATAR_FILE_NAME]
         )
     }
 
@@ -54,6 +56,16 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[KEY_USER_NAME] = userName
             preferences[KEY_GARAGE_NAME] = garageName
             preferences[KEY_HAS_COMPLETED_ONBOARDING] = true
+        }
+    }
+
+    suspend fun updateAvatarFileName(fileName: String?) {
+        context.dataStore.edit { preferences ->
+            if (fileName != null) {
+                preferences[KEY_AVATAR_FILE_NAME] = fileName
+            } else {
+                preferences.remove(KEY_AVATAR_FILE_NAME)
+            }
         }
     }
 }

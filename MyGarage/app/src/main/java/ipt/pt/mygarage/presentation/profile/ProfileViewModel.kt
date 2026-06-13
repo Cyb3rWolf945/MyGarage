@@ -3,10 +3,12 @@ package ipt.pt.mygarage.presentation.profile
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.repository.InMemoryVehicleRepository
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
 import ipt.pt.mygarage.data.repository.VehicleRepository
+import ipt.pt.mygarage.domain.repository.ImageStorageManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +19,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     private val userPreferencesRepository = UserPreferencesRepository(application)
     private val vehicleRepository: VehicleRepository = InMemoryVehicleRepository()
+    private val imageStorageManager: ImageStorageManager =
+        (application as MyGarageApplication).imageStorageManager
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -34,7 +38,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     carsOwned = vehicles.size,
                     totalMileage = vehicles.sumOf { extractNumericMileage(it.mileage) },
                     isEditing = _uiState.value.isEditing,
-                    formErrors = _uiState.value.formErrors
+                    formErrors = _uiState.value.formErrors,
+                    avatarFileName = prefs.avatarFileName
                 )
             }.collect { combinedState ->
                 _uiState.value = combinedState
@@ -101,6 +106,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         val current = _uiState.value.isGuestMode
         viewModelScope.launch {
             userPreferencesRepository.setGuestMode(!current)
+        }
+    }
+
+    fun onAvatarSelected(uri: String) {
+        viewModelScope.launch {
+            val fileName = imageStorageManager.saveImage(uri)
+            if (fileName != null) {
+                userPreferencesRepository.updateAvatarFileName(fileName)
+            }
         }
     }
 }

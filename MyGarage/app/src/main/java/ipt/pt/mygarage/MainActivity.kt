@@ -92,6 +92,7 @@ fun MainScreen(
 
     val startDestination by mainViewModel.startDestination.collectAsStateWithLifecycle()
     val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
+    val topBarAvatarFileName by mainViewModel.avatarFileName.collectAsStateWithLifecycle()
 
     val garageViewModel: GarageViewModel = viewModel()
     val serviceViewModel: ServiceViewModel = viewModel(factory = ServiceViewModel.factory(repository))
@@ -103,6 +104,9 @@ fun MainScreen(
     val garageVehicleToDelete by garageViewModel.vehicleToDelete.collectAsState()
     val garageSelectedForOptions by garageViewModel.selectedVehicleForOptions.collectAsState()
     val garageVehicleToEdit by garageViewModel.vehicleToEdit.collectAsState()
+    val garageState by garageViewModel.uiState.collectAsStateWithLifecycle()
+    val imageStorageManager = app.imageStorageManager
+    val topBarAvatarFile = topBarAvatarFileName?.let { imageStorageManager.getImagePath(it) }?.let { java.io.File(it) }
 
     // ── Service state ─────────────────────────────────────────────────────
     val selectedVehicleId by serviceViewModel.selectedVehicleId.collectAsState()
@@ -130,8 +134,6 @@ fun MainScreen(
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
-    val garageState by garageViewModel.uiState.collectAsStateWithLifecycle()
 
     // Select the first vehicle by default once the vehicles list is populated
     LaunchedEffect(vehicles) {
@@ -169,6 +171,7 @@ fun MainScreen(
             ) {
                 AtelierTopBar(
                     garageName = garageState.garageName,
+                    avatarFile = topBarAvatarFile,
                     onAvatarClick = {
                         navController.navigate("profile") {
                             launchSingleTop = true
@@ -279,6 +282,10 @@ fun MainScreen(
                             onConfirmDelete = garageViewModel::confirmDelete,
                             formErrors = garageFormErrors,
                             onFieldChanged = garageViewModel::clearFieldError,
+                            selectedImageUri = garageState.selectedImageUri,
+                            existingImageFileName = garageState.existingImageFileName,
+                            onImageSelected = garageViewModel::onImageSelected,
+                            imageStorageManager = imageStorageManager,
                             // ── Long-Press Options Menu ──────────────────
                             selectedVehicleForOptions = garageSelectedForOptions,
                             onVehicleLongPressed = garageViewModel::onVehicleLongPressed,

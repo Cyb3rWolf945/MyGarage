@@ -7,6 +7,7 @@ import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
+import ipt.pt.mygarage.domain.repository.ImageStorageManager
 import ipt.pt.mygarage.domain.repository.VehicleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,6 +25,8 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
 
     private val userPreferencesRepository = UserPreferencesRepository(application)
     private val repository: VehicleRepository = (application as MyGarageApplication).repository
+    private val imageStorageManager: ImageStorageManager =
+        (application as MyGarageApplication).imageStorageManager
 
     // ── User Preferences (garage name) ────────────────────────────────────
     private val _uiState = MutableStateFlow(GarageUiState())
@@ -80,6 +83,7 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     fun onSelectEdit(vehicle: VehicleEntity) {
         _selectedVehicleForOptions.value = null
         _vehicleToEdit.value = vehicle
+        _uiState.update { it.copy(existingImageFileName = vehicle.localImageFileName) }
     }
 
     fun onSelectDelete(vehicle: VehicleEntity) {
@@ -89,11 +93,36 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onDismissEditDialog() {
         _vehicleToEdit.value = null
+        clearImageSelection()
+    }
+
+    fun onImageSelected(uri: String) {
+        _uiState.update { it.copy(selectedImageUri = uri) }
+    }
+
+    private fun clearImageSelection() {
+        _uiState.update { it.copy(selectedImageUri = null, existingImageFileName = null) }
+    }
+
+    /**
+     * Saves the currently selected image (if any) to internal storage
+     * and returns the resulting file name, or null.
+     */
+    private suspend fun saveSelectedImage(): String? {
+        val uri = _uiState.value.selectedImageUri ?: return null
+        return imageStorageManager.saveImage(uri)
     }
 
     fun confirmEdit(vehicle: VehicleEntity) {
         viewModelScope.launch {
-            repository.updateVehicle(vehicle)
+            val fileName = saveSelectedImage()
+            val updated = if (fileName != null) {
+                vehicle.copy(localImageFileName = fileName)
+            } else {
+                vehicle
+            }
+            repository.updateVehicle(updated)
+            clearImageSelection()
         }
     }
 
@@ -146,7 +175,14 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     fun insertVehicle(vehicle: VehicleEntity) {
         if (!validateVehicle(vehicle)) return
         viewModelScope.launch {
-            repository.insertVehicle(vehicle)
+            val fileName = saveSelectedImage()
+            val updated = if (fileName != null) {
+                vehicle.copy(localImageFileName = fileName)
+            } else {
+                vehicle
+            }
+            repository.insertVehicle(updated)
+            clearImageSelection()
         }
     }
 }
