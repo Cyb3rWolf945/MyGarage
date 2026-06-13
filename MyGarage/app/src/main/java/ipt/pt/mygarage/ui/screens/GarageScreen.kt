@@ -130,7 +130,7 @@ fun GarageScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 24.dp)
-                .padding(top = 16.dp)
+                .padding(top = 8.dp)
         ) {
             Crossfade(targetState = vehicles.isEmpty(), label = "garage_empty_crossfade") { isEmpty ->
                 if (isEmpty) {
