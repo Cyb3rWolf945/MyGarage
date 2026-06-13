@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
+import ipt.pt.mygarage.domain.repository.ImageStorageManager
 import ipt.pt.mygarage.ui.components.DeleteConfirmationDialog
 import ipt.pt.mygarage.ui.components.VehicleCard
 import ipt.pt.mygarage.ui.components.VehicleEditDialog
@@ -75,6 +76,11 @@ fun GarageScreen(
     vehicleToEdit: VehicleEntity? = null,
     onDismissEditDialog: () -> Unit = {},
     onConfirmEdit: (VehicleEntity) -> Unit = {},
+    // ── Image State (UDF) ──────────────────────────────────────────────────
+    selectedImageUri: String? = null,
+    existingImageFileName: String? = null,
+    onImageSelected: (String) -> Unit = {},
+    imageStorageManager: ImageStorageManager? = null,
     modifier: Modifier = Modifier
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
@@ -98,6 +104,10 @@ fun GarageScreen(
                     showAddDialog = false
                 }
             },
+            selectedImageUri = selectedImageUri,
+            existingImageFileName = existingImageFileName,
+            imageStorageManager = imageStorageManager,
+            onImageSelected = onImageSelected,
             formErrors = formErrors,
             onFieldChanged = onFieldChanged
         )
@@ -122,14 +132,6 @@ fun GarageScreen(
                 .padding(horizontal = 24.dp)
                 .padding(top = 16.dp)
         ) {
-            Text(
-                text = stringResource(id = R.string.nav_garage),
-                style = MaterialTheme.typography.displayLarge,
-                color = MyGarageColors.onBackground
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
             Crossfade(targetState = vehicles.isEmpty(), label = "garage_empty_crossfade") { isEmpty ->
                 if (isEmpty) {
                     GarageEmptyState(
@@ -144,12 +146,13 @@ fun GarageScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(vehicles) { vehicle ->
-                            val isBmw = vehicle.name.contains("BMW", ignoreCase = true)
+                            val resolvedPath = vehicle.localImageFileName?.let {
+                                imageStorageManager?.getImagePath(it)
+                            }
                             VehicleCard(
                                 model = vehicle.name,
                                 plate = vehicle.plate,
-                                status = if (isBmw) "IN SERVICE" else "READY",
-                                statusColor = if (isBmw) MyGarageColors.onSurfaceVariant else MyGarageColors.primary,
+                                imagePath = resolvedPath,
                                 onClick = { onVehicleClick(vehicle.id) },
                                 onLongClick = { onVehicleLongPressed(vehicle) }
                             )

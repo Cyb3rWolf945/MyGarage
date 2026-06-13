@@ -139,20 +139,6 @@ fun ServiceScreen(
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // ── Page Title ──────────────────────────────────────────────
-            item(key = "header_spacer") {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            item(key = "page_title") {
-                Text(
-                    text = stringResource(id = R.string.nav_service),
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MyGarageColors.onBackground
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
             // ── No-vehicle empty state ──────────────────────────────────
             if (vehicles.isEmpty()) {
                 item(key = "no_vehicle_empty") {

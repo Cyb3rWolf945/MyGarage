@@ -99,6 +99,11 @@
     <string name="service_history_empty_subtitle">Your service log is clean. Tap the + button to log your first maintenance record.</string>
     <string name="service_history_select_vehicle_hint">Please select a vehicle to log services.</string>
 
+    <!-- Vehicle Photo -->
+    <string name="add_vehicle_photo">Add Vehicle Photo</string>
+    <string name="add_vehicle_photo_cd">Add a photo of your vehicle</string>
+    <string name="vehicle_photo_cd">Vehicle photo</string>
+
     <!-- Empty States -->
     <string name="garage_empty_title">Your garage is empty.</string>
     <string name="garage_empty_subtitle">Tap the + button to add your first vehicle.</string>

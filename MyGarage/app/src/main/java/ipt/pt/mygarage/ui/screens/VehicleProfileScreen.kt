@@ -38,11 +38,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextAlign
+import coil.compose.AsyncImage
+import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 import ipt.pt.mygarage.ui.screens.vehicleprofile.VehicleProfileUiState
@@ -53,6 +56,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.IconButton
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -74,6 +78,13 @@ fun VehicleProfileScreen(
     var selectedTab by remember { mutableStateOf(0) }
     var showEditDialog by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    val app = context.applicationContext as MyGarageApplication
+    val imageStorageManager = app.imageStorageManager
+    val resolvedImagePath = vehicleEntity.localImageFileName?.let {
+        imageStorageManager.getImagePath(it)
+    }
+
     if (showEditDialog) {
         VehicleEditDialog(
             vehicle = vehicleEntity,
@@ -82,6 +93,8 @@ fun VehicleProfileScreen(
                 onUpdateVehicle(updatedVehicle)
                 showEditDialog = false
             },
+            existingImageFileName = vehicleEntity.localImageFileName,
+            imageStorageManager = imageStorageManager,
             formErrors = uiState.formErrors,
             onFieldChanged = onFieldChanged
         )
@@ -109,12 +122,37 @@ fun VehicleProfileScreen(
                     .fillMaxWidth()
                     .height(280.dp)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_launcher_background),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                val imageFile = resolvedImagePath?.let { File(it) }
+                if (imageFile != null) {
+                    AsyncImage(
+                        model = imageFile,
+                        contentDescription = stringResource(R.string.vehicle_photo_cd),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // Premium gradient placeholder
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MyGarageColors.surfaceContainerHigh,
+                                        MyGarageColors.surfaceContainerLow
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_garage),
+                            contentDescription = stringResource(R.string.add_vehicle_photo_cd),
+                            tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.25f),
+                            modifier = Modifier.size(48.dp)
+                        )
+                    }
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

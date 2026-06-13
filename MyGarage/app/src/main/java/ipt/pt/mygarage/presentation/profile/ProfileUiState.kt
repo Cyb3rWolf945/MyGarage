@@ -7,5 +7,6 @@ data class ProfileUiState(
     val carsOwned: Int = 0,
     val totalMileage: Int = 0,
     val isEditing: Boolean = false,
-    val formErrors: Map<String, Int> = emptyMap()
+    val formErrors: Map<String, Int> = emptyMap(),
+    val avatarFileName: String? = null
 )

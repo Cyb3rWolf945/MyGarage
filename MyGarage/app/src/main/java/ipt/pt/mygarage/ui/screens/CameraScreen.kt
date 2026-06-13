@@ -156,16 +156,8 @@ private fun CameraScreenContent(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 16.dp)
+                .padding(top = 8.dp)
         ) {
-            Text(
-                text = stringResource(id = R.string.nav_camera),
-                style = MaterialTheme.typography.displayLarge,
-                color = MyGarageColors.onBackground
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
