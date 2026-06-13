@@ -73,7 +73,8 @@ fun VehicleCard(
                         model = file,
                         contentDescription = stringResource(R.string.vehicle_photo_cd),
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        alignment = Alignment.Center
                     )
                 } else {
                     // Premium gradient placeholder
