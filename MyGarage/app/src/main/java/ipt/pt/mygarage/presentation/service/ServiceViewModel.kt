@@ -10,6 +10,7 @@ import ipt.pt.mygarage.data.local.entity.ServiceLogEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogPieceCrossRef
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.data.local.relation.VehicleWithServices
+import ipt.pt.mygarage.data.repository.UserPreferencesRepository
 import ipt.pt.mygarage.domain.repository.VehicleRepository
 import ipt.pt.mygarage.ui.screens.servicelog.ServiceDialogMode
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,7 +27,8 @@ import java.util.UUID
  * ViewModel for managing service logs and parts lists.
  */
 class ServiceViewModel(
-    private val repository: VehicleRepository
+    private val repository: VehicleRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     // Expose all vehicles for selection on the service page
@@ -240,13 +242,13 @@ class ServiceViewModel(
 
         // ── Business Rule: service mileage must not be lower than the vehicle's current mileage ──
         val vehicleCurrentMileage = _selectedVehicleWithServices.value?.vehicle?.mileage
-        if (vehicleCurrentMileage != null) {
-            val inputMileageNum = mileage.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
-            val currentMileageNum = vehicleCurrentMileage.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
-            if (inputMileageNum < currentMileageNum) {
-                _formErrors.update { it + ("mileage" to R.string.error_mileage_lower_than_current) }
-                return
-            }
+        val inputMileageNum = mileage.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
+        val currentMileageNum = vehicleCurrentMileage
+            ?.replace(Regex("[^0-9]"), "")
+            ?.toIntOrNull() ?: 0
+        if (vehicleCurrentMileage != null && inputMileageNum < currentMileageNum) {
+            _formErrors.update { it + ("mileage" to R.string.error_mileage_lower_than_current) }
+            return
         }
 
         viewModelScope.launch {
@@ -267,12 +269,13 @@ class ServiceViewModel(
                 repository.updateServiceLogWithParts(updatedLog, partsToSave)
             } else {
                 // ── ADD MODE: insert new log with current parts ────────────
+                val newMileage = if (mileage.contains("mi")) mileage else "$mileage mi"
                 val newLog = ServiceLogEntity(
                     id = UUID.randomUUID(),
                     vehicleId = vehicleId!!,
                     date = date,
                     description = desc,
-                    mileage = if (mileage.contains("mi")) mileage else "$mileage mi",
+                    mileage = newMileage,
                     type = type
                 )
                 if (type == "revision") {
@@ -283,6 +286,21 @@ class ServiceViewModel(
                     partsToInsert.forEach { repository.insertPart(it) }
                 } else {
                     repository.insertServiceLog(newLog)
+                }
+
+                // ── Update vehicle's current mileage and track user-driven delta ──
+                val currentVehicle = _selectedVehicleWithServices.value?.vehicle
+                if (currentVehicle != null) {
+                    // Calculate how many miles the user actually drove (delta)
+                    val delta = inputMileageNum - currentMileageNum
+                    if (delta > 0) {
+                        userPreferencesRepository.incrementUserMileage(delta)
+                    }
+
+                    // Always update the vehicle entity so its mileage reflects the latest service
+                    repository.updateVehicle(
+                        currentVehicle.copy(mileage = newMileage)
+                    )
                 }
             }
 
@@ -408,11 +426,14 @@ class ServiceViewModel(
     }
 
     companion object {
-        fun factory(repository: VehicleRepository): ViewModelProvider.Factory =
+        fun factory(
+            repository: VehicleRepository,
+            userPreferencesRepository: UserPreferencesRepository
+        ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return ServiceViewModel(repository) as T
+                    return ServiceViewModel(repository, userPreferencesRepository) as T
                 }
             }
     }

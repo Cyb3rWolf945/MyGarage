@@ -29,14 +29,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             combine(
                 userPreferencesRepository.userPreferencesFlow,
-                vehicleRepository.getAllVehicles()
-            ) { prefs, vehicles ->
+                vehicleRepository.getAllVehicles(),
+                userPreferencesRepository.totalUserMileageFlow
+            ) { prefs, vehicles, drivenMileage ->
                 ProfileUiState(
                     userName = prefs.userName,
                     garageName = prefs.garageName,
                     isGuestMode = prefs.isGuestMode,
                     carsOwned = vehicles.size,
-                    totalMileage = vehicles.sumOf { extractNumericMileage(it.mileage) },
+                    totalMileage = drivenMileage,
                     isEditing = _uiState.value.isEditing,
                     formErrors = _uiState.value.formErrors,
                     avatarFileName = prefs.avatarFileName
@@ -45,14 +46,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 _uiState.value = combinedState
             }
         }
-    }
-
-    /**
-     * Strips all non-numeric characters from a mileage string and returns the integer value.
-     * Examples: "12,450 mi" → 12450, "8,920 mi" → 8920, "" → 0
-     */
-    private fun extractNumericMileage(mileage: String): Int {
-        return mileage.filter { it.isDigit() }.toIntOrNull() ?: 0
     }
 
     fun onEditToggled() {

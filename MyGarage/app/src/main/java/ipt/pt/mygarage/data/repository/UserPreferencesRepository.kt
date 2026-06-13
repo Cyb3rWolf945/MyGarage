@@ -5,10 +5,12 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import ipt.pt.mygarage.data.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
@@ -21,6 +23,7 @@ class UserPreferencesRepository(private val context: Context) {
         val KEY_IS_GUEST_MODE = booleanPreferencesKey("is_guest_mode")
         val KEY_HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         val KEY_AVATAR_FILE_NAME = stringPreferencesKey("avatar_file_name")
+        val KEY_TOTAL_USER_MILEAGE = intPreferencesKey("total_user_mileage")
     }
 
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data.map { preferences ->
@@ -29,8 +32,22 @@ class UserPreferencesRepository(private val context: Context) {
             garageName = preferences[KEY_GARAGE_NAME] ?: "My Garage",
             isGuestMode = preferences[KEY_IS_GUEST_MODE] ?: true,
             hasCompletedOnboarding = preferences[KEY_HAS_COMPLETED_ONBOARDING] ?: false,
-            avatarFileName = preferences[KEY_AVATAR_FILE_NAME]
+            avatarFileName = preferences[KEY_AVATAR_FILE_NAME],
+            totalUserMileage = preferences[KEY_TOTAL_USER_MILEAGE] ?: 0
         )
+    }
+
+    /** Exposes the running total of miles driven by the user across all vehicles. */
+    val totalUserMileageFlow: Flow<Int> = context.dataStore.data.map { preferences ->
+        preferences[KEY_TOTAL_USER_MILEAGE] ?: 0
+    }.distinctUntilChanged()
+
+    /** Adds [delta] miles to the user's lifetime driven total. */
+    suspend fun incrementUserMileage(delta: Int) {
+        context.dataStore.edit { preferences ->
+            val current = preferences[KEY_TOTAL_USER_MILEAGE] ?: 0
+            preferences[KEY_TOTAL_USER_MILEAGE] = current + delta
+        }
     }
 
     suspend fun updateUserName(name: String) {
