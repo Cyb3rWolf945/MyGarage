@@ -5,10 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.R
-import ipt.pt.mygarage.data.repository.InMemoryVehicleRepository
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
-import ipt.pt.mygarage.data.repository.VehicleRepository
 import ipt.pt.mygarage.domain.repository.ImageStorageManager
+import ipt.pt.mygarage.domain.repository.VehicleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +17,8 @@ import kotlinx.coroutines.launch
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
 
     private val userPreferencesRepository = UserPreferencesRepository(application)
-    private val vehicleRepository: VehicleRepository = InMemoryVehicleRepository()
+    private val vehicleRepository: VehicleRepository =
+        (application as MyGarageApplication).repository
     private val imageStorageManager: ImageStorageManager =
         (application as MyGarageApplication).imageStorageManager
 
@@ -29,7 +29,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             combine(
                 userPreferencesRepository.userPreferencesFlow,
-                vehicleRepository.getAllVehiclesStream()
+                vehicleRepository.getAllVehicles()
             ) { prefs, vehicles ->
                 ProfileUiState(
                     userName = prefs.userName,
