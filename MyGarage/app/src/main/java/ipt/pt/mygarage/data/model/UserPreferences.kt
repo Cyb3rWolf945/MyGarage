@@ -5,5 +5,6 @@ data class UserPreferences(
     val garageName: String = "My Garage",
     val isGuestMode: Boolean = true,
     val hasCompletedOnboarding: Boolean = false,
-    val avatarFileName: String? = null
+    val avatarFileName: String? = null,
+    val totalUserMileage: Int = 0
 )
