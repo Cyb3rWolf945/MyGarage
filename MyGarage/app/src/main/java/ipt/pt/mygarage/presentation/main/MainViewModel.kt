@@ -26,6 +26,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _startDestination = MutableStateFlow<String?>(null)
     val startDestination: StateFlow<String?> = _startDestination.asStateFlow()
 
+    private val _avatarFileName = MutableStateFlow<String?>(null)
+    val avatarFileName: StateFlow<String?> = _avatarFileName.asStateFlow()
+
     init {
         viewModelScope.launch {
             userPreferencesRepository.userPreferencesFlow.collect { preferences ->
@@ -34,6 +37,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     ROUTE_ONBOARDING_GRAPH
                 }
+                _avatarFileName.value = preferences.avatarFileName
                 _isLoading.value = false
             }
         }

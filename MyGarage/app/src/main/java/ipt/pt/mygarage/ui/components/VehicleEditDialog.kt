@@ -1,5 +1,10 @@
 package ipt.pt.mygarage.ui.components
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -7,9 +12,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,20 +40,28 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.ui.theme.MyGarageColors
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -71,9 +86,16 @@ fun VehicleEditDialog(
     vehicle: VehicleEntity?,
     onDismiss: () -> Unit,
     onConfirm: (VehicleEntity) -> Unit,
+    selectedImageUri: String? = null,
+    existingImageFileName: String? = null,
+    imageStorageManager: ipt.pt.mygarage.domain.repository.ImageStorageManager? = null,
+    onImageSelected: (String) -> Unit = {},
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {}
 ) {
+    // Local picked Uri — avoids string round-trip permission loss
+    var pickedUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
     var name by remember { mutableStateOf(vehicle?.name ?: "") }
     var plate by remember { mutableStateOf(vehicle?.plate ?: "") }
     var year by remember { mutableStateOf(vehicle?.year ?: "") }
@@ -110,6 +132,40 @@ fun VehicleEditDialog(
     )
 
     val scrollState = rememberScrollState()
+
+    // ── Photo Picker ─────────────────────────────────────────────────────
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            pickedUri = uri
+            onImageSelected(uri.toString())
+        }
+    }
+
+    // Save picked image immediately so the filename is ready when Save is tapped
+    var savedImageFileName by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(pickedUri) {
+        val uri = pickedUri
+        if (uri != null && imageStorageManager != null) {
+            savedImageFileName = withContext(Dispatchers.IO) {
+                try {
+                    val fileName = "${java.util.UUID.randomUUID()}.jpg"
+                    val targetFile = java.io.File(context.filesDir, "vehicle_images/$fileName")
+                    targetFile.parentFile?.mkdirs()
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        targetFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    fileName
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    null
+                }
+            }
+        }
+    }
 
     fun parseMileageNumeric(raw: String): Double {
         val clean = raw.replace(",", "").replace(Regex("[^0-9.]"), "")
@@ -162,6 +218,60 @@ fun VehicleEditDialog(
                 style = MaterialTheme.typography.labelSmall,
                 color = MyGarageColors.primary
             )
+
+            // ── Image Placeholder ─────────────────────────────────────────
+            val imageModel = remember(pickedUri, existingImageFileName) {
+                if (pickedUri != null) {
+                    pickedUri
+                } else if (existingImageFileName != null) {
+                    imageStorageManager?.getImagePath(existingImageFileName)?.let { java.io.File(it) }
+                } else {
+                    null
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MyGarageColors.surfaceContainerLowest)
+                    .clickable { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                contentAlignment = Alignment.Center
+            ) {
+                Crossfade(
+                    targetState = imageModel,
+                    label = "vehicle_photo_crossfade"
+                ) { model ->
+                    if (model != null) {
+                        AsyncImage(
+                            model = model,
+                            contentDescription = stringResource(R.string.vehicle_photo_cd),
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                            // Premium empty-state placeholder
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_camera),
+                                    contentDescription = stringResource(R.string.add_vehicle_photo_cd),
+                                    tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(R.string.add_vehicle_photo),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MyGarageColors.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
+                }
 
             val textFieldColors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MyGarageColors.primary,
@@ -533,7 +643,9 @@ fun VehicleEditDialog(
                                 engineCapacity = engineCapacity,
                                 iucValue = iucValue.ifBlank { null },
                                 mileageToNextService = mileageToNextService.ifBlank { null },
-                                locationAddress = locationAddress.ifBlank { null }
+                                locationAddress = locationAddress.ifBlank { null },
+                                localImageFileName = savedImageFileName ?: vehicle?.localImageFileName,
+                                remoteImageUrl = vehicle?.remoteImageUrl
                             )
                             onConfirm(result)
                         }
