@@ -122,4 +122,11 @@
     <string name="scanner_position_hint">Position the license plate within the frame</string>
     <string name="scanner_tap_to_activate">Tap to activate scanner</string>
     <string name="scanner_permanently_blocked">Camera access blocked. Tap to open Settings.</string>
+
+    <!-- Location -->
+    <string name="vehicle_location_unknown">Vehicle Location Unknown</string>
+    <string name="update_via_gps">Update via GPS</string>
+    <string name="location_permission_required_title">Location Permission Required</string>
+    <string name="location_permission_required_message">MyGarage needs your location to pinpoint where your vehicle is parked. Please grant location access in Settings to continue.</string>
+    <string name="location_open_settings">Open Settings</string>
 </resources>

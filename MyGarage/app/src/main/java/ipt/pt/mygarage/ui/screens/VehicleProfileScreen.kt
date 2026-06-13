@@ -27,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,10 +57,20 @@ import ipt.pt.mygarage.ui.screens.vehicleprofile.VehicleProfileUiState
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.ui.components.VehicleEditDialog
 import ipt.pt.mygarage.ui.components.DeleteConfirmationDialog
+import ipt.pt.mygarage.ui.components.rememberLocationPermissionHandler
+import ipt.pt.mygarage.ui.components.LocationPermanentDenialDialog
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -76,6 +87,7 @@ fun VehicleProfileScreen(
     onDismissDeleteDialog: () -> Unit = {},
     onConfirmDelete: () -> Unit = {},
     onFieldChanged: (String) -> Unit = {},
+    onFetchLocationClicked: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -206,12 +218,6 @@ fun VehicleProfileScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = stringResource(id = R.string.app_header_title),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MyGarageColors.primary
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
                                 text = uiState.name,
                                 style = MaterialTheme.typography.displayLarge,
                                 color = MyGarageColors.onBackground
@@ -331,7 +337,7 @@ fun VehicleProfileScreen(
                 when (page) {
                     0 -> SpecsTabContent(uiState = uiState)
                     1 -> HistoryTabContent(uiState = uiState, onNavigateToService = onNavigateToService)
-                    2 -> LocationTabContent(uiState = uiState)
+                    2 -> LocationTabContent(uiState = uiState, onFetchLocationClicked = onFetchLocationClicked)
                 }
             }
         }
@@ -348,11 +354,6 @@ private fun SpecsTabContent(uiState: VehicleProfileUiState) {
             .padding(24.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(
-                text = stringResource(id = R.string.specifications_header),
-                style = MaterialTheme.typography.labelSmall,
-                color = MyGarageColors.onSurfaceVariant
-            )
             SpecsGridRow(
                 leftLabel = stringResource(id = R.string.spec_year),
                 leftValue = uiState.year,
@@ -394,12 +395,6 @@ private fun HistoryTabContent(
             .padding(24.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text(
-                text = stringResource(id = R.string.service_history_header).uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MyGarageColors.onSurfaceVariant
-            )
-
             val displayHistory = uiState.serviceHistory.take(2)
             displayHistory.forEachIndexed { index, item ->
                 TimelineItem(
@@ -441,7 +436,36 @@ private fun HistoryTabContent(
 }
 
 @Composable
-private fun LocationTabContent(uiState: VehicleProfileUiState) {
+private fun LocationTabContent(
+    uiState: VehicleProfileUiState,
+    onFetchLocationClicked: () -> Unit
+) {
+    val context = LocalContext.current
+    val lat = uiState.latitude
+    val lng = uiState.longitude
+    val hasCoordinates = lat != null && lng != null
+
+    android.util.Log.d("MyGarage.Location", "LocationTabContent composing: lat=$lat lng=$lng hasCoordinates=$hasCoordinates")
+
+    val locationPermission = rememberLocationPermissionHandler(
+        onGranted = onFetchLocationClicked
+    )
+
+    // Show settings-redirect dialog when permanently denied
+    LocationPermanentDenialDialog(
+        showDialog = locationPermission.showSettingsDialog,
+        onDismiss = locationPermission.dismissSettingsDialog,
+        onOpenSettings = {
+            locationPermission.dismissSettingsDialog()
+            val intent = android.content.Intent(
+                android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+            ).apply {
+                data = android.net.Uri.fromParts("package", context.packageName, null)
+            }
+            context.startActivity(intent)
+        }
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -449,51 +473,60 @@ private fun LocationTabContent(uiState: VehicleProfileUiState) {
             .background(MyGarageColors.surfaceContainerLowest)
             .padding(24.dp)
     ) {
-        Column {
-            Text(
-                text = stringResource(id = R.string.live_location_header).uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MyGarageColors.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val locationIsMissing = uiState.locationAddress.isNullOrBlank()
-            Text(
-                text = if (locationIsMissing) stringResource(id = R.string.not_available)
-                    else uiState.locationAddress!!,
-                modifier = if (locationIsMissing) Modifier.alpha(0.5f) else Modifier,
-                style = MaterialTheme.typography.headlineLarge,
-                color = MyGarageColors.onSurface
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
+        if (hasCoordinates) {
+            // ── Google Map with Marker ───────────────────────────────────
+            val cameraPositionState = rememberCameraPositionState(
+                key = "${lat}_${lng}"
+            ) {
+                position = CameraPosition.fromLatLngZoom(
+                    LatLng(lat!!, lng!!), 15f
+                )
+            }
+            Column {
+                GoogleMap(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    cameraPositionState = cameraPositionState
+                ) {
+                    Marker(
+                        state = MarkerState(position = LatLng(lat!!, lng!!))
+                    )
+                }
+            }
+        } else {
+            // ── Clickable Empty State Placeholder ────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                MyGarageColors.surfaceContainerLow,
-                                MyGarageColors.surfaceContainerHigh
-                            )
-                        )
-                    )
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MyGarageColors.surfaceContainerLowest)
+                    .clickable { locationPermission.launchPermissionRequest() },
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(MyGarageColors.primary.copy(alpha = 0.2f))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(MyGarageColors.primary)
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = stringResource(R.string.vehicle_location_unknown),
+                        tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.45f),
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.vehicle_location_unknown),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MyGarageColors.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.update_via_gps).uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MyGarageColors.primary
                     )
                 }
             }

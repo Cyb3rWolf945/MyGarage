@@ -1,6 +1,8 @@
 package ipt.pt.mygarage.ui.components
 
+import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,6 +25,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
@@ -44,6 +47,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,8 +63,19 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
+import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.ui.theme.MyGarageColors
+import ipt.pt.mygarage.ui.components.rememberLocationPermissionHandler
+import ipt.pt.mygarage.ui.components.LocationPermanentDenialDialog
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -110,6 +125,8 @@ fun VehicleEditDialog(
     var iucValue by remember { mutableStateOf(vehicle?.iucValue ?: "") }
     var mileageToNextService by remember { mutableStateOf(vehicle?.mileageToNextService ?: "") }
     var locationAddress by remember { mutableStateOf(vehicle?.locationAddress ?: "") }
+    var latitude by remember { mutableStateOf(vehicle?.latitude) }
+    var longitude by remember { mutableStateOf(vehicle?.longitude) }
 
     // Local validation errors merged with ViewModel errors for display
     var localErrors by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
@@ -593,6 +610,114 @@ fun VehicleEditDialog(
                 singleLine = true
             )
 
+            // ── Location Section ─────────────────────────────────────────
+            val scope = rememberCoroutineScope()
+            val app = context.applicationContext as MyGarageApplication
+            val locationPermission = rememberLocationPermissionHandler(
+                onGranted = {
+                    scope.launch {
+                        when (val result = app.locationManager.getCurrentLocation()) {
+                            is ipt.pt.mygarage.domain.location.LocationResult.Success -> {
+                                latitude = result.lat
+                                longitude = result.lng
+                                android.util.Log.d("MyGarage.Location", "Dialog GPS success: lat=${result.lat} lng=${result.lng}")
+                            }
+                            is ipt.pt.mygarage.domain.location.LocationResult.Error -> {
+                                android.util.Log.e("MyGarage.Location", "Dialog GPS error: ${result.message}")
+                            }
+                        }
+                    }
+                }
+            )
+            LocationPermanentDenialDialog(
+                showDialog = locationPermission.showSettingsDialog,
+                onDismiss = locationPermission.dismissSettingsDialog,
+                onOpenSettings = {
+                    locationPermission.dismissSettingsDialog()
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                }
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+
+            val hasCoordinates = latitude != null && longitude != null
+
+            android.util.Log.d("MyGarage.Location", "VehicleEditDialog location section: lat=$latitude lng=$longitude hasCoordinates=$hasCoordinates")
+
+            if (hasCoordinates) {
+                // ── Google Map with Marker + Re-update via GPS ────────────
+                val cameraPositionState = rememberCameraPositionState(
+                    key = "${latitude}_${longitude}"
+                ) {
+                    position = CameraPosition.fromLatLngZoom(
+                        LatLng(latitude!!, longitude!!), 15f
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { locationPermission.launchPermissionRequest() }
+                ) {
+                    GoogleMap(
+                        modifier = Modifier.fillMaxSize(),
+                        cameraPositionState = cameraPositionState,
+                        uiSettings = MapUiSettings(
+                            scrollGesturesEnabled = false,
+                            zoomGesturesEnabled = false,
+                            rotationGesturesEnabled = false,
+                            tiltGesturesEnabled = false,
+                            zoomControlsEnabled = false,
+                            myLocationButtonEnabled = false
+                        )
+                    ) {
+                        Marker(
+                            state = MarkerState(
+                                position = LatLng(latitude!!, longitude!!)
+                            )
+                        )
+                    }
+                }
+            } else {
+                // ── Clickable Empty State Placeholder ─────────────────────
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MyGarageColors.surfaceContainerLowest)
+                        .clickable { locationPermission.launchPermissionRequest() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Vehicle Location Unknown",
+                            tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.4f),
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.vehicle_location_unknown),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MyGarageColors.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = stringResource(R.string.update_via_gps),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MyGarageColors.primary
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(4.dp))
 
             Row(
@@ -639,6 +764,8 @@ fun VehicleEditDialog(
                                 iucValue = iucValue.ifBlank { null },
                                 mileageToNextService = mileageToNextService.ifBlank { null },
                                 locationAddress = locationAddress.ifBlank { null },
+                                latitude = latitude,
+                                longitude = longitude,
                                 localImageFileName = savedImageFileName ?: vehicle?.localImageFileName,
                                 remoteImageUrl = vehicle?.remoteImageUrl
                             )
