@@ -14,6 +14,8 @@ data class VehicleProfileUiState(
     val iucValue: String? = null,
     val mileageToNextService: String? = null,
     val locationAddress: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val serviceHistory: List<ServiceHistoryItem>,
     val formErrors: Map<String, Int> = emptyMap()
 )
