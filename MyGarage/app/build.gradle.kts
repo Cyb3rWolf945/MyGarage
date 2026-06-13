@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.devtools.ksp)
+    alias(libs.plugins.google.secrets.gradle.plugin)
 }
 
 android {
@@ -70,6 +71,11 @@ dependencies {
 
     // Coil — image loading for Jetpack Compose
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Google Maps
+    implementation(libs.play.services.maps)
+    implementation(libs.play.services.location)
+    implementation(libs.maps.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

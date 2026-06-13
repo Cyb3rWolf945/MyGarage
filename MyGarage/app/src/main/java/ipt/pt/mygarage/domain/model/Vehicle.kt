@@ -24,6 +24,8 @@ data class Vehicle(
     val iucValue: String? = null,
     val mileageToNextService: String? = null,
     val locationAddress: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val localImageFileName: String? = null,
     val remoteImageUrl: String? = null
 )

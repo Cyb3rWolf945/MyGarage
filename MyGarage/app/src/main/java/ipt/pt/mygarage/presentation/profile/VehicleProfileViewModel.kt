@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.data.local.relation.VehicleWithServices
+import ipt.pt.mygarage.domain.location.LocationManager
+import android.util.Log
+import ipt.pt.mygarage.domain.location.LocationResult
 import ipt.pt.mygarage.domain.repository.VehicleRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +21,8 @@ import kotlinx.coroutines.launch
  * ViewModel for managing the profile screen of a specific vehicle.
  */
 class VehicleProfileViewModel(
-    private val repository: VehicleRepository
+    private val repository: VehicleRepository,
+    private val locationManager: LocationManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<VehicleWithServices?>(null)
@@ -102,12 +106,47 @@ class VehicleProfileViewModel(
         }
     }
 
+    /**
+     * Fetches the device's current GPS location and persists the coordinates
+     * on the currently loaded vehicle entity in Room.
+     */
+    fun onFetchLocationClicked() {
+        Log.d("MyGarage.Location", "onFetchLocationClicked() called")
+        val currentVehicle = _uiState.value?.vehicle
+        if (currentVehicle == null) {
+            Log.w("MyGarage.Location", "onFetchLocationClicked: _uiState.value?.vehicle is NULL, aborting")
+            return
+        }
+        Log.d("MyGarage.Location", "Current vehicle: id=${currentVehicle.id}, lat=${currentVehicle.latitude}, lng=${currentVehicle.longitude}")
+        Log.d("MyGarage.Location", "Calling locationManager.getCurrentLocation()...")
+        viewModelScope.launch {
+            when (val result = locationManager.getCurrentLocation()) {
+                is LocationResult.Success -> {
+                    Log.d("MyGarage.Location", "getCurrentLocation SUCCESS: lat=${result.lat}, lng=${result.lng}")
+                    val updated = currentVehicle.copy(
+                        latitude = result.lat,
+                        longitude = result.lng
+                    )
+                    Log.d("MyGarage.Location", "Updating vehicle in Room: lat=${updated.latitude}, lng=${updated.longitude}")
+                    repository.updateVehicle(updated)
+                    Log.d("MyGarage.Location", "Vehicle updated in Room — Flow should emit new state")
+                }
+                is LocationResult.Error -> {
+                    Log.e("MyGarage.Location", "getCurrentLocation ERROR: ${result.message}")
+                }
+            }
+        }
+    }
+
     companion object {
-        fun factory(repository: VehicleRepository): ViewModelProvider.Factory =
+        fun factory(
+            repository: VehicleRepository,
+            locationManager: LocationManager
+        ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return VehicleProfileViewModel(repository) as T
+                    return VehicleProfileViewModel(repository, locationManager) as T
                 }
             }
     }
