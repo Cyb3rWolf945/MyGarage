@@ -351,7 +351,7 @@ fun MainScreen(
             composable("vehicle_profile/{vehicleId}") { backStackEntry ->
                 val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: ""
                 val profileViewModel: VehicleProfileViewModel = viewModel(
-                    factory = VehicleProfileViewModel.factory(repository)
+                    factory = VehicleProfileViewModel.factory(repository, app.locationManager)
                 )
 
                 LaunchedEffect(vehicleId) {
@@ -379,6 +379,8 @@ fun MainScreen(
                             iucValue = ws.vehicle.iucValue,
                             mileageToNextService = ws.vehicle.mileageToNextService,
                             locationAddress = ws.vehicle.locationAddress,
+                            latitude = ws.vehicle.latitude,
+                            longitude = ws.vehicle.longitude,
                             serviceHistory = ws.services.map { log ->
                                 ServiceHistoryItem(
                                     title = log.description,
@@ -426,7 +428,8 @@ fun MainScreen(
                         showDeleteConfirmation = profileShowDelete,
                         onDismissDeleteDialog = profileViewModel::dismissDeleteDialog,
                         onConfirmDelete = profileViewModel::confirmDelete,
-                        onFieldChanged = profileViewModel::clearFieldError
+                        onFieldChanged = profileViewModel::clearFieldError,
+                        onFetchLocationClicked = profileViewModel::onFetchLocationClicked
                     )
                 }
             }
