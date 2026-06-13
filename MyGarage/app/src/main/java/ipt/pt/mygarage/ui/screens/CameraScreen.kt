@@ -1,6 +1,9 @@
 package ipt.pt.mygarage.ui.screens
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -8,6 +11,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,8 +25,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,9 +44,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -94,10 +103,23 @@ private fun CameraScreenContent(
     }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
 
+    // ── Permanent denial tracking ───────────────────────────────────────
+    var isPermanentlyDenied by remember { mutableStateOf(false) }
+    val activity = context as? android.app.Activity
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
-        // The OS PackageManager securely persists permission state, so this callback is the source of truth.
+        if (granted) {
+            isPermanentlyDenied = false
+        } else {
+            val shouldShowRationale = activity?.let {
+                ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.CAMERA)
+            } ?: true
+            if (!shouldShowRationale) {
+                isPermanentlyDenied = true
+            }
+        }
         onPermissionRequested(granted)
     }
 
@@ -151,13 +173,16 @@ private fun CameraScreenContent(
         modifier = modifier
             .fillMaxSize()
             .background(MyGarageColors.background)
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 8.dp)
+                .padding(top = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // ── Scanner Box — tap to check permission & activate ────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -165,7 +190,13 @@ private fun CameraScreenContent(
                     .clip(RoundedCornerShape(16.dp))
                     .background(MyGarageColors.surfaceContainerLowest)
                     .clickable {
-                        if (!uiState.isCameraPermissionGranted) {
+                        if (isPermanentlyDenied) {
+                            isPermanentlyDenied = false
+                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", context.packageName, null)
+                            }
+                            context.startActivity(intent)
+                        } else if (!uiState.isCameraPermissionGranted) {
                             permissionLauncher.launch(Manifest.permission.CAMERA)
                         } else if (!uiState.isCameraActive) {
                             onActivateCameraTapped()
@@ -174,43 +205,51 @@ private fun CameraScreenContent(
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                when {
-                    uiState.isCameraPermissionGranted && uiState.isCameraActive -> {
+                Crossfade(
+                    targetState = uiState.isCameraPermissionGranted && uiState.isCameraActive,
+                    label = "camera_active_crossfade"
+                ) { isActive ->
+                    if (isActive) {
                         AndroidView(
                             modifier = Modifier.fillMaxSize(),
                             factory = { previewView }
                         )
-                    }
-
-                    uiState.isCameraPermissionGranted -> {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "SCANNER READY",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = MyGarageColors.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Tap to start live plate recognition",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MyGarageColors.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    else -> {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "SCANNER OFFLINE",
-                                style = MaterialTheme.typography.headlineLarge,
-                                color = MyGarageColors.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Tap to initialize vehicle tracking",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MyGarageColors.onSurfaceVariant
-                            )
+                    } else {
+                        // ── Inactive placeholder ────────────────────────
+                        if (isPermanentlyDenied) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Warning,
+                                    contentDescription = null,
+                                    tint = MyGarageColors.error.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = stringResource(id = R.string.scanner_permanently_blocked),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MyGarageColors.onSurfaceVariant
+                                )
+                            }
+                        } else {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_camera),
+                                    contentDescription = null,
+                                    tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.4f),
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = stringResource(id = R.string.scanner_tap_to_activate),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MyGarageColors.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -222,6 +261,10 @@ private fun CameraScreenContent(
         }
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  DetectedPlateBanner — premium card showing recognized plate
+// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun DetectedPlateBanner(
@@ -248,7 +291,7 @@ private fun DetectedPlateBanner(
             )
             Column {
                 Text(
-                    text = "Plate detected",
+                    text = stringResource(id = R.string.scanner_plate_detected_label),
                     style = MaterialTheme.typography.labelLarge,
                     color = MyGarageColors.onSurface
                 )

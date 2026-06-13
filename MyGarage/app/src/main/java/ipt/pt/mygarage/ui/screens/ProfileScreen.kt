@@ -88,7 +88,7 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .verticalScroll(scrollState)
                 .padding(horizontal = 24.dp)
-                .padding(top = 16.dp, bottom = 32.dp)
+                .padding(top = 8.dp, bottom = 32.dp)
         ) {
             if (state.isEditing) {
                 EditModeContent(
