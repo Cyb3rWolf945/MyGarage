@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextAlign
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.ui.theme.MyGarageColors
@@ -75,7 +79,8 @@ fun VehicleProfileScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-    var selectedTab by remember { mutableStateOf(0) }
+    val pagerState = rememberPagerState(pageCount = { 3 })
+    val scope = rememberCoroutineScope()
     var showEditDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -128,7 +133,8 @@ fun VehicleProfileScreen(
                         model = imageFile,
                         contentDescription = stringResource(R.string.vehicle_photo_cd),
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        alignment = Alignment.Center
                     )
                 } else {
                     // Premium gradient placeholder
@@ -285,12 +291,12 @@ fun VehicleProfileScreen(
                     stringResource(id = R.string.tab_location)
                 )
                 tabs.forEachIndexed { index, tabTitle ->
-                    val selected = selectedTab == index
+                    val selected = pagerState.currentPage == index
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { selectedTab = index }
+                            .clickable { scope.launch { pagerState.animateScrollToPage(index) } }
                             .padding(vertical = 12.dp)
                     ) {
                         Text(
@@ -316,12 +322,13 @@ fun VehicleProfileScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Box(
+            HorizontalPager(
+                state = pagerState,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-            ) {
-                when (selectedTab) {
+            ) { page ->
+                when (page) {
                     0 -> SpecsTabContent(uiState = uiState)
                     1 -> HistoryTabContent(uiState = uiState, onNavigateToService = onNavigateToService)
                     2 -> LocationTabContent(uiState = uiState)

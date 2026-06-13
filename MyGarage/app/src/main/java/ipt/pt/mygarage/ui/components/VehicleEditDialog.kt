@@ -213,12 +213,6 @@ fun VehicleEditDialog(
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = if (vehicle == null) "INSERT VEHICLE" else "EDIT VEHICLE PROPERTIES",
-                style = MaterialTheme.typography.labelSmall,
-                color = MyGarageColors.primary
-            )
-
             // ── Image Placeholder ─────────────────────────────────────────
             val imageModel = remember(pickedUri, existingImageFileName) {
                 if (pickedUri != null) {
@@ -248,7 +242,8 @@ fun VehicleEditDialog(
                             model = model,
                             contentDescription = stringResource(R.string.vehicle_photo_cd),
                             modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
+                            contentScale = ContentScale.Crop,
+                            alignment = Alignment.Center
                         )
                     } else {
                             // Premium empty-state placeholder

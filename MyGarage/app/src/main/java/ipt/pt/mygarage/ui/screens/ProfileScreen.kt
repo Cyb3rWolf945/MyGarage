@@ -233,10 +233,11 @@ private fun HeroSection(
                         model = file,
                         contentDescription = stringResource(R.string.profile_avatar_description),
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        alignment = Alignment.Center
                     )
                 } else {
-                    // Clean centered camera icon placeholder
+                    // Centered person icon placeholder
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -244,7 +245,7 @@ private fun HeroSection(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_camera),
+                            imageVector = Icons.Default.Person,
                             contentDescription = stringResource(R.string.profile_camera_badge_description),
                             tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.4f),
                             modifier = Modifier.size(36.dp)
