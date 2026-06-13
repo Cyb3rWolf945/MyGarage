@@ -177,7 +177,9 @@ private fun CameraScreenContent(
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // ── Scanner Box — tap to check permission & activate ────────
