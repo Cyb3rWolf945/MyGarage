@@ -18,12 +18,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -33,6 +35,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -68,6 +71,7 @@ fun ProfileScreen(
     viewModel: ProfileViewModel,
     onBackClick: () -> Unit,
     onNavigateToGarage: () -> Unit,
+    onNavigateToAbout: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -115,7 +119,8 @@ fun ProfileScreen(
                     onNavigateToGarage = onNavigateToGarage,
                     onAuthActionClicked = viewModel::onAuthActionClicked,
                     onLanguageChanged = viewModel::onLanguageChanged,
-                    onDistanceUnitChanged = viewModel::onDistanceUnitChanged
+                    onDistanceUnitChanged = viewModel::onDistanceUnitChanged,
+                    onNavigateToAbout = onNavigateToAbout
                 )
             }
         }
@@ -133,7 +138,8 @@ private fun ViewModeContent(
     onNavigateToGarage: () -> Unit,
     onAuthActionClicked: () -> Unit,
     onLanguageChanged: (String) -> Unit,
-    onDistanceUnitChanged: (String) -> Unit
+    onDistanceUnitChanged: (String) -> Unit,
+    onNavigateToAbout: () -> Unit
 ) {
     val unitName = if (state.resolvedDistanceUnit == "KILOMETERS")
         stringResource(R.string.unit_kilometers)
@@ -149,24 +155,59 @@ private fun ViewModeContent(
 
     Spacer(modifier = Modifier.height(20.dp))
 
-    // Edit Profile button — primary
-    Button(
-        onClick = onEditClick,
+    // Edit Profile + About buttons — horizontal row
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MyGarageColors.primary
-        ),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = 24.dp,
-            vertical = 16.dp
-        )
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = stringResource(id = R.string.profile_action_edit),
-            style = MaterialTheme.typography.labelSmall,
-            color = MyGarageColors.surfaceContainerLowest
-        )
+        Button(
+            onClick = onEditClick,
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MyGarageColors.primary
+            ),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                horizontal = 24.dp,
+                vertical = 16.dp
+            )
+        ) {
+            Text(
+                text = stringResource(id = R.string.profile_action_edit),
+                style = MaterialTheme.typography.labelSmall,
+                color = MyGarageColors.surfaceContainerLowest
+            )
+        }
+
+        OutlinedButton(
+            onClick = onNavigateToAbout,
+            modifier = Modifier.weight(0.45f),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MyGarageColors.primary
+            ),
+            border = BorderStroke(
+                width = 1.dp,
+                color = MyGarageColors.primary.copy(alpha = 0.3f)
+            ),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                horizontal = 16.dp,
+                vertical = 16.dp
+            )
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Info,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = stringResource(R.string.nav_about),
+                style = MaterialTheme.typography.labelSmall,
+                color = MyGarageColors.primary
+            )
+        }
     }
 
     Spacer(modifier = Modifier.height(32.dp))

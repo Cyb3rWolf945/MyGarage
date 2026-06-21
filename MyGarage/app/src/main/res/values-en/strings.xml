@@ -59,6 +59,7 @@
     <string name="not_available">N/A</string>
     <string name="error_field_required">This field is required</string>
     <string name="error_mileage_lower_than_current">Distance cannot be lower than current vehicle reading</string>
+    <string name="error_license_plate_already_exists">A vehicle with this license plate already exists</string>
     <string name="delete_vehicle_title">Delete Vehicle?</string>
     <string name="delete_vehicle_message">Are you sure you want to remove this vehicle? All associated service logs and parts will be permanently deleted.</string>
     <string name="action_edit">Edit</string>
@@ -173,6 +174,9 @@
     <string name="dialog_action_save">Save</string>
     <string name="dialog_action_cancel">Cancel</string>
     <string name="dialog_action_ok">OK</string>
+    <string name="dialog_action_view_vehicle">View Vehicle</string>
+    <string name="dialog_vehicle_already_exists_title">Vehicle Already Exists</string>
+    <string name="dialog_vehicle_already_exists_message">A vehicle with license plate %1$s is already in your garage. Would you like to view it?</string>
 
     <!-- Service Log Dialog Labels -->
     <string name="dialog_service_date_label">Service Date</string>
@@ -206,4 +210,52 @@
     <string name="view_field_description">Description</string>
     <string name="view_field_mileage">%1$s</string>
     <string name="view_field_service_type">Service Type</string>
+
+    <!-- License Plate API Feature -->
+    <string name="btn_confirm">Confirm</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_ok">OK</string>
+    <string name="btn_use_data">Use This Data</string>
+    <string name="dialog_vehicle_found">Vehicle Found</string>
+    <string name="error_lookup_failed">Lookup Failed</string>
+    <string name="error_network_connection">Network error. Please check your connection.</string>
+    <string name="error_invalid_plate">Invalid license plate format</string>
+    <string name="error_vehicle_not_found">Vehicle not found in registry</string>
+    <string name="error_api_unavailable">API service temporarily unavailable</string>
+    <string name="error_unknown">An unknown error occurred</string>
+    <string name="scanner_plate_label_colon">License Plate</string>
+    <string name="spec_model_label">Model</string>
+
+    <!-- About Screen -->
+    <string name="about_title">ABOUT</string>
+    <string name="about_version">v%1$s</string>
+    <string name="about_course_label">Course</string>
+    <string name="about_curricular_unit_label">Curricular Unit</string>
+    <string name="about_author_label">Author</string>
+    <string name="about_course_value">Engenharia Informática-Internet das Coisas</string>
+    <string name="about_unit_value">Desenvolvimento de Aplicações Móveis Avançadas</string>
+    <string name="about_architecture_header">ARCHITECTURE</string>
+    <string name="about_architecture_body">Offline-First Foundation — Built on Room Database and DataStore for robust, immediate local persistence. The architecture cleanly separates concerns using Unidirectional Data Flow (UDF) with Jetpack Compose and Android ViewModels, ensuring a seamless transition to cloud synchronisation via a repository abstraction layer.</string>
+    <string name="about_libraries_header">OPEN SOURCE LIBRARIES</string>
+    <string name="about_lib_compose_name">Jetpack Compose</string>
+    <string name="about_lib_compose_desc">Modern declarative UI toolkit for native Android</string>
+    <string name="about_lib_room_name">Room Database</string>
+    <string name="about_lib_room_desc">Local SQLite persistence with compile-time verification</string>
+    <string name="about_lib_datastore_name">DataStore Preferences</string>
+    <string name="about_lib_datastore_desc">Key-value storage with coroutines and Flow support</string>
+    <string name="about_lib_navigation_name">Navigation Compose</string>
+    <string name="about_lib_navigation_desc">Type-safe in-app navigation for Compose</string>
+    <string name="about_lib_coil_name">Coil</string>
+    <string name="about_lib_coil_desc">Kotlin-first image loading with Compose integration</string>
+    <string name="about_lib_camerax_name">CameraX</string>
+    <string name="about_lib_camerax_desc">Camera integration with lifecycle-aware preview</string>
+    <string name="about_lib_mlkit_name">ML Kit Text Recognition</string>
+    <string name="about_lib_mlkit_desc">On-device OCR for license plate scanning</string>
+    <string name="about_lib_maps_name">Google Maps Compose</string>
+    <string name="about_lib_maps_desc">Interactive maps and location services integration</string>
+    <string name="about_lib_retrofit_name">Retrofit + Gson</string>
+    <string name="about_lib_retrofit_desc">Type-safe HTTP client for vehicle registry API</string>
+    <string name="about_author_value">António Gonçalves</string>
+    <string name="about_footer">2026 · Academic Project · MyGarage</string>
+    <string name="nav_about">About</string>
 </resources>
