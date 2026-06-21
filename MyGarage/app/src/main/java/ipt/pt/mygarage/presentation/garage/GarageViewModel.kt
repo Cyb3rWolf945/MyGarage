@@ -7,6 +7,7 @@ import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
+import ipt.pt.mygarage.domain.engine.EngineCapacityHelper
 import ipt.pt.mygarage.domain.repository.ImageStorageManager
 import ipt.pt.mygarage.domain.repository.VehicleRepository
 import kotlinx.coroutines.Dispatchers
@@ -186,5 +187,38 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
             repository.insertVehicle(vehicle)
             clearImageSelection()
         }
+    }
+
+    fun openAddDialogWithData(
+        plate: String,
+        name: String,
+        year: String,
+        fuelType: String,
+        engineCapacity: String
+    ) {
+        val roundedEngineCapacity = EngineCapacityHelper.roundToNearestOption(engineCapacity)
+        val newVehicle = VehicleEntity(
+            id = java.util.UUID.randomUUID().toString(),
+            plate = plate,
+            name = name,
+            year = year,
+            mileage = "",
+            inspectionDate = null,
+            oilType = "",
+            owner = "",
+            seatCount = "",
+            doorCount = "",
+            fuelType = fuelType,
+            engineCapacity = roundedEngineCapacity,
+            iucValue = "",
+            mileageToNextService = "",
+            locationAddress = "",
+            latitude = null,
+            longitude = null,
+            localImageFileNames = emptyList(),
+            remoteImageUrl = ""
+        )
+        _vehicleToEdit.value = newVehicle
+        clearImageSelection()
     }
 }

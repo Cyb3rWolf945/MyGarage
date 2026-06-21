@@ -12,19 +12,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -266,6 +271,35 @@ fun MainScreen(
 
             // ── Garage Graph (main pager) ─────────────────────────────────
             composable(MainViewModel.ROUTE_GARAGE_GRAPH) {
+                var duplicateVehicleFound by remember { mutableStateOf<ipt.pt.mygarage.data.local.entity.VehicleEntity?>(null) }
+
+                if (duplicateVehicleFound != null) {
+                    val vehicleToView = duplicateVehicleFound
+                    AlertDialog(
+                        onDismissRequest = { duplicateVehicleFound = null },
+                        title = { Text(stringResource(R.string.dialog_vehicle_already_exists_title)) },
+                        text = { Text(stringResource(R.string.dialog_vehicle_already_exists_message, vehicleToView?.plate ?: "")) },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    val vehicleId = vehicleToView?.id ?: ""
+                                    duplicateVehicleFound = null
+                                    navController.navigate("vehicle_profile/$vehicleId")
+                                }
+                            ) {
+                                Text(stringResource(R.string.dialog_action_view_vehicle), color = MyGarageColors.primary)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = { duplicateVehicleFound = null }
+                            ) {
+                                Text(stringResource(R.string.dialog_action_cancel), color = MyGarageColors.onSurfaceVariant)
+                            }
+                        }
+                    )
+                }
+
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize()
@@ -307,7 +341,30 @@ fun MainScreen(
                                 resolvedDistanceUnit = serviceResolvedUnit
                             )
                         }
-                        Screen.Camera -> CameraScreen()
+                        Screen.Camera -> CameraScreen(
+                            onVehicleDataReady = { vehicleData ->
+                                val existingVehicle = vehicles.find {
+                                    it.plate.equals(vehicleData.plate, ignoreCase = true)
+                                }
+
+                                if (existingVehicle != null) {
+                                    duplicateVehicleFound = existingVehicle
+                                } else {
+                                    // Convert API data to Vehicle model with compatible fields only
+                                    garageViewModel.openAddDialogWithData(
+                                        plate = vehicleData.plate,
+                                        name = vehicleData.vehicleModel ?: "",
+                                        year = vehicleData.year ?: "",
+                                        fuelType = vehicleData.fuelType ?: "",
+                                        engineCapacity = vehicleData.engineCapacity ?: ""
+                                    )
+                                    // Navigate back to Garage tab
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(0)
+                                    }
+                                }
+                            }
+                        )
                         Screen.Service -> {
                             val serviceResolvedUnit by serviceViewModel.resolvedDistanceUnit.collectAsState()
                             ServiceScreen(
