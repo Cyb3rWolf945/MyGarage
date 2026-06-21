@@ -50,9 +50,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import ipt.pt.mygarage.domain.camera.LicensePlateAnalyzer
+import ipt.pt.mygarage.domain.licenseplates.LicensePlateApiResult
 import ipt.pt.mygarage.presentation.camera.CameraUiState
 import ipt.pt.mygarage.presentation.camera.CameraViewModel
 import ipt.pt.mygarage.R
@@ -63,8 +70,18 @@ import java.util.concurrent.Executors
 @Composable
 fun CameraScreen(
     modifier: Modifier = Modifier,
-    viewModel: CameraViewModel = viewModel()
+    onVehicleDataReady: (ipt.pt.mygarage.domain.licenseplates.LicensePlateVehicleData) -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val app = context.applicationContext as? ipt.pt.mygarage.MyGarageApplication
+    val licensePlateApiService = app?.licensePlateApiService
+    val viewModel: CameraViewModel = viewModel(
+        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return CameraViewModel(licensePlateApiService) as T
+            }
+        }
+    )
     val uiState by viewModel.uiState.collectAsState()
 
     CameraScreenContent(
@@ -77,7 +94,11 @@ fun CameraScreen(
             }
         },
         onActivateCameraTapped = viewModel::onActivateCameraTapped,
-        onPlateDetected = viewModel::onPlateDetected
+        onPlateDetected = viewModel::onPlateDetected,
+        onConfirmPlate = viewModel::onConfirmPlate,
+        onCancelPlate = viewModel::onCancelPlate,
+        onResultDialogDismissed = viewModel::onResultDialogDismissed,
+        onUseVehicleData = onVehicleDataReady
     )
 }
 
@@ -87,7 +108,11 @@ private fun CameraScreenContent(
     uiState: CameraUiState,
     onPermissionRequested: (Boolean) -> Unit,
     onActivateCameraTapped: () -> Unit,
-    onPlateDetected: (String) -> Unit
+    onPlateDetected: (String) -> Unit,
+    onConfirmPlate: () -> Unit,
+    onCancelPlate: () -> Unit,
+    onResultDialogDismissed: () -> Unit,
+    onUseVehicleData: (ipt.pt.mygarage.domain.licenseplates.LicensePlateVehicleData) -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -257,18 +282,35 @@ private fun CameraScreenContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            DetectedPlateBanner(detectedPlate = uiState.detectedPlate)
+            DetectedPlateBanner(
+                detectedPlate = uiState.detectedPlate,
+                isConfirmed = uiState.isPlateConfirmed,
+                apiResult = uiState.licensePlateApiResult,
+                onConfirmTapped = onConfirmPlate,
+                onCancelTapped = onCancelPlate
+            )
+
+            if (uiState.showLookupResultDialog) {
+                LicensePlateLookupResultDialog(
+                    result = uiState.licensePlateApiResult,
+                    onDismiss = onResultDialogDismissed,
+                    onUseData = { vehicleData ->
+                        onResultDialogDismissed()
+                        onUseVehicleData(vehicleData)
+                    }
+                )
+            }
         }
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  DetectedPlateBanner — premium card showing recognized plate
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Composable
 private fun DetectedPlateBanner(
-    detectedPlate: String?
+    detectedPlate: String?,
+    isConfirmed: Boolean,
+    apiResult: LicensePlateApiResult,
+    onConfirmTapped: () -> Unit,
+    onCancelTapped: () -> Unit
 ) {
     if (detectedPlate == null) {
         return
@@ -279,29 +321,147 @@ private fun DetectedPlateBanner(
         colors = CardDefaults.cardColors(containerColor = MyGarageColors.surfaceContainerLow),
         shape = RoundedCornerShape(18.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .background(MyGarageColors.primary, RoundedCornerShape(99.dp))
-            )
-            Column {
-                Text(
-                    text = stringResource(id = R.string.scanner_plate_detected_label),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MyGarageColors.onSurface
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .background(MyGarageColors.primary, RoundedCornerShape(99.dp))
                 )
-                Text(
-                    text = detectedPlate,
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MyGarageColors.onSurface
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(id = R.string.scanner_plate_detected_label),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MyGarageColors.onSurface
+                    )
+                    Text(
+                        text = detectedPlate,
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MyGarageColors.onSurface
+                    )
+                }
+            }
+
+            if (!isConfirmed) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onCancelTapped,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(id = R.string.btn_cancel))
+                    }
+                    Button(
+                        onClick = onConfirmTapped,
+                        modifier = Modifier.weight(1f),
+                        enabled = apiResult !is LicensePlateApiResult.Loading
+                    ) {
+                        if (apiResult is LicensePlateApiResult.Loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(stringResource(id = R.string.btn_confirm))
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun LicensePlateLookupResultDialog(
+    result: LicensePlateApiResult,
+    onDismiss: () -> Unit,
+    onUseData: (ipt.pt.mygarage.domain.licenseplates.LicensePlateVehicleData) -> Unit = {}
+) {
+    when (result) {
+        is LicensePlateApiResult.Success -> {
+            AlertDialog(
+                title = { Text(stringResource(id = R.string.dialog_vehicle_found)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            stringResource(id = R.string.scanner_plate_label_colon) + " ${result.vehicleData.plate}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        result.vehicleData.vehicleModel?.let {
+                            Text(
+                                stringResource(id = R.string.spec_model_label) + ": $it",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        result.vehicleData.year?.let {
+                            Text(
+                                stringResource(id = R.string.spec_year) + ": $it",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        result.vehicleData.fuelType?.let {
+                            Text(
+                                stringResource(id = R.string.spec_fuel_type) + ": $it",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        result.vehicleData.engineCapacity?.let {
+                            Text(
+                                stringResource(id = R.string.spec_engine_capacity) + ": $it",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDismiss) {
+                        Text(stringResource(id = R.string.btn_cancel))
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { onUseData(result.vehicleData) }) {
+                        Text(stringResource(id = R.string.btn_use_data))
+                    }
+                },
+                onDismissRequest = onDismiss
+            )
+        }
+        is LicensePlateApiResult.Error -> {
+            AlertDialog(
+                title = { Text(stringResource(id = R.string.error_lookup_failed)) },
+                text = {
+                    Text(
+                        when (result.errorType) {
+                            ipt.pt.mygarage.domain.licenseplates.ErrorType.NETWORK_ERROR ->
+                                stringResource(id = R.string.error_network_connection)
+                            ipt.pt.mygarage.domain.licenseplates.ErrorType.INVALID_PLATE ->
+                                stringResource(id = R.string.error_invalid_plate)
+                            ipt.pt.mygarage.domain.licenseplates.ErrorType.NOT_FOUND ->
+                                stringResource(id = R.string.error_vehicle_not_found)
+                            ipt.pt.mygarage.domain.licenseplates.ErrorType.API_UNAVAILABLE ->
+                                stringResource(id = R.string.error_api_unavailable)
+                            ipt.pt.mygarage.domain.licenseplates.ErrorType.UNKNOWN ->
+                                stringResource(id = R.string.error_unknown)
+                        }
+                    )
+                },
+                confirmButton = {
+                    Button(onClick = onDismiss) {
+                        Text(stringResource(id = R.string.btn_ok))
+                    }
+                },
+                onDismissRequest = onDismiss
+            )
+        }
+        else -> {}
     }
 }
 
