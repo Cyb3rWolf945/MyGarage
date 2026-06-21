@@ -48,6 +48,7 @@ import ipt.pt.mygarage.data.repository.UserPreferencesRepository
 import ipt.pt.mygarage.domain.locale.DistanceFormatter
 import ipt.pt.mygarage.ui.components.AtelierBottomNav
 import ipt.pt.mygarage.ui.components.AtelierTopBar
+import ipt.pt.mygarage.ui.screens.AboutScreen
 import ipt.pt.mygarage.ui.screens.CameraScreen
 import ipt.pt.mygarage.ui.screens.GarageScreen
 import ipt.pt.mygarage.ui.screens.OnboardingScreen
@@ -566,6 +567,20 @@ fun MainScreen(
                             MainViewModel.ROUTE_GARAGE_GRAPH,
                             inclusive = false
                         )
+                    },
+                    onNavigateToAbout = {
+                        navController.navigate("about") {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
+
+            // ── About Screen ─────────────────────────────────────────────
+            composable("about") {
+                AboutScreen(
+                    onBackClick = {
+                        navController.popBackStack()
                     }
                 )
             }
