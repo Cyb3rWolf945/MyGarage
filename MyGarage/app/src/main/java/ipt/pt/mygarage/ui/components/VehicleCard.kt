@@ -116,12 +116,21 @@ fun VehicleCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = plate,
+                        text = formatLicensePlate(plate),
                         style = MaterialTheme.typography.labelSmall,
                         color = MyGarageColors.onSurfaceVariant
                     )
                 }
             }
+        }
+    }
+}
+
+private fun formatLicensePlate(raw: String): String {
+    return buildString {
+        raw.forEachIndexed { index, c ->
+            if (index > 0 && index % 2 == 0) append('-')
+            append(c)
         }
     }
 }

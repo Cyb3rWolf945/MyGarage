@@ -6,5 +6,7 @@ data class UserPreferences(
     val isGuestMode: Boolean = true,
     val hasCompletedOnboarding: Boolean = false,
     val avatarFileName: String? = null,
-    val totalUserMileage: Int = 0
+    val totalUserMileage: Int = 0,
+    val appLanguage: String = "SYSTEM",
+    val distanceUnit: String = "SYSTEM"
 )

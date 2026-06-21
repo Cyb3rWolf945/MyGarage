@@ -1,7 +1,7 @@
 package ipt.pt.mygarage
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
@@ -40,6 +40,7 @@ import ipt.pt.mygarage.presentation.profile.ProfileViewModel
 import ipt.pt.mygarage.presentation.profile.VehicleProfileViewModel
 import ipt.pt.mygarage.presentation.service.ServiceViewModel
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
+import ipt.pt.mygarage.domain.locale.DistanceFormatter
 import ipt.pt.mygarage.ui.components.AtelierBottomNav
 import ipt.pt.mygarage.ui.components.AtelierTopBar
 import ipt.pt.mygarage.ui.screens.CameraScreen
@@ -62,7 +63,7 @@ sealed class Screen(val route: String, val labelResId: Int, val iconResId: Int) 
 
 private val bottomNavItems = listOf(Screen.Garage, Screen.Camera, Screen.Service)
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val mainViewModel by lazy { MainViewModel(application) }
@@ -99,7 +100,8 @@ fun MainScreen(
     val serviceViewModel: ServiceViewModel = viewModel(
         factory = ServiceViewModel.factory(
             repository,
-            UserPreferencesRepository(context)
+            UserPreferencesRepository(context),
+            app
         )
     )
 
@@ -239,7 +241,6 @@ fun MainScreen(
                         }
                     },
                     onNavigateToAuth = {
-                        // TODO: Implement Auth Graph navigation
                         navController.navigate("auth_graph") {
                             popUpTo(MainViewModel.ROUTE_ONBOARDING_GRAPH) {
                                 inclusive = true
@@ -251,7 +252,6 @@ fun MainScreen(
 
             // ── Auth Graph (placeholder) ─────────────────────────────────
             composable("auth_graph") {
-                // TODO: Replace with actual authentication screen
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -271,43 +271,50 @@ fun MainScreen(
                     modifier = Modifier.fillMaxSize()
                 ) { page ->
                     when (bottomNavItems[page]) {
-                        Screen.Garage -> GarageScreen(
-                            vehicles = vehicles,
-                            onVehicleClick = { vehicleId ->
-                                navController.navigate("vehicle_profile/$vehicleId")
-                            },
-                            onAddVehicleClick = { newVehicle ->
-                                garageViewModel.insertVehicle(newVehicle)
-                            },
-                            onDeleteVehicle = { vehicle ->
-                                garageViewModel.showDeleteDialog(vehicle)
-                            },
-                            showDeleteConfirmation = garageShowDelete,
-                            vehicleToDelete = garageVehicleToDelete,
-                            onDismissDeleteDialog = garageViewModel::dismissDeleteDialog,
-                            onConfirmDelete = garageViewModel::confirmDelete,
-                            formErrors = garageFormErrors,
-                            onFieldChanged = garageViewModel::clearFieldError,
-                            selectedImageUri = garageState.selectedImageUri,
-                            existingImageFileName = garageState.existingImageFileName,
-                            onImageSelected = garageViewModel::onImageSelected,
-                            imageStorageManager = imageStorageManager,
-                            // ── Long-Press Options Menu ──────────────────
-                            selectedVehicleForOptions = garageSelectedForOptions,
-                            onVehicleLongPressed = garageViewModel::onVehicleLongPressed,
-                            onDismissOptionsMenu = garageViewModel::onDismissOptionsMenu,
-                            onSelectEdit = garageViewModel::onSelectEdit,
-                            onSelectDelete = garageViewModel::onSelectDelete,
-                            // ── Edit Dialog State ────────────────────────
-                            vehicleToEdit = garageVehicleToEdit,
-                            onDismissEditDialog = garageViewModel::onDismissEditDialog,
-                            onConfirmEdit = garageViewModel::confirmEdit
-                        )
+                        Screen.Garage -> {
+                            val serviceResolvedUnit by serviceViewModel.resolvedDistanceUnit.collectAsState()
+                            GarageScreen(
+                                vehicles = vehicles,
+                                onVehicleClick = { vehicleId ->
+                                    navController.navigate("vehicle_profile/$vehicleId")
+                                },
+                                onAddVehicleClick = { newVehicle ->
+                                    garageViewModel.insertVehicle(newVehicle)
+                                },
+                                onDeleteVehicle = { vehicle ->
+                                    garageViewModel.showDeleteDialog(vehicle)
+                                },
+                                showDeleteConfirmation = garageShowDelete,
+                                vehicleToDelete = garageVehicleToDelete,
+                                onDismissDeleteDialog = garageViewModel::dismissDeleteDialog,
+                                onConfirmDelete = garageViewModel::confirmDelete,
+                                formErrors = garageFormErrors,
+                                onFieldChanged = garageViewModel::clearFieldError,
+                                selectedImageUri = garageState.selectedImageUri,
+                                existingImageFileName = garageState.existingImageFileName,
+                                onImageSelected = garageViewModel::onImageSelected,
+                                imageStorageManager = imageStorageManager,
+                                // ── Long-Press Options Menu ──────────────────
+                                selectedVehicleForOptions = garageSelectedForOptions,
+                                onVehicleLongPressed = garageViewModel::onVehicleLongPressed,
+                                onDismissOptionsMenu = garageViewModel::onDismissOptionsMenu,
+                                onSelectEdit = garageViewModel::onSelectEdit,
+                                onSelectDelete = garageViewModel::onSelectDelete,
+                                // ── Edit Dialog State ────────────────────────
+                                vehicleToEdit = garageVehicleToEdit,
+                                onDismissEditDialog = garageViewModel::onDismissEditDialog,
+                                onConfirmEdit = garageViewModel::confirmEdit,
+                                resolvedDistanceUnit = serviceResolvedUnit
+                            )
+                        }
                         Screen.Camera -> CameraScreen()
-                        Screen.Service -> ServiceScreen(
+                        Screen.Service -> {
+                            val serviceResolvedUnit by serviceViewModel.resolvedDistanceUnit.collectAsState()
+                            ServiceScreen(
                             vehicles = vehicles,
                             selectedVehicleId = selectedVehicleId,
                             selectedVehicleWithServices = selectedVehicleWithServices,
+                            resolvedDistanceUnit = serviceResolvedUnit,
                             temporaryParts = temporaryParts,
                             onVehicleSelected = { vehicleId ->
                                 serviceViewModel.selectVehicle(vehicleId)
@@ -349,6 +356,7 @@ fun MainScreen(
                             onDismissDeleteDialog = serviceViewModel::onDismissDeleteDialog,
                             onConfirmDeleteLog = serviceViewModel::onConfirmDeleteLog
                         )
+                        }
                     }
                 }
             }
@@ -357,7 +365,12 @@ fun MainScreen(
             composable("vehicle_profile/{vehicleId}") { backStackEntry ->
                 val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: ""
                 val profileViewModel: VehicleProfileViewModel = viewModel(
-                    factory = VehicleProfileViewModel.factory(repository, app.locationManager)
+                    factory = VehicleProfileViewModel.factory(
+                        repository,
+                        app.locationManager,
+                        UserPreferencesRepository(context),
+                        app
+                    )
                 )
 
                 LaunchedEffect(vehicleId) {
@@ -368,13 +381,35 @@ fun MainScreen(
                 val profileFormErrors by profileViewModel.formErrors.collectAsState()
                 val profileShowDelete by profileViewModel.showDeleteConfirmation.collectAsState()
                 val profileDeleteCompleted by profileViewModel.deleteCompleted.collectAsState()
+                val isCarouselVisible by profileViewModel.isCarouselVisible.collectAsState()
+                val carouselStartIndex by profileViewModel.carouselStartIndex.collectAsState()
 
                 vehicleWithServices?.let { ws ->
-                    val uiState = remember(ws, profileFormErrors) {
+                    val profileResolvedUnit by profileViewModel.resolvedDistanceUnit.collectAsState()
+
+                    val uiState = remember(ws, profileFormErrors, profileResolvedUnit) {
+                        val displayMileage = if (ws.vehicle.mileageKm > 0.0) {
+                            String.format(java.util.Locale.US, "%,d",
+                                DistanceFormatter.forDisplay(ws.vehicle.mileageKm, profileResolvedUnit).toLong()
+                            )
+                        } else ws.vehicle.mileage
+
+                        val displayMileageToNextService = if (ws.vehicle.mileageToNextService != null) {
+                            val nextServiceStr = ws.vehicle.mileageToNextService ?: ""
+                            val parsed = DistanceFormatter.parseUserInput(nextServiceStr)
+                            if (parsed > 0.0) {
+                                String.format(java.util.Locale.US, "%,d",
+                                    DistanceFormatter.forDisplay(parsed, profileResolvedUnit).toLong()
+                                )
+                            } else nextServiceStr
+                        } else null
+
+                        val dateFormatter = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
+
                         VehicleProfileUiState(
                             name = ws.vehicle.name,
                             year = ws.vehicle.year,
-                            mileage = ws.vehicle.mileage,
+                            mileage = displayMileage,
                             inspectionDate = ws.vehicle.inspectionDate,
                             oilType = ws.vehicle.oilType,
                             owner = ws.vehicle.owner,
@@ -383,14 +418,26 @@ fun MainScreen(
                             fuelType = ws.vehicle.fuelType,
                             engineCapacity = ws.vehicle.engineCapacity,
                             iucValue = ws.vehicle.iucValue,
-                            mileageToNextService = ws.vehicle.mileageToNextService,
+                            mileageToNextService = displayMileageToNextService,
                             locationAddress = ws.vehicle.locationAddress,
                             latitude = ws.vehicle.latitude,
                             longitude = ws.vehicle.longitude,
                             serviceHistory = ws.services.map { log ->
+                                val serviceDate = try {
+                                    dateFormatter.parse(log.date)?.let {
+                                        java.text.SimpleDateFormat("dd MMM", java.util.Locale.getDefault()).format(it)
+                                    } ?: log.date
+                                } catch (e: Exception) {
+                                    log.date
+                                }
                                 ServiceHistoryItem(
                                     title = log.description,
-                                    subtitle = "Completed at ${log.mileage} - Date: ${log.date} [Type: ${log.type}]"
+                                    subtitle = context.getString(
+                                        R.string.timeline_subtitle,
+                                        log.mileage,
+                                        serviceDate,
+                                        log.type
+                                    )
                                 )
                             },
                             formErrors = profileFormErrors
@@ -408,6 +455,15 @@ fun MainScreen(
                     VehicleProfileScreen(
                         uiState = uiState,
                         vehicleEntity = ws.vehicle,
+                        resolvedDistanceUnit = profileResolvedUnit,
+                        isCarouselVisible = isCarouselVisible,
+                        carouselStartIndex = carouselStartIndex,
+                        onOpenCarousel = { index ->
+                            profileViewModel.openCarousel(index)
+                        },
+                        onCloseCarousel = {
+                            profileViewModel.closeCarousel()
+                        },
                         onBackClick = {
                             navController.popBackStack()
                         },

@@ -76,6 +76,7 @@ fun GarageScreen(
     vehicleToEdit: VehicleEntity? = null,
     onDismissEditDialog: () -> Unit = {},
     onConfirmEdit: (VehicleEntity) -> Unit = {},
+    resolvedDistanceUnit: String = "MILES",
     // ── Image State (UDF) ──────────────────────────────────────────────────
     selectedImageUri: String? = null,
     existingImageFileName: String? = null,
@@ -109,7 +110,8 @@ fun GarageScreen(
             imageStorageManager = imageStorageManager,
             onImageSelected = onImageSelected,
             formErrors = formErrors,
-            onFieldChanged = onFieldChanged
+            onFieldChanged = onFieldChanged,
+            resolvedDistanceUnit = resolvedDistanceUnit
         )
     }
 
@@ -146,7 +148,7 @@ fun GarageScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(vehicles) { vehicle ->
-                            val resolvedPath = vehicle.localImageFileName?.let {
+                            val resolvedPath = vehicle.localImageFileNames.firstOrNull()?.let {
                                 imageStorageManager?.getImagePath(it)
                             }
                             VehicleCard(

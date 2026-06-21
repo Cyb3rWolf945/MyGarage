@@ -24,7 +24,7 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     locationAddress = locationAddress,
     latitude = latitude,
     longitude = longitude,
-    localImageFileName = localImageFileName,
+    localImageFileNames = localImageFileNames,
     remoteImageUrl = remoteImageUrl
 )
 
@@ -49,6 +49,6 @@ fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     locationAddress = locationAddress,
     latitude = latitude,
     longitude = longitude,
-    localImageFileName = localImageFileName,
+    localImageFileNames = localImageFileNames,
     remoteImageUrl = remoteImageUrl
 )
