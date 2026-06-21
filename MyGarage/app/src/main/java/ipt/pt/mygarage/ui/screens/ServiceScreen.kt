@@ -62,6 +62,17 @@ import ipt.pt.mygarage.ui.components.ServiceLogActionDialog
 import ipt.pt.mygarage.ui.screens.servicelog.ServiceDialogMode
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 
+/**
+ * Maps a raw service type key (stored in Room as lowercase English, e.g. "regular")
+ * to a localized, display-ready label by using string resources.
+ */
+@Composable
+private fun serviceTypeLabel(type: String): String = when (type.lowercase()) {
+    "revision"   -> stringResource(R.string.service_type_revision)
+    "inspection" -> stringResource(R.string.service_type_inspection)
+    else         -> stringResource(R.string.service_type_regular)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  ServiceScreen — refactored with unified multi-mode dialog
 //  Follows RULES.md (UDF, formErrors, "N/A" alpha rule) and
@@ -108,6 +119,7 @@ fun ServiceScreen(
     logToDelete: ServiceLogEntity? = null,
     onDismissDeleteDialog: () -> Unit = {},
     onConfirmDeleteLog: () -> Unit = {},
+    resolvedDistanceUnit: String = "MILES",
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -126,7 +138,7 @@ fun ServiceScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Add Service Log"
+                        contentDescription = stringResource(R.string.dialog_service_add_part)
                     )
                 }
             }
@@ -200,17 +212,15 @@ fun ServiceScreen(
                     ) {
                         Column {
                             for ((index, log) in services.withIndex()) {
+                                val typeLabel = serviceTypeLabel(log.type)
                                 TimelineItem(
                                     title = log.description,
-                                    subtitle = buildString {
-                                        append("Completed at ")
-                                        append(log.mileage)
-                                        append(" - Date: ")
-                                        append(log.date)
-                                        append(" [Type: ")
-                                        append(log.type)
-                                        append("]")
-                                    },
+                                    subtitle = stringResource(
+                                        R.string.timeline_subtitle,
+                                        log.mileage,
+                                        log.date,
+                                        typeLabel
+                                    ),
                                     isLast = index == services.lastIndex,
                                     onClick = { onLogClicked(log) },
                                     onLongClick = { onLogLongPressed(log) }
@@ -320,7 +330,8 @@ fun ServiceScreen(
         onSave = onSave,
         onDismiss = onDismissDialog,
         onAddTemporaryPart = onAddTemporaryPart,
-        onRemoveTemporaryPart = onRemoveTemporaryPart
+        onRemoveTemporaryPart = onRemoveTemporaryPart,
+        resolvedDistanceUnit = resolvedDistanceUnit
     )
 
     // ── Delete Confirmation Dialog ─────────────────────────────────────────

@@ -6,24 +6,45 @@ import androidx.lifecycle.viewModelScope
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.data.local.relation.VehicleWithServices
+import android.app.Application
+import ipt.pt.mygarage.data.repository.UserPreferencesRepository
+import ipt.pt.mygarage.domain.locale.LocaleManager
 import ipt.pt.mygarage.domain.location.LocationManager
 import android.util.Log
 import ipt.pt.mygarage.domain.location.LocationResult
 import ipt.pt.mygarage.domain.repository.VehicleRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * ViewModel for managing the profile screen of a specific vehicle.
  */
 class VehicleProfileViewModel(
     private val repository: VehicleRepository,
-    private val locationManager: LocationManager
+    private val locationManager: LocationManager,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val application: Application
 ) : ViewModel() {
+
+    /** Resolved distance unit (KILOMETERS or MILES) observed from DataStore + OS locale. */
+    private val _resolvedDistanceUnit = MutableStateFlow("MILES")
+    val resolvedDistanceUnit: StateFlow<String> = _resolvedDistanceUnit.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            userPreferencesRepository.distanceUnitFlow.collect { rawUnit ->
+                _resolvedDistanceUnit.value = LocaleManager.resolveDistanceUnit(
+                    rawUnit, application
+                )
+            }
+        }
+    }
 
     private val _uiState = MutableStateFlow<VehicleWithServices?>(null)
     val uiState: StateFlow<VehicleWithServices?> = _uiState.asStateFlow()
@@ -39,6 +60,13 @@ class VehicleProfileViewModel(
     private val _deleteCompleted = MutableStateFlow(false)
     val deleteCompleted: StateFlow<Boolean> = _deleteCompleted.asStateFlow()
 
+    // Carousel state
+    private val _isCarouselVisible = MutableStateFlow(false)
+    val isCarouselVisible: StateFlow<Boolean> = _isCarouselVisible.asStateFlow()
+
+    private val _carouselStartIndex = MutableStateFlow(0)
+    val carouselStartIndex: StateFlow<Int> = _carouselStartIndex.asStateFlow()
+
     fun showDeleteDialog() {
         _showDeleteConfirmation.value = true
     }
@@ -47,12 +75,26 @@ class VehicleProfileViewModel(
         _showDeleteConfirmation.value = false
     }
 
+    fun openCarousel(startIndex: Int = 0) {
+        _carouselStartIndex.value = startIndex
+        _isCarouselVisible.value = true
+    }
+
+    fun closeCarousel() {
+        _isCarouselVisible.value = false
+    }
+
     fun confirmDelete() {
         val vehicleWithServices = _uiState.value ?: return
         viewModelScope.launch {
-            repository.deleteVehicle(vehicleWithServices.vehicle)
-            _showDeleteConfirmation.value = false
-            _deleteCompleted.value = true
+            try {
+                withContext(Dispatchers.IO) {
+                    repository.deleteVehicle(vehicleWithServices.vehicle)
+                }
+            } finally {
+                _showDeleteConfirmation.value = false
+                _deleteCompleted.value = true
+            }
         }
     }
 
@@ -141,12 +183,17 @@ class VehicleProfileViewModel(
     companion object {
         fun factory(
             repository: VehicleRepository,
-            locationManager: LocationManager
+            locationManager: LocationManager,
+            userPreferencesRepository: UserPreferencesRepository,
+            application: Application
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return VehicleProfileViewModel(repository, locationManager) as T
+                    return VehicleProfileViewModel(
+                        repository, locationManager,
+                        userPreferencesRepository, application
+                    ) as T
                 }
             }
     }

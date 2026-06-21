@@ -8,5 +8,8 @@ data class ProfileUiState(
     val totalMileage: Int = 0,
     val isEditing: Boolean = false,
     val formErrors: Map<String, Int> = emptyMap(),
-    val avatarFileName: String? = null
+    val avatarFileName: String? = null,
+    val appLanguage: String = "SYSTEM",
+    val distanceUnit: String = "SYSTEM",
+    val resolvedDistanceUnit: String = "MILES"
 )

@@ -59,6 +59,7 @@ import ipt.pt.mygarage.ui.components.VehicleEditDialog
 import ipt.pt.mygarage.ui.components.DeleteConfirmationDialog
 import ipt.pt.mygarage.ui.components.rememberLocationPermissionHandler
 import ipt.pt.mygarage.ui.components.LocationPermanentDenialDialog
+import ipt.pt.mygarage.ui.components.FullScreenImageCarousel
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
@@ -88,8 +89,17 @@ fun VehicleProfileScreen(
     onConfirmDelete: () -> Unit = {},
     onFieldChanged: (String) -> Unit = {},
     onFetchLocationClicked: () -> Unit = {},
+    isCarouselVisible: Boolean = false,
+    carouselStartIndex: Int = 0,
+    onOpenCarousel: (Int) -> Unit = {},
+    onCloseCarousel: () -> Unit = {},
+    resolvedDistanceUnit: String = "MILES",
     modifier: Modifier = Modifier
 ) {
+    val unitName = if (resolvedDistanceUnit == "KILOMETERS")
+        stringResource(R.string.unit_kilometers)
+    else stringResource(R.string.unit_miles)
+
     val scrollState = rememberScrollState()
     val pagerState = rememberPagerState(pageCount = { 3 })
     val scope = rememberCoroutineScope()
@@ -98,7 +108,7 @@ fun VehicleProfileScreen(
     val context = LocalContext.current
     val app = context.applicationContext as MyGarageApplication
     val imageStorageManager = app.imageStorageManager
-    val resolvedImagePath = vehicleEntity.localImageFileName?.let {
+    val resolvedImagePath = vehicleEntity.localImageFileNames.firstOrNull()?.let {
         imageStorageManager.getImagePath(it)
     }
 
@@ -110,7 +120,7 @@ fun VehicleProfileScreen(
                 onUpdateVehicle(updatedVehicle)
                 showEditDialog = false
             },
-            existingImageFileName = vehicleEntity.localImageFileName,
+            existingImageFileName = vehicleEntity.localImageFileNames.firstOrNull(),
             imageStorageManager = imageStorageManager,
             formErrors = uiState.formErrors,
             onFieldChanged = onFieldChanged
@@ -122,6 +132,19 @@ fun VehicleProfileScreen(
             onDismiss = onDismissDeleteDialog,
             onConfirm = onConfirmDelete
         )
+    }
+
+    if (isCarouselVisible && vehicleEntity.localImageFileNames.isNotEmpty()) {
+        val imageStorageManager = app.imageStorageManager
+        val resolvedPaths = vehicleEntity.localImageFileNames.mapNotNull { fileName ->
+            imageStorageManager.getImagePath(fileName)
+        }
+        if (resolvedPaths.isNotEmpty()) {
+            FullScreenImageCarousel(
+                imageFilePaths = resolvedPaths,
+                onDismiss = onCloseCarousel
+            )
+        }
     }
 
     Box(
@@ -138,6 +161,9 @@ fun VehicleProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(280.dp)
+                    .clickable(enabled = vehicleEntity.localImageFileNames.isNotEmpty()) {
+                        onOpenCarousel(0)
+                    }
             ) {
                 val imageFile = resolvedImagePath?.let { File(it) }
                 if (imageFile != null) {
@@ -227,14 +253,14 @@ fun VehicleProfileScreen(
                             IconButton(onClick = { showEditDialog = true }) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit Vehicle",
+                                    contentDescription = stringResource(R.string.action_edit),
                                     tint = MyGarageColors.primary
                                 )
                             }
                             IconButton(onClick = onDeleteVehicle) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete Vehicle",
+                                    contentDescription = stringResource(R.string.action_delete),
                                     tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
                                 )
                             }
@@ -253,7 +279,7 @@ fun VehicleProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     BentoCell(
-                        label = stringResource(id = R.string.stat_mileage),
+                        label = stringResource(id = R.string.stat_mileage, unitName),
                         value = uiState.mileage,
                         modifier = Modifier.weight(1f)
                     )
@@ -269,7 +295,7 @@ fun VehicleProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     BentoCell(
-                        label = stringResource(id = R.string.stat_mileage_to_next_service),
+                        label = stringResource(id = R.string.stat_mileage_to_next_service, unitName),
                         value = uiState.mileageToNextService,
                         modifier = Modifier.weight(1f)
                     )
@@ -308,7 +334,9 @@ fun VehicleProfileScreen(
                         Text(
                             text = tabTitle.uppercase(),
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (selected) MyGarageColors.primary else MyGarageColors.onSurfaceVariant
+                            color = if (selected) MyGarageColors.primary else MyGarageColors.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         if (selected) {
@@ -520,13 +548,17 @@ private fun LocationTabContent(
                     Text(
                         text = stringResource(R.string.vehicle_location_unknown),
                         style = MaterialTheme.typography.titleMedium,
-                        color = MyGarageColors.onSurfaceVariant
+                        color = MyGarageColors.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = stringResource(R.string.update_via_gps).uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MyGarageColors.primary
+                        color = MyGarageColors.primary,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -553,16 +585,19 @@ private fun BentoCell(
             Text(
                 text = label.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
-                color = MyGarageColors.onSurfaceVariant
+                color = MyGarageColors.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = displayValue,
-                modifier = if (isMissing) Modifier.alpha(0.5f) else Modifier,
+                modifier = (if (isMissing) Modifier.alpha(0.5f) else Modifier).fillMaxWidth(),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MyGarageColors.onSurface,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center
             )
         }
     }

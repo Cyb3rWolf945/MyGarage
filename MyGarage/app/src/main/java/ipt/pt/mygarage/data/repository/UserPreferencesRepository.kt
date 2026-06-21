@@ -24,6 +24,8 @@ class UserPreferencesRepository(private val context: Context) {
         val KEY_HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         val KEY_AVATAR_FILE_NAME = stringPreferencesKey("avatar_file_name")
         val KEY_TOTAL_USER_MILEAGE = intPreferencesKey("total_user_mileage")
+        val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
+        val KEY_DISTANCE_UNIT = stringPreferencesKey("distance_unit")
     }
 
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data.map { preferences ->
@@ -33,9 +35,16 @@ class UserPreferencesRepository(private val context: Context) {
             isGuestMode = preferences[KEY_IS_GUEST_MODE] ?: true,
             hasCompletedOnboarding = preferences[KEY_HAS_COMPLETED_ONBOARDING] ?: false,
             avatarFileName = preferences[KEY_AVATAR_FILE_NAME],
-            totalUserMileage = preferences[KEY_TOTAL_USER_MILEAGE] ?: 0
+            totalUserMileage = preferences[KEY_TOTAL_USER_MILEAGE] ?: 0,
+            appLanguage = preferences[KEY_APP_LANGUAGE] ?: "SYSTEM",
+            distanceUnit = preferences[KEY_DISTANCE_UNIT] ?: "SYSTEM"
         )
     }
+
+    /** Exposes the raw distance unit preference ("SYSTEM", "KILOMETERS", or "MILES"). */
+    val distanceUnitFlow: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[KEY_DISTANCE_UNIT] ?: "SYSTEM"
+    }.distinctUntilChanged()
 
     /** Exposes the running total of miles driven by the user across all vehicles. */
     val totalUserMileageFlow: Flow<Int> = context.dataStore.data.map { preferences ->
@@ -83,6 +92,18 @@ class UserPreferencesRepository(private val context: Context) {
             } else {
                 preferences.remove(KEY_AVATAR_FILE_NAME)
             }
+        }
+    }
+
+    suspend fun updateAppLanguage(language: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_APP_LANGUAGE] = language
+        }
+    }
+
+    suspend fun updateDistanceUnit(unit: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_DISTANCE_UNIT] = unit
         }
     }
 }

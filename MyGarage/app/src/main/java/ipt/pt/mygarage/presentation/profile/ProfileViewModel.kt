@@ -8,11 +8,14 @@ import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
 import ipt.pt.mygarage.domain.repository.ImageStorageManager
 import ipt.pt.mygarage.domain.repository.VehicleRepository
+import ipt.pt.mygarage.domain.locale.LocaleManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ProfileViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -32,6 +35,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 vehicleRepository.getAllVehicles(),
                 userPreferencesRepository.totalUserMileageFlow
             ) { prefs, vehicles, drivenMileage ->
+                val resolvedUnit = LocaleManager.resolveDistanceUnit(
+                    prefs.distanceUnit, getApplication()
+                )
                 ProfileUiState(
                     userName = prefs.userName,
                     garageName = prefs.garageName,
@@ -40,7 +46,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     totalMileage = drivenMileage,
                     isEditing = _uiState.value.isEditing,
                     formErrors = _uiState.value.formErrors,
-                    avatarFileName = prefs.avatarFileName
+                    avatarFileName = prefs.avatarFileName,
+                    appLanguage = prefs.appLanguage,
+                    distanceUnit = prefs.distanceUnit,
+                    resolvedDistanceUnit = resolvedUnit
                 )
             }.collect { combinedState ->
                 _uiState.value = combinedState
@@ -108,6 +117,23 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             if (fileName != null) {
                 userPreferencesRepository.updateAvatarFileName(fileName)
             }
+        }
+    }
+
+    fun onLanguageChanged(language: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            // 1. Wait for the DataStore write to fully commit to disk
+            userPreferencesRepository.updateAppLanguage(language)
+            // 2. Switch to Main thread to trigger UI / Activity recreation
+            withContext(Dispatchers.Main) {
+                LocaleManager.applyLanguage(language)
+            }
+        }
+    }
+
+    fun onDistanceUnitChanged(unit: String) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateDistanceUnit(unit)
         }
     }
 }
