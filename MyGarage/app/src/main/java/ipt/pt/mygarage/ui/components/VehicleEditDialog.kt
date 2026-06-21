@@ -117,7 +117,8 @@ fun VehicleEditDialog(
     onImageSelected: (String) -> Unit = {},
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {},
-    resolvedDistanceUnit: String = "MILES"
+    resolvedDistanceUnit: String = "MILES",
+    existingVehicles: List<VehicleEntity> = emptyList()
 ) {
     // Local picked Uri — avoids string round-trip permission loss
     var pickedUri by remember { mutableStateOf<Uri?>(null) }
@@ -473,7 +474,14 @@ fun VehicleEditDialog(
                 value = plate,
                 onValueChange = { raw ->
                     plate = raw.filter { it.isLetterOrDigit() }.take(6).uppercase()
-                    clearFieldError("plate")
+                    val isDuplicatePlate = existingVehicles.any {
+                        it.plate.equals(plate, ignoreCase = true) && it.id != vehicle?.id
+                    }
+                    if (isDuplicatePlate && plate.isNotBlank()) {
+                        localErrors = localErrors + ("plate" to R.string.error_license_plate_already_exists)
+                    } else {
+                        clearFieldError("plate")
+                    }
                 },
                 placeholder = { Text(stringResource(R.string.dialog_vehicle_plate_placeholder)) },
                 visualTransformation = LicensePlateVisualTransformation,
@@ -512,16 +520,19 @@ fun VehicleEditDialog(
             OutlinedTextField(
                 value = mileage,
                 onValueChange = {
-                    mileage = it
-                    autoCalcNextService(it)
+                    val filtered = it.filter { c -> c.isDigit() }
+                    mileage = filtered
+                    autoCalcNextService(filtered)
                     clearFieldError("mileage")
                 },
                 placeholder = { Text(stringResource(R.string.dialog_vehicle_mileage_label, mileageUnitName)) },
+                visualTransformation = MileageVisualTransformation,
                 isError = allErrors.containsKey("mileage"),
                 supportingText = { allErrors["mileage"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
             // Inspection Date - read-only, taps to open DatePickerDialog
@@ -911,6 +922,15 @@ fun VehicleEditDialog(
                         if (owner.isBlank()) errors["owner"] = R.string.error_field_required
                         if (fuelType.isBlank()) errors["fuelType"] = R.string.error_field_required
                         if (engineCapacity.isBlank()) errors["engineCapacity"] = R.string.error_field_required
+
+                        // Check for duplicate license plate
+                        val isDuplicatePlate = existingVehicles.any {
+                            it.plate.equals(plate, ignoreCase = true) && it.id != vehicle?.id
+                        }
+                        if (isDuplicatePlate) {
+                            errors["plate"] = R.string.error_license_plate_already_exists
+                        }
+
                         localErrors = errors
                         if (errors.isEmpty()) {
                             val rawMileageKm = DistanceFormatter.forStorage(

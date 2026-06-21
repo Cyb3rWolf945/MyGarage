@@ -97,13 +97,14 @@ fun GarageScreen(
                 onDismissEditDialog()
             },
             onConfirm = { updatedVehicle ->
-                if (vehicleToEdit != null) {
+                val isExistingVehicle = vehicles.any { it.id == vehicleToEdit?.id }
+                if (vehicleToEdit != null && isExistingVehicle) {
                     onConfirmEdit(updatedVehicle)
-                    onDismissEditDialog()
                 } else {
                     onAddVehicleClick(updatedVehicle)
-                    showAddDialog = false
                 }
+                onDismissEditDialog()
+                showAddDialog = false
             },
             selectedImageUri = selectedImageUri,
             existingImageFileName = existingImageFileName,
@@ -111,7 +112,8 @@ fun GarageScreen(
             onImageSelected = onImageSelected,
             formErrors = formErrors,
             onFieldChanged = onFieldChanged,
-            resolvedDistanceUnit = resolvedDistanceUnit
+            resolvedDistanceUnit = resolvedDistanceUnit,
+            existingVehicles = vehicles
         )
     }
 

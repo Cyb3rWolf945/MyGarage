@@ -35,7 +35,7 @@ class Converters {
     @TypeConverter
     fun stringListToString(value: List<String>?): String? {
         return if (value.isNullOrEmpty()) {
-            null
+            JSONArray().toString()
         } else {
             JSONArray(value).toString()
         }
