@@ -26,13 +26,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -105,7 +113,9 @@ fun ProfileScreen(
                     onAvatarClick = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                     onEditClick = viewModel::onEditToggled,
                     onNavigateToGarage = onNavigateToGarage,
-                    onAuthActionClicked = viewModel::onAuthActionClicked
+                    onAuthActionClicked = viewModel::onAuthActionClicked,
+                    onLanguageChanged = viewModel::onLanguageChanged,
+                    onDistanceUnitChanged = viewModel::onDistanceUnitChanged
                 )
             }
         }
@@ -121,8 +131,14 @@ private fun ViewModeContent(
     onAvatarClick: () -> Unit,
     onEditClick: () -> Unit,
     onNavigateToGarage: () -> Unit,
-    onAuthActionClicked: () -> Unit
+    onAuthActionClicked: () -> Unit,
+    onLanguageChanged: (String) -> Unit,
+    onDistanceUnitChanged: (String) -> Unit
 ) {
+    val unitName = if (state.resolvedDistanceUnit == "KILOMETERS")
+        stringResource(R.string.unit_kilometers)
+    else stringResource(R.string.unit_miles)
+
     // ═══ Hero Section ═══
     HeroSection(
         userName = state.userName,
@@ -180,11 +196,12 @@ private fun ViewModeContent(
         // Card 2 — Total Mileage
         BentoStatCard(
             modifier = Modifier.weight(1f),
-            label = stringResource(id = R.string.profile_stat_total_mileage),
+            label = stringResource(id = R.string.profile_stat_total_mileage, unitName),
             value = formatMileage(state.totalMileage),
             icon = {
                 Text(
-                    text = "mi",
+                    text = if (state.resolvedDistanceUnit == "KILOMETERS") stringResource(id = R.string.unit_label_km)
+                           else stringResource(id = R.string.unit_label_mi),
                     style = MaterialTheme.typography.labelSmall,
                     color = MyGarageColors.primary,
                     fontWeight = FontWeight.Bold
@@ -199,6 +216,16 @@ private fun ViewModeContent(
     AuthActionCard(
         isGuestMode = state.isGuestMode,
         onClick = onAuthActionClicked
+    )
+
+    Spacer(modifier = Modifier.height(32.dp))
+
+    // ═══ Settings Section ═══
+    SettingsSection(
+        appLanguage = state.appLanguage,
+        distanceUnit = state.distanceUnit,
+        onLanguageChanged = onLanguageChanged,
+        onDistanceUnitChanged = onDistanceUnitChanged
     )
 }
 
@@ -423,7 +450,7 @@ private fun EditModeContent(
             OutlinedTextField(
                 value = state.userName,
                 onValueChange = onUserNameChanged,
-                label = {
+                placeholder = {
                     Text(stringResource(id = R.string.profile_user_name_label))
                 },
                 isError = state.formErrors.containsKey("userName"),
@@ -454,7 +481,7 @@ private fun EditModeContent(
             OutlinedTextField(
                 value = state.garageName,
                 onValueChange = onGarageNameChanged,
-                label = {
+                placeholder = {
                     Text(stringResource(id = R.string.profile_garage_name_label))
                 },
                 isError = state.formErrors.containsKey("garageName"),
@@ -532,6 +559,166 @@ private fun EditModeContent(
                         text = stringResource(id = R.string.profile_action_save),
                         style = MaterialTheme.typography.labelSmall,
                         color = MyGarageColors.surfaceContainerLowest
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── SETTINGS SECTION ──────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsSection(
+    appLanguage: String,
+    distanceUnit: String,
+    onLanguageChanged: (String) -> Unit,
+    onDistanceUnitChanged: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // ── Language Selector ──────────────────────────────────────
+        LanguageSelector(
+            currentLanguage = appLanguage,
+            onLanguageChanged = onLanguageChanged
+        )
+
+        // ── Distance Unit Selector ──────────────────────────────────
+        DistanceUnitSelector(
+            currentUnit = distanceUnit,
+            onUnitChanged = onDistanceUnitChanged
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguageSelector(
+    currentLanguage: String,
+    onLanguageChanged: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val options = listOf(
+        "SYSTEM" to stringResource(id = R.string.language_system_default),
+        "en" to stringResource(id = R.string.language_english),
+        "pt-PT" to stringResource(id = R.string.language_portuguese)
+    )
+    val selectedLabel = options.firstOrNull { it.first == currentLanguage }?.second
+        ?: stringResource(id = R.string.language_system_default)
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(id = R.string.profile_settings_language_label),
+            style = MaterialTheme.typography.bodySmall,
+            color = MyGarageColors.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
+            OutlinedTextField(
+                value = selectedLabel,
+                onValueChange = {},
+                readOnly = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                singleLine = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MyGarageColors.surfaceContainerLowest,
+                    unfocusedContainerColor = MyGarageColors.surfaceContainerLowest,
+                    focusedBorderColor = MyGarageColors.primary,
+                    unfocusedBorderColor = MyGarageColors.outlineVariant.copy(alpha = 0.12f)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { (value, label) ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = label,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        },
+                        onClick = {
+                            onLanguageChanged(value)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DistanceUnitSelector(
+    currentUnit: String,
+    onUnitChanged: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val options = listOf(
+        "SYSTEM" to stringResource(id = R.string.distance_unit_system_default),
+        "KILOMETERS" to stringResource(id = R.string.distance_unit_kilometers),
+        "MILES" to stringResource(id = R.string.distance_unit_miles)
+    )
+    val selectedLabel = options.firstOrNull { it.first == currentUnit }?.second
+        ?: stringResource(id = R.string.distance_unit_system_default)
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(id = R.string.profile_settings_distance_unit_label),
+            style = MaterialTheme.typography.bodySmall,
+            color = MyGarageColors.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = it }
+        ) {
+            OutlinedTextField(
+                value = selectedLabel,
+                onValueChange = {},
+                readOnly = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                singleLine = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MyGarageColors.surfaceContainerLowest,
+                    unfocusedContainerColor = MyGarageColors.surfaceContainerLowest,
+                    focusedBorderColor = MyGarageColors.primary,
+                    unfocusedBorderColor = MyGarageColors.outlineVariant.copy(alpha = 0.12f)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { (value, label) ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = label,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        },
+                        onClick = {
+                            onUnitChanged(value)
+                            expanded = false
+                        }
                     )
                 }
             }

@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MyGarage</string>
+    <string name="nav_garage">Garagem</string>
+    <string name="nav_camera">Matrículas</string>
+    <string name="nav_service">Serviço</string>
+    <string name="garage_screen_title">Destino Garagem</string>
+    <string name="camera_screen_title">Destino Câmara</string>
+    <string name="service_screen_title">Destino Serviço</string>
+    <string name="app_header_title">ATELIER</string>
+    <string name="profile_description">Perfil do Utilizador</string>
+    <string name="notifications_description">Notificações</string>
+    <string name="back_to_garage">VOLTAR À GARAGEM</string>
+    <string name="specifications_header">ESPECIFICAÇÕES</string>
+    <string name="spec_year">Ano</string>
+    <string name="spec_fuel_type">Tipo de Combustível</string>
+    <string name="spec_owner">Proprietário</string>
+    <string name="spec_engine_capacity">Cilindrada</string>
+    <string name="spec_oil_type">Tipo de Óleo</string>
+    <string name="spec_seat_count">Lugares</string>
+    <string name="spec_door_count">Portas</string>
+    <string name="service_history_header">Histórico de Serviço</string>
+    <string name="live_location_header">Localização em Tempo Real</string>
+    <string name="action_diagnostic">INICIAR DIAGNÓSTICO</string>
+    <string name="action_schedule">AGENDAR SERVIÇO REGULAR</string>
+    <string name="unit_miles">Milhas</string>
+    <string name="unit_kilometers">Quilómetros</string>
+    <string name="stat_mileage">%1$s</string>
+    <string name="stat_inspection_date">Inspeção</string>
+    <string name="stat_mileage_to_next_service">%1$s até Próximo Serviço</string>
+    <string name="stat_iuc_value">IUC</string>
+    <string name="currency_euro_prefix">€ %1$s</string>
+    <string name="tab_specs">Especificações</string>
+    <string name="tab_history">Histórico</string>
+    <string name="tab_location">Localização</string>
+    <string name="action_log_maintenance">REGISTAR MANUTENÇÃO</string>
+    <string name="nav_profile">Perfil</string>
+    <string name="profile_screen_title">PERFIL</string>
+    <string name="profile_user_name_label">NOME DE UTILIZADOR</string>
+    <string name="profile_garage_name_label">NOME DA GARAGEM</string>
+    <string name="profile_guest_mode_title">Modo Convidado</string>
+    <string name="profile_guest_mode_description">Crie uma conta para sincronizar a sua garagem com a nuvem</string>
+    <string name="profile_action_sign_up">INICIAR SESSÃO</string>
+    <string name="profile_action_sign_out">TERMINAR SESSÃO</string>
+    <string name="profile_signed_in_title">Sessão Iniciada</string>
+    <string name="profile_signed_in_description">A sua garagem está sincronizada com a nuvem</string>
+    <string name="profile_stat_cars_owned">CARROS POSSUÍDOS</string>
+    <string name="profile_stat_total_mileage">TOTAL DE %1$s</string>
+    <string name="profile_avatar_description">Avatar do Perfil</string>
+    <string name="profile_camera_badge_description">Alterar Foto de Perfil</string>
+    <string name="profile_action_edit">EDITAR PERFIL</string>
+    <string name="profile_action_save">GUARDAR</string>
+    <string name="profile_action_cancel">CANCELAR</string>
+    <string name="error_user_name_required">O nome de utilizador não pode estar vazio</string>
+    <string name="error_garage_name_required">O nome da garagem não pode estar vazio</string>
+    <string name="fuel_type">Tipo de Combustível</string>
+    <string name="fuel_gasoline">Gasolina</string>
+    <string name="fuel_diesel">Diesel</string>
+    <string name="fuel_electric">Elétrico</string>
+    <string name="not_available">N/D</string>
+    <string name="error_field_required">Este campo é obrigatório</string>
+    <string name="error_mileage_lower_than_current">A distância não pode ser inferior à leitura atual do veículo</string>
+    <string name="delete_vehicle_title">Eliminar Veículo?</string>
+    <string name="delete_vehicle_message">Tem a certeza de que pretende remover este veículo? Todos os registos de serviço e peças associados serão permanentemente eliminados.</string>
+    <string name="action_edit">Editar</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_close">FECHAR</string>
+    <string name="action_update_service">ATUALIZAR SERVIÇO</string>
+    <string name="delete_service_title">Eliminar Registo de Serviço?</string>
+    <string name="delete_service_message">Tem a certeza de que pretende eliminar este registo de manutenção? Todas as peças associadas a este serviço também serão permanentemente removidas.</string>
+
+    <!-- Onboarding Flow -->
+    <string name="onboarding_welcome_title">Bem-vindo ao MyGarage</string>
+    <string name="onboarding_welcome_subtitle">O cockpit digital para a sua frota.</string>
+    <string name="onboarding_welcome_description">Acompanhe a manutenção, digitalize matrículas e gira todos os detalhes dos seus veículos num só lugar.</string>
+
+    <string name="onboarding_authfork_title">A Sua Garagem, As Suas Regras.</string>
+    <string name="onboarding_authfork_subtitle">Faça cópia de segurança dos seus dados na nuvem ou mantenha tudo estritamente local no seu dispositivo.</string>
+    <string name="onboarding_authfork_sign_in">Iniciar Sessão / Criar Conta</string>
+    <string name="onboarding_authfork_continue_guest">Continuar como Convidado</string>
+
+    <string name="onboarding_setup_title">Configure o Seu Espaço de Trabalho</string>
+    <string name="onboarding_setup_subtitle">A configurar o seu espaço de trabalho local. Pode sempre sincronizar com a nuvem mais tarde.</string>
+    <string name="onboarding_setup_user_name_label">Nome de Utilizador</string>
+    <string name="onboarding_setup_user_name_placeholder">Introduza o seu nome</string>
+    <string name="onboarding_setup_garage_name_label">Nome da Garagem</string>
+    <string name="onboarding_setup_garage_name_placeholder">ex.: Oficina do Wolf</string>
+
+    <string name="onboarding_action_next">Seguinte</string>
+    <string name="onboarding_action_finish">Concluir e Entrar na Garagem</string>
+    <string name="onboarding_action_get_started">Começar</string>
+
+    <string name="onboarding_page_indicator_description">Página %1$d de %2$d</string>
+
+    <string name="onboarding_error_user_name_blank">Introduza o seu nome para continuar</string>
+    <string name="onboarding_error_garage_name_blank">Dê um nome à sua garagem</string>
+
+    <!-- Service History -->
+    <string name="service_history_section_label">HISTÓRICO DE SERVIÇO</string>
+    <string name="service_history_empty_title">Nenhum histórico de serviço encontrado</string>
+    <string name="service_history_empty_subtitle">O seu registo de serviço está limpo. Toque no botão + para registar a sua primeira manutenção.</string>
+    <string name="service_history_select_vehicle_hint">Selecione um veículo para registar serviços.</string>
+
+    <!-- Vehicle Photo -->
+    <string name="add_vehicle_photo">Adicionar Foto do Veículo</string>
+    <string name="add_vehicle_photo_cd">Adicione uma foto do seu veículo</string>
+    <string name="vehicle_photo_cd">Foto do veículo</string>
+    <string name="tap_to_add_photos">Toque para adicionar fotos</string>
+    <string name="add_more_photos_hint">Toque novamente para adicionar mais fotos</string>
+
+    <!-- Empty States -->
+    <string name="garage_empty_title">A sua garagem está vazia.</string>
+    <string name="garage_empty_subtitle">Toque no botão + para adicionar o seu primeiro veículo.</string>
+    <string name="service_no_vehicle_title">Para começar a utilizar o registo de serviço, adicione primeiro um veículo na sua Garagem.</string>
+
+    <!-- Plate Scanner -->
+    <string name="scanner_ready_title">LEITOR PRONTO</string>
+    <string name="scanner_ready_subtitle">Toque para iniciar o reconhecimento de matrículas</string>
+    <string name="scanner_offline_title">LEITOR OFFLINE</string>
+    <string name="scanner_offline_subtitle">Toque para inicializar o seguimento de veículos</string>
+    <string name="scanner_permission_denied_title">Permissão de Câmara Necessária</string>
+    <string name="scanner_permission_denied_subtitle">O Leitor de Matrículas precisa de acesso à câmara para reconhecer matrículas. Conceda a permissão para continuar.</string>
+    <string name="scanner_enable_camera">ATIVAR CÂMARA</string>
+    <string name="scanner_open_settings">ABRIR DEFINIÇÕES</string>
+    <string name="scanner_plate_detected_label">Matrícula detetada</string>
+    <string name="scanner_position_hint">Posicione a matrícula dentro do enquadramento</string>
+    <string name="scanner_tap_to_activate">Toque para ativar o leitor</string>
+    <string name="scanner_permanently_blocked">Acesso à câmara bloqueado. Toque para abrir Definições.</string>
+
+    <!-- Location -->
+    <string name="vehicle_location_unknown">Localização do Veículo Desconhecida</string>
+    <string name="update_via_gps">Atualizar via GPS</string>
+    <string name="location_permission_required_title">Permissão de Localização Necessária</string>
+    <string name="location_permission_required_message">O MyGarage precisa da sua localização para identificar onde o seu veículo está estacionado. Conceda o acesso à localização nas Definições para continuar.</string>
+    <string name="location_open_settings">Abrir Definições</string>
+
+    <!-- Settings Section (Profile Screen) -->
+    <string name="profile_settings_header">DEFINIÇÕES</string>
+    <string name="profile_settings_language_label">Idioma</string>
+    <string name="profile_settings_distance_unit_label">Unidade de Distância</string>
+
+    <!-- Language Options -->
+    <string name="language_system_default">Padrão do Sistema</string>
+    <string name="language_english">English</string>
+    <string name="language_portuguese">Português</string>
+
+    <!-- Distance Unit Options -->
+    <string name="distance_unit_system_default">Padrão do Sistema</string>
+    <string name="distance_unit_kilometers">Quilómetros</string>
+    <string name="distance_unit_miles">Milhas</string>
+
+    <!-- Distance Unit Labels (short) -->
+    <string name="unit_label_km">km</string>
+    <string name="unit_label_mi">mi</string>
+
+    <!-- Vehicle Edit Dialog Labels -->
+    <string name="dialog_vehicle_name_label">Nome</string>
+    <string name="dialog_vehicle_plate_label">Matrícula</string>
+    <string name="dialog_vehicle_plate_placeholder">XX-XX-XX</string>
+    <string name="dialog_vehicle_year_label">Ano</string>
+    <string name="dialog_vehicle_mileage_label">%1$s (ex.: 12.450)</string>
+    <string name="dialog_vehicle_inspection_date_label">Data de Inspeção</string>
+    <string name="dialog_vehicle_oil_type_label">Tipo de Óleo</string>
+    <string name="dialog_vehicle_owner_label">Proprietário</string>
+    <string name="dialog_vehicle_seat_count_label">Número de Lugares</string>
+    <string name="dialog_vehicle_door_count_label">Número de Portas</string>
+    <string name="dialog_vehicle_engine_capacity_label">Cilindrada</string>
+    <string name="dialog_vehicle_iuc_value_label">Valor IUC (€)</string>
+    <string name="dialog_vehicle_mileage_next_service_label">%1$s até Próximo Serviço</string>
+    <string name="dialog_vehicle_location_address_label">Endereço de Localização</string>
+    <string name="dialog_vehicle_tap_date_hint">Toque para selecionar a data</string>
+    <string name="dialog_vehicle_auto_calc_hint">Calculado automaticamente (%1$s + 10.000)</string>
+    <string name="dialog_action_save">Guardar</string>
+    <string name="dialog_action_cancel">Cancelar</string>
+    <string name="dialog_action_ok">OK</string>
+
+    <!-- Service Log Dialog Labels -->
+    <string name="dialog_service_date_label">Data do Serviço</string>
+    <string name="dialog_service_date_hint">Toque para selecionar a data</string>
+    <string name="dialog_service_description_label">Descrição</string>
+    <string name="dialog_service_mileage_label">%1$s no Serviço</string>
+    <string name="dialog_service_type_label">TIPO DE SERVIÇO</string>
+    <string name="dialog_service_parts_label">PEÇAS UTILIZADAS</string>
+    <string name="dialog_service_parts_search_placeholder">Pesquisar peças…</string>
+    <string name="dialog_service_parts_empty">Nenhuma peça adicionada.</string>
+    <string name="dialog_service_parts_no_match">Nenhuma peça corresponde a \"%1$s\".</string>
+    <string name="dialog_service_add_part">ADICIONAR PEÇA</string>
+    <string name="dialog_service_part_name_label">Nome da Peça</string>
+    <string name="dialog_service_part_name_placeholder">ex.: Filtro de Óleo, Pastilhas de Travão…</string>
+    <string name="dialog_service_part_quantity_label">Quantidade</string>
+    <string name="dialog_service_part_reference_label">Referência (opcional)</string>
+    <string name="dialog_service_part_ref_placeholder">ex.: Número OEM, SKU…</string>
+    <string name="dialog_service_part_qty_prefix">Qtd.: %1$d</string>
+    <string name="dialog_service_part_ref_prefix">Ref.: %1$s</string>
+
+    <!-- Service Type Labels -->
+    <string name="service_type_regular">REGULAR</string>
+    <string name="service_type_revision">REVISÃO</string>
+    <string name="service_type_inspection">INSPEÇÃO</string>
+
+    <!-- Timeline -->
+    <string name="timeline_subtitle">Concluído em %1$s · %2$s · %3$s</string>
+
+    <!-- View Mode Fields -->
+    <string name="view_field_date">Data</string>
+    <string name="view_field_description">Descrição</string>
+    <string name="view_field_mileage">%1$s</string>
+    <string name="view_field_service_type">Tipo de Serviço</string>
+</resources>

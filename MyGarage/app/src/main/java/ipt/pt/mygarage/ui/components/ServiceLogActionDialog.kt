@@ -53,6 +53,7 @@ import androidx.compose.ui.window.DialogProperties
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.PartEntity
 import ipt.pt.mygarage.data.local.entity.ServiceLogEntity
+import ipt.pt.mygarage.domain.locale.LocaleManager
 import ipt.pt.mygarage.ui.screens.servicelog.ServiceDialogMode
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 import java.text.SimpleDateFormat
@@ -91,11 +92,15 @@ fun ServiceLogActionDialog(
     onSave: () -> Unit,
     onDismiss: () -> Unit,
     onAddTemporaryPart: (String, Int, String?) -> Unit,
-    onRemoveTemporaryPart: (String) -> Unit
+    onRemoveTemporaryPart: (String) -> Unit,
+    resolvedDistanceUnit: String = "MILES"
 ) {
     if (dialogMode == ServiceDialogMode.HIDDEN) return
 
     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
+    val todayFormatted = remember {
+        dateFormat.format(java.util.Date())
+    }
 
     // ── Local UI state (date picker, parts search, add-part mini-dialog) ──
     var showDatePicker by remember { mutableStateOf(false) }
@@ -133,12 +138,12 @@ fun ServiceLogActionDialog(
                     }
                     showDatePicker = false
                 }) {
-                    Text("OK", color = MyGarageColors.primary)
+                    Text(stringResource(R.string.dialog_action_ok), color = MyGarageColors.primary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = MyGarageColors.onSurfaceVariant)
+                    Text(stringResource(R.string.dialog_action_cancel), color = MyGarageColors.onSurfaceVariant)
                 }
             }
         ) {
@@ -176,18 +181,28 @@ fun ServiceLogActionDialog(
                 isViewOnly -> {
                     val log = selectedLog
                     if (log != null) {
-                        ViewField(label = "Date", value = log.date)
-                        ViewField(label = "Description", value = log.description)
-                        ViewField(label = "Mileage", value = log.mileage)
-                        ViewField(label = "Service Type", value = log.type.uppercase())
+                        val unitName = if (resolvedDistanceUnit == "KILOMETERS")
+                            stringResource(R.string.unit_kilometers)
+                        else stringResource(R.string.unit_miles)
+                        ViewField(label = stringResource(R.string.view_field_date), value = log.date)
+                        ViewField(label = stringResource(R.string.view_field_description), value = log.description)
+                        ViewField(label = stringResource(R.string.view_field_mileage, unitName), value = log.mileage)
+                        val typeLocalized = when (log.type.lowercase()) {
+                            "revision"   -> stringResource(R.string.service_type_revision)
+                            "inspection" -> stringResource(R.string.service_type_inspection)
+                            else         -> stringResource(R.string.service_type_regular)
+                        }
+                        ViewField(label = stringResource(R.string.view_field_service_type), value = typeLocalized)
 
                         // Parts used (if any)
                         if (selectedLogParts.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "PARTS USED",
+                                text = stringResource(R.string.dialog_service_parts_label),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MyGarageColors.onSurfaceVariant
+                                color = MyGarageColors.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
                             )
                             selectedLogParts.forEach { part ->
                                 Row(
@@ -206,14 +221,14 @@ fun ServiceLogActionDialog(
                                         )
                                         Row {
                                             Text(
-                                                text = "Qty: ${part.quantity}",
+                                                text = stringResource(R.string.dialog_service_part_qty_prefix, part.quantity),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MyGarageColors.onSurfaceVariant
                                             )
                                             if (!part.reference.isNullOrBlank()) {
                                                 Spacer(modifier = Modifier.width(12.dp))
                                                 Text(
-                                                    text = "Ref: ${part.reference}",
+                                                    text = stringResource(R.string.dialog_service_part_ref_prefix, part.reference!!),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MyGarageColors.onSurfaceVariant
                                                 )
@@ -233,21 +248,25 @@ fun ServiceLogActionDialog(
                         OutlinedTextField(
                             value = serviceDate,
                             onValueChange = {},
-                            label = { Text("Service Date") },
+                            placeholder = {
+                                Text(
+                                    text = if (serviceDate.isBlank()) todayFormatted else stringResource(R.string.dialog_service_date_label),
+                                    color = MyGarageColors.onSurfaceVariant
+                                )
+                            },
                             colors = textFieldColors,
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = false,
                             singleLine = true,
                             trailingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.DateRange,
-                                    contentDescription = "Pick date",
-                                    tint = MyGarageColors.onSurfaceVariant
+                                    contentDescription = stringResource(R.string.dialog_service_date_hint),
+                                    tint = MyGarageColors.primary
                                 )
                             },
                             supportingText = {
                                 Text(
-                                    "Tap to select date",
+                                    stringResource(R.string.dialog_service_date_hint),
                                     style = MaterialTheme.typography.labelSmall
                                 )
                             }
@@ -257,7 +276,7 @@ fun ServiceLogActionDialog(
                     OutlinedTextField(
                         value = description,
                         onValueChange = onDescriptionChanged,
-                        label = { Text("Description") },
+                        placeholder = { Text(stringResource(R.string.dialog_service_description_label)) },
                         isError = formErrors.containsKey("description"),
                         supportingText = {
                             formErrors["description"]?.let { Text(stringResource(it)) }
@@ -269,7 +288,12 @@ fun ServiceLogActionDialog(
                     OutlinedTextField(
                         value = mileage,
                         onValueChange = onMileageChanged,
-                        label = { Text("Mileage at Service") },
+                        placeholder = {
+                            val unitName = if (resolvedDistanceUnit == "KILOMETERS")
+                                stringResource(R.string.unit_kilometers)
+                            else stringResource(R.string.unit_miles)
+                            Text(stringResource(R.string.dialog_service_mileage_label, unitName))
+                        },
                         isError = formErrors.containsKey("mileage"),
                         supportingText = {
                             formErrors["mileage"]?.let { Text(stringResource(it)) }
@@ -280,9 +304,11 @@ fun ServiceLogActionDialog(
 
                     // Service Type Chips
                     Text(
-                        text = "SERVICE TYPE",
+                        text = stringResource(R.string.dialog_service_type_label),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MyGarageColors.onSurfaceVariant
+                        color = MyGarageColors.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
                     )
 
                     val serviceTypes = listOf("regular", "revision", "Inspection")
@@ -308,8 +334,13 @@ fun ServiceLogActionDialog(
                                     .padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
+                                val typeLabel = when (type.lowercase()) {
+                                    "revision"   -> stringResource(R.string.service_type_revision)
+                                    "inspection" -> stringResource(R.string.service_type_inspection)
+                                    else         -> stringResource(R.string.service_type_regular)
+                                }
                                 Text(
-                                    text = type.uppercase(),
+                                    text = typeLabel,
                                     style = MaterialTheme.typography.labelSmall,
                                     color = if (isSelected) MyGarageColors.surfaceContainerLowest
                                     else MyGarageColors.onSurface,
@@ -324,9 +355,11 @@ fun ServiceLogActionDialog(
                     if (selectedType == "revision") {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "PARTS USED",
+                            text = stringResource(R.string.dialog_service_parts_label),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MyGarageColors.onSurfaceVariant
+                            color = MyGarageColors.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -335,7 +368,7 @@ fun ServiceLogActionDialog(
                         OutlinedTextField(
                             value = partsSearchQuery,
                             onValueChange = { partsSearchQuery = it },
-                            placeholder = { Text("Search parts...") },
+                            placeholder = { Text(stringResource(R.string.dialog_service_parts_search_placeholder)) },
                             leadingIcon = {
                                 Icon(
                                     imageVector = Icons.Default.Search,
@@ -372,8 +405,8 @@ fun ServiceLogActionDialog(
 
                         if (filteredParts.isEmpty()) {
                             Text(
-                                text = if (temporaryParts.isEmpty()) "No parts added yet."
-                                else "No parts match \"$partsSearchQuery\".",
+                                text = if (temporaryParts.isEmpty()) stringResource(R.string.dialog_service_parts_empty)
+                                else stringResource(R.string.dialog_service_parts_no_match, partsSearchQuery),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MyGarageColors.onSurfaceVariant,
                                 modifier = Modifier.padding(vertical = 8.dp)
@@ -406,13 +439,13 @@ fun ServiceLogActionDialog(
                                                 color = MyGarageColors.onSurface
                                             )
                                             Text(
-                                                text = "Qty: ${part.quantity}",
+                                                text = stringResource(R.string.dialog_service_part_qty_prefix, part.quantity),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MyGarageColors.onSurfaceVariant
                                             )
                                             if (!part.reference.isNullOrBlank()) {
                                                 Text(
-                                                    text = "Ref: ${part.reference}",
+                                                    text = stringResource(R.string.dialog_service_part_ref_prefix, part.reference!!),
                                                     style = MaterialTheme.typography.labelSmall,
                                                     color = MyGarageColors.onSurfaceVariant
                                                 )
@@ -448,7 +481,7 @@ fun ServiceLogActionDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "ADD PART",
+                                text = stringResource(R.string.dialog_service_add_part),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MyGarageColors.primary
                             )
@@ -568,9 +601,11 @@ private fun AddPartDialogInline(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "ADD PART",
+                text = stringResource(R.string.dialog_service_add_part),
                 style = MaterialTheme.typography.labelSmall,
-                color = MyGarageColors.primary
+                color = MyGarageColors.primary,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
 
             val dialogTextFieldColors = OutlinedTextFieldDefaults.colors(
@@ -590,8 +625,7 @@ private fun AddPartDialogInline(
                     partName = it
                     if (partErrors.containsKey("partName")) partErrors = partErrors - "partName"
                 },
-                label = { Text("Part Name") },
-                placeholder = { Text("e.g. Oil Filter, Brake Pads...") },
+                placeholder = { Text(stringResource(R.string.dialog_service_part_name_placeholder)) },
                 isError = partErrors.containsKey("partName"),
                 supportingText = { partErrors["partName"]?.let { Text(stringResource(it)) } },
                 colors = dialogTextFieldColors,
@@ -607,7 +641,6 @@ private fun AddPartDialogInline(
                         if (partErrors.containsKey("partQuantity")) partErrors = partErrors - "partQuantity"
                     }
                 },
-                label = { Text("Quantity") },
                 placeholder = { Text("1") },
                 isError = partErrors.containsKey("partQuantity"),
                 supportingText = { partErrors["partQuantity"]?.let { Text(stringResource(it)) } },
@@ -622,8 +655,7 @@ private fun AddPartDialogInline(
             OutlinedTextField(
                 value = partReference,
                 onValueChange = { partReference = it },
-                label = { Text("Reference") },
-                placeholder = { Text("e.g. OEM Part Number, SKU...") },
+                placeholder = { Text(stringResource(R.string.dialog_service_part_ref_placeholder)) },
                 colors = dialogTextFieldColors,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -634,7 +666,7 @@ private fun AddPartDialogInline(
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text("CANCEL", color = MyGarageColors.onSurfaceVariant)
+                    Text(stringResource(R.string.profile_action_cancel), color = MyGarageColors.onSurfaceVariant)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
@@ -654,7 +686,7 @@ private fun AddPartDialogInline(
                     ),
                     shape = RoundedCornerShape(50)
                 ) {
-                    Text("ADD", style = MaterialTheme.typography.labelSmall)
+                    Text(stringResource(R.string.dialog_service_add_part), style = MaterialTheme.typography.labelSmall)
                 }
             }
         }

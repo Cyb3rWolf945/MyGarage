@@ -17,6 +17,7 @@ data class VehicleEntity(
     val name: String,
     val year: String,
     val mileage: String,
+    val mileageKm: Double = 0.0,
     val inspectionDate: String? = null,
     val oilType: String? = null,
     val owner: String,
@@ -29,6 +30,6 @@ data class VehicleEntity(
     val locationAddress: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val localImageFileName: String? = null,
+    val localImageFileNames: List<String> = emptyList(),
     val remoteImageUrl: String? = null
 )

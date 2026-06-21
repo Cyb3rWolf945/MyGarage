@@ -9,6 +9,7 @@ import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
 import ipt.pt.mygarage.domain.repository.ImageStorageManager
 import ipt.pt.mygarage.domain.repository.VehicleRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * ViewModel for managing the main garage screen.
@@ -83,7 +85,7 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     fun onSelectEdit(vehicle: VehicleEntity) {
         _selectedVehicleForOptions.value = null
         _vehicleToEdit.value = vehicle
-        _uiState.update { it.copy(existingImageFileName = vehicle.localImageFileName) }
+        _uiState.update { it.copy(existingImageFileName = vehicle.localImageFileNames.firstOrNull()) }
     }
 
     fun onSelectDelete(vehicle: VehicleEntity) {
@@ -117,7 +119,8 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val fileName = saveSelectedImage()
             val updated = if (fileName != null) {
-                vehicle.copy(localImageFileName = fileName)
+                val updatedImages = vehicle.localImageFileNames.toMutableList().apply { add(0, fileName) }
+                vehicle.copy(localImageFileNames = updatedImages)
             } else {
                 vehicle
             }
@@ -141,9 +144,14 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     fun confirmDelete() {
         val vehicle = _vehicleToDelete.value ?: return
         viewModelScope.launch {
-            repository.deleteVehicle(vehicle)
-            _showDeleteConfirmation.value = false
-            _vehicleToDelete.value = null
+            try {
+                withContext(Dispatchers.IO) {
+                    repository.deleteVehicle(vehicle)
+                }
+            } finally {
+                _showDeleteConfirmation.value = false
+                _vehicleToDelete.value = null
+            }
         }
     }
 
@@ -175,13 +183,7 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     fun insertVehicle(vehicle: VehicleEntity) {
         if (!validateVehicle(vehicle)) return
         viewModelScope.launch {
-            val fileName = saveSelectedImage()
-            val updated = if (fileName != null) {
-                vehicle.copy(localImageFileName = fileName)
-            } else {
-                vehicle
-            }
-            repository.insertVehicle(updated)
+            repository.insertVehicle(vehicle)
             clearImageSelection()
         }
     }

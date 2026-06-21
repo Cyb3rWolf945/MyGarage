@@ -29,5 +29,6 @@ data class ServiceLogEntity(
     val date: String,
     val description: String,
     val mileage: String,
+    val mileageKm: Double = 0.0,
     val type: String // e.g. "revision", "Inspection", "regular"
 )
