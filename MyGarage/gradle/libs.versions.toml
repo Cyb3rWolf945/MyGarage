@@ -20,8 +20,10 @@ secretsGradlePlugin = "2.0.1"
 playServicesMaps = "19.1.0"
 mapsCompose = "6.1.0"
 playServicesLocation = "21.3.0"
+appcompat = "1.7.0"
 
 [libraries]
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

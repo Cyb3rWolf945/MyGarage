@@ -4,10 +4,13 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
+import ipt.pt.mygarage.domain.locale.LocaleManager
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * ViewModel responsible for resolving the initial navigation destination
@@ -38,6 +41,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     ROUTE_ONBOARDING_GRAPH
                 }
                 _avatarFileName.value = preferences.avatarFileName
+                // Apply the stored language preference to the app process on the Main thread
+                withContext(Dispatchers.Main) {
+                    LocaleManager.applyLanguage(preferences.appLanguage)
+                }
                 _isLoading.value = false
             }
         }

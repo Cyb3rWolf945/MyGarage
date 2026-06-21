@@ -8,10 +8,12 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,11 +21,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
@@ -35,6 +41,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
@@ -58,11 +65,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
+import ipt.pt.mygarage.domain.locale.DistanceFormatter
+import ipt.pt.mygarage.domain.locale.LocaleManager
 import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 import ipt.pt.mygarage.ui.components.rememberLocationPermissionHandler
@@ -106,7 +116,8 @@ fun VehicleEditDialog(
     imageStorageManager: ipt.pt.mygarage.domain.repository.ImageStorageManager? = null,
     onImageSelected: (String) -> Unit = {},
     formErrors: Map<String, Int> = emptyMap(),
-    onFieldChanged: (String) -> Unit = {}
+    onFieldChanged: (String) -> Unit = {},
+    resolvedDistanceUnit: String = "MILES"
 ) {
     // Local picked Uri — avoids string round-trip permission loss
     var pickedUri by remember { mutableStateOf<Uri?>(null) }
@@ -132,9 +143,31 @@ fun VehicleEditDialog(
     var localErrors by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     val allErrors = localErrors + formErrors
 
+    // Track existing images that should be kept (for progressive deletion)
+    var keptImageFileNames by remember {
+        mutableStateOf(vehicle?.localImageFileNames ?: emptyList())
+    }
+
+    // Track newly picked images (temporary) before save
+    var newlyAddedImageFileNames by remember {
+        mutableStateOf<List<String>>(emptyList())
+    }
+
     fun clearFieldError(field: String) {
         if (localErrors.containsKey(field)) localErrors = localErrors - field
         onFieldChanged(field)
+    }
+
+    fun onDeleteNewlyAddedImage(index: Int) {
+        if (index >= 0 && index < newlyAddedImageFileNames.size) {
+            newlyAddedImageFileNames = newlyAddedImageFileNames.filterIndexed { i, _ -> i != index }
+        }
+    }
+
+    fun onDeleteExistingImage(index: Int) {
+        if (index >= 0 && index < keptImageFileNames.size) {
+            keptImageFileNames = keptImageFileNames.filterIndexed { i, _ -> i != index }
+        }
     }
 
     var engineCapacityExpanded by remember { mutableStateOf(false) }
@@ -160,40 +193,48 @@ fun VehicleEditDialog(
         }
     }
 
+    // Track last processed URI to prevent duplicates
+    var lastProcessedUri by remember { mutableStateOf<Uri?>(null) }
+
     // Save picked image immediately so the filename is ready when Save is tapped
-    var savedImageFileName by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(pickedUri) {
         val uri = pickedUri
-        if (uri != null && imageStorageManager != null) {
-            savedImageFileName = withContext(Dispatchers.IO) {
+        if (uri != null && uri != lastProcessedUri && imageStorageManager != null) {
+            val fileName = withContext(Dispatchers.IO) {
                 try {
-                    val fileName = "${java.util.UUID.randomUUID()}.jpg"
-                    val targetFile = java.io.File(context.filesDir, "vehicle_images/$fileName")
+                    val generatedFileName = "${java.util.UUID.randomUUID()}.jpg"
+                    val targetFile = java.io.File(context.filesDir, "vehicle_images/$generatedFileName")
                     targetFile.parentFile?.mkdirs()
                     context.contentResolver.openInputStream(uri)?.use { input ->
                         targetFile.outputStream().use { output ->
                             input.copyTo(output)
                         }
                     }
-                    fileName
+                    generatedFileName
                 } catch (e: Exception) {
                     e.printStackTrace()
                     null
                 }
             }
+            if (fileName != null) {
+                lastProcessedUri = uri
+                // Add to newly picked images list (not replacing)
+                newlyAddedImageFileNames = newlyAddedImageFileNames + fileName
+                pickedUri = null // Clear to allow picking again
+            }
         }
     }
 
     fun parseMileageNumeric(raw: String): Double {
-        val clean = raw.replace(",", "").replace(Regex("[^0-9.]"), "")
-        return clean.toDoubleOrNull() ?: 0.0
+        return DistanceFormatter.parseUserInput(raw)
     }
 
     fun autoCalcNextService(currentMileageStr: String) {
         val numeric = parseMileageNumeric(currentMileageStr)
         if (numeric > 0) {
             val next = numeric + 10000.0
-            mileageToNextService = String.format(Locale.US, "%,.0f mi", next)
+            val unitLabel = LocaleManager.unitLabel(resolvedDistanceUnit)
+            mileageToNextService = String.format(Locale.US, "%,.0f %s", next, unitLabel)
         }
     }
 
@@ -207,12 +248,12 @@ fun VehicleEditDialog(
                     }
                     showDatePicker = false
                 }) {
-                    Text("OK", color = MyGarageColors.primary)
+                    Text(stringResource(R.string.dialog_action_ok), color = MyGarageColors.primary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = MyGarageColors.onSurfaceVariant)
+                    Text(stringResource(R.string.dialog_action_cancel), color = MyGarageColors.onSurfaceVariant)
                 }
             }
         ) {
@@ -231,59 +272,175 @@ fun VehicleEditDialog(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // ── Image Placeholder ─────────────────────────────────────────
-            val imageModel = remember(pickedUri, existingImageFileName) {
-                if (pickedUri != null) {
-                    pickedUri
+            val imageModel = remember(newlyAddedImageFileNames, existingImageFileName) {
+                if (newlyAddedImageFileNames.isNotEmpty()) {
+                    // Show first newly added image
+                    imageStorageManager?.getImagePath(newlyAddedImageFileNames.first())?.let { java.io.File(it) }
                 } else if (existingImageFileName != null) {
+                    // Show existing image
                     imageStorageManager?.getImagePath(existingImageFileName)?.let { java.io.File(it) }
                 } else {
                     null
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MyGarageColors.surfaceContainerLowest)
-                    .clickable { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                contentAlignment = Alignment.Center
-            ) {
-                Crossfade(
-                    targetState = imageModel,
-                    label = "vehicle_photo_crossfade"
-                ) { model ->
-                    if (model != null) {
-                        AsyncImage(
-                            model = model,
-                            contentDescription = stringResource(R.string.vehicle_photo_cd),
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            alignment = Alignment.Center
-                        )
-                    } else {
-                            // Premium empty-state placeholder
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MyGarageColors.surfaceContainerLowest)
+                        .clickable { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Crossfade(
+                        targetState = imageModel,
+                        label = "vehicle_photo_crossfade"
+                    ) { model ->
+                        if (model != null) {
+                            AsyncImage(
+                                model = model,
+                                contentDescription = stringResource(R.string.vehicle_photo_cd),
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                alignment = Alignment.Center
+                            )
+                        } else {
+                                // Premium empty-state placeholder
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.ic_camera),
+                                        contentDescription = stringResource(R.string.add_vehicle_photo_cd),
+                                        tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.4f),
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = stringResource(R.string.add_vehicle_photo),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MyGarageColors.onSurfaceVariant.copy(alpha = 0.6f)
+                                    )
+                                }
+                        }
+                    }
+                }
+
+                // ── Helpful hint text ────────────────────────────────────
+                if (newlyAddedImageFileNames.isNotEmpty() || keptImageFileNames.isNotEmpty()) {
+                    Text(
+                        text = stringResource(R.string.add_more_photos_hint),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MyGarageColors.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.tap_to_add_photos),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MyGarageColors.primary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            // ── Image Thumbnails with Delete Buttons ─────────────────────
+            if (newlyAddedImageFileNames.isNotEmpty() || keptImageFileNames.isNotEmpty()) {
+                androidx.compose.foundation.lazy.LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 0.dp)
+                ) {
+                    // Newly added images (with green accent)
+                    itemsIndexed(newlyAddedImageFileNames) { index, fileName ->
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MyGarageColors.surfaceContainerLow)
+                                .border(2.dp, MyGarageColors.primary, RoundedCornerShape(12.dp))
+                        ) {
+                            val imagePath = imageStorageManager?.getImagePath(fileName)
+                            if (imagePath != null) {
+                                AsyncImage(
+                                    model = java.io.File(imagePath),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.TopEnd
                             ) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_camera),
-                                    contentDescription = stringResource(R.string.add_vehicle_photo_cd),
-                                    tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.4f),
-                                    modifier = Modifier.size(36.dp)
+                                IconButton(
+                                    onClick = { onDeleteNewlyAddedImage(index) },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = stringResource(R.string.action_delete),
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Existing images (no accent)
+                    itemsIndexed(keptImageFileNames) { index, fileName ->
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MyGarageColors.surfaceContainerLow)
+                        ) {
+                            val imagePath = imageStorageManager?.getImagePath(fileName)
+                            if (imagePath != null) {
+                                AsyncImage(
+                                    model = java.io.File(imagePath),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = stringResource(R.string.add_vehicle_photo),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MyGarageColors.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.3f)),
+                                contentAlignment = Alignment.TopEnd
+                            ) {
+                                IconButton(
+                                    onClick = { onDeleteExistingImage(index) },
+                                    modifier = Modifier.size(28.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = stringResource(R.string.action_delete),
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             val textFieldColors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MyGarageColors.primary,
@@ -303,7 +460,7 @@ fun VehicleEditDialog(
                     name = it
                     clearFieldError("name")
                 },
-                label = { Text("Name") },
+                placeholder = { Text(stringResource(R.string.dialog_vehicle_name_label)) },
                 isError = allErrors.containsKey("name"),
                 supportingText = { allErrors["name"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
@@ -318,8 +475,7 @@ fun VehicleEditDialog(
                     plate = raw.filter { it.isLetterOrDigit() }.take(6).uppercase()
                     clearFieldError("plate")
                 },
-                label = { Text("License Plate") },
-                placeholder = { Text("XX-XX-XX") },
+                placeholder = { Text(stringResource(R.string.dialog_vehicle_plate_placeholder)) },
                 visualTransformation = LicensePlateVisualTransformation,
                 isError = allErrors.containsKey("plate"),
                 supportingText = { allErrors["plate"]?.let { Text(stringResource(it)) } },
@@ -340,7 +496,7 @@ fun VehicleEditDialog(
                         clearFieldError("year")
                     }
                 },
-                label = { Text("Year") },
+                placeholder = { Text(stringResource(R.string.dialog_vehicle_year_label)) },
                 isError = allErrors.containsKey("year"),
                 supportingText = { allErrors["year"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
@@ -350,6 +506,9 @@ fun VehicleEditDialog(
             )
 
             // Mileage with auto-calc
+            val mileageUnitName = if (resolvedDistanceUnit == "KILOMETERS")
+                stringResource(R.string.unit_kilometers)
+            else stringResource(R.string.unit_miles)
             OutlinedTextField(
                 value = mileage,
                 onValueChange = {
@@ -357,7 +516,7 @@ fun VehicleEditDialog(
                     autoCalcNextService(it)
                     clearFieldError("mileage")
                 },
-                label = { Text("Mileage (e.g. 12,450 mi)") },
+                placeholder = { Text(stringResource(R.string.dialog_vehicle_mileage_label, mileageUnitName)) },
                 isError = allErrors.containsKey("mileage"),
                 supportingText = { allErrors["mileage"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
@@ -366,34 +525,41 @@ fun VehicleEditDialog(
             )
 
             // Inspection Date - read-only, taps to open DatePickerDialog
+            val todayFormatted = remember {
+                java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(java.util.Date())
+            }
             Box(modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true }) {
                 OutlinedTextField(
                     value = inspectionDate,
                     onValueChange = {},
-                    label = { Text("Inspection Date") },
+                    placeholder = {
+                        Text(
+                            text = if (inspectionDate.isBlank()) todayFormatted else stringResource(R.string.dialog_vehicle_inspection_date_label),
+                            color = MyGarageColors.onSurfaceVariant
+                        )
+                    },
                     colors = textFieldColors,
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = false,
                     singleLine = true,
                     trailingIcon = {
                         Icon(
                             imageVector = Icons.Default.DateRange,
-                            contentDescription = "Pick date",
-                            tint = MyGarageColors.onSurfaceVariant
+                            contentDescription = stringResource(R.string.dialog_vehicle_tap_date_hint),
+                            tint = MyGarageColors.primary
                         )
                     },
-                    supportingText = { Text("Tap to select date", style = MaterialTheme.typography.labelSmall) }
+                    supportingText = { Text(stringResource(R.string.dialog_vehicle_tap_date_hint), style = MaterialTheme.typography.labelSmall) }
                 )
             }
 
             // Oil Type
             OutlinedTextField(
                 value = oilType,
+                placeholder = { Text(stringResource(R.string.dialog_vehicle_oil_type_label)) },
                 onValueChange = {
                     oilType = it
                     clearFieldError("oilType")
                 },
-                label = { Text("Oil Type") },
                 isError = allErrors.containsKey("oilType"),
                 supportingText = { allErrors["oilType"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
@@ -408,7 +574,7 @@ fun VehicleEditDialog(
                     owner = it
                     clearFieldError("owner")
                 },
-                label = { Text("Owner") },
+                placeholder = { Text(stringResource(R.string.dialog_vehicle_owner_label)) },
                 isError = allErrors.containsKey("owner"),
                 supportingText = { allErrors["owner"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
@@ -425,7 +591,7 @@ fun VehicleEditDialog(
                     value = seatCount,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Seat Count") },
+                    placeholder = { Text(stringResource(R.string.dialog_vehicle_seat_count_label)) },
                     isError = allErrors.containsKey("seatCount"),
                     supportingText = { allErrors["seatCount"]?.let { Text(stringResource(it)) } },
                     colors = textFieldColors,
@@ -460,7 +626,7 @@ fun VehicleEditDialog(
                     value = doorCount,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Door Count") },
+                    placeholder = { Text(stringResource(R.string.dialog_vehicle_door_count_label)) },
                     isError = allErrors.containsKey("doorCount"),
                     supportingText = { allErrors["doorCount"]?.let { Text(stringResource(it)) } },
                     colors = textFieldColors,
@@ -501,7 +667,7 @@ fun VehicleEditDialog(
                     value = fuelType,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text(stringResource(id = R.string.fuel_type)) },
+                    placeholder = { Text(stringResource(id = R.string.fuel_type)) },
                     isError = allErrors.containsKey("fuelType"),
                     supportingText = { allErrors["fuelType"]?.let { Text(stringResource(it)) } },
                     colors = textFieldColors,
@@ -537,7 +703,7 @@ fun VehicleEditDialog(
                     value = engineCapacity,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Engine Capacity") },
+                    placeholder = { Text(stringResource(R.string.dialog_vehicle_engine_capacity_label)) },
                     isError = allErrors.containsKey("engineCapacity"),
                     supportingText = { allErrors["engineCapacity"]?.let { Text(stringResource(it)) } },
                     colors = textFieldColors,
@@ -571,7 +737,7 @@ fun VehicleEditDialog(
                     iucValue = it
                     clearFieldError("iucValue")
                 },
-                label = { Text("IUC Value (€)") },
+                placeholder = { Text(stringResource(R.string.dialog_vehicle_iuc_value_label)) },
                 isError = allErrors.containsKey("iucValue"),
                 supportingText = { allErrors["iucValue"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
@@ -583,7 +749,12 @@ fun VehicleEditDialog(
             OutlinedTextField(
                 value = mileageToNextService,
                 onValueChange = {},
-                label = { Text("Mileage to Next Service") },
+                placeholder = {
+                    val unitName = if (resolvedDistanceUnit == "KILOMETERS")
+                        stringResource(R.string.unit_kilometers)
+                    else stringResource(R.string.unit_miles)
+                    Text(stringResource(R.string.dialog_vehicle_mileage_next_service_label, unitName))
+                },
                 isError = allErrors.containsKey("mileageToNextService"),
                 colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth(),
@@ -591,26 +762,16 @@ fun VehicleEditDialog(
                 singleLine = true,
                 supportingText = {
                     allErrors["mileageToNextService"]?.let { Text(stringResource(it)) }
-                        ?: Text("Auto-calculated (mileage + 10,000)", style = MaterialTheme.typography.labelSmall)
+                        ?: run {
+                            val unitName = if (resolvedDistanceUnit == "KILOMETERS")
+                                stringResource(R.string.unit_kilometers)
+                            else stringResource(R.string.unit_miles)
+                            Text(stringResource(R.string.dialog_vehicle_auto_calc_hint, unitName), style = MaterialTheme.typography.labelSmall)
+                        }
                 }
             )
 
-            // Location Address
-            OutlinedTextField(
-                value = locationAddress,
-                onValueChange = {
-                    locationAddress = it
-                    clearFieldError("locationAddress")
-                },
-                label = { Text("Location Address") },
-                isError = allErrors.containsKey("locationAddress"),
-                supportingText = { allErrors["locationAddress"]?.let { Text(stringResource(it)) } },
-                colors = textFieldColors,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            // ── Location Section ─────────────────────────────────────────
+            // ── Location Section (GPS-Only) ──────────────────────────────
             val scope = rememberCoroutineScope()
             val app = context.applicationContext as MyGarageApplication
             val locationPermission = rememberLocationPermissionHandler(
@@ -698,7 +859,7 @@ fun VehicleEditDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.LocationOn,
-                            contentDescription = "Vehicle Location Unknown",
+                            contentDescription = stringResource(R.string.vehicle_location_unknown),
                             tint = MyGarageColors.onSurfaceVariant.copy(alpha = 0.4f),
                             modifier = Modifier.size(32.dp)
                         )
@@ -706,13 +867,17 @@ fun VehicleEditDialog(
                         Text(
                             text = stringResource(R.string.vehicle_location_unknown),
                             style = MaterialTheme.typography.titleMedium,
-                            color = MyGarageColors.onSurfaceVariant
+                            color = MyGarageColors.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
                             text = stringResource(R.string.update_via_gps),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MyGarageColors.primary
+                            color = MyGarageColors.primary,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -733,7 +898,7 @@ fun VehicleEditDialog(
                     shape = RoundedCornerShape(50),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.dialog_action_cancel))
                 }
 
                 Button(
@@ -748,12 +913,16 @@ fun VehicleEditDialog(
                         if (engineCapacity.isBlank()) errors["engineCapacity"] = R.string.error_field_required
                         localErrors = errors
                         if (errors.isEmpty()) {
+                            val rawMileageKm = DistanceFormatter.forStorage(
+                                parseMileageNumeric(mileage), resolvedDistanceUnit
+                            )
                             val result = VehicleEntity(
                                 id = vehicle?.id ?: java.util.UUID.randomUUID().toString(),
                                 plate = plate,
                                 name = name,
                                 year = year,
                                 mileage = mileage,
+                                mileageKm = rawMileageKm,
                                 inspectionDate = inspectionDate.ifBlank { null },
                                 oilType = oilType.ifBlank { null },
                                 owner = owner,
@@ -766,7 +935,7 @@ fun VehicleEditDialog(
                                 locationAddress = locationAddress.ifBlank { null },
                                 latitude = latitude,
                                 longitude = longitude,
-                                localImageFileName = savedImageFileName ?: vehicle?.localImageFileName,
+                                localImageFileNames = newlyAddedImageFileNames + keptImageFileNames,
                                 remoteImageUrl = vehicle?.remoteImageUrl
                             )
                             onConfirm(result)
@@ -779,7 +948,7 @@ fun VehicleEditDialog(
                     shape = RoundedCornerShape(50),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Save")
+                    Text(stringResource(R.string.dialog_action_save))
                 }
             }
         }

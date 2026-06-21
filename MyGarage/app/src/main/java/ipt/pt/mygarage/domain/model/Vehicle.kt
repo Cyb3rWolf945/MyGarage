@@ -5,7 +5,7 @@ package ipt.pt.mygarage.domain.model
  * Decoupled from any persistence or UI frameworks.
  *
  * Image fields support an offline-first strategy:
- *   - [localImageFileName] for locally stored images.
+ *   - [localImageFileNames] for locally stored images (multiple support).
  *   - [remoteImageUrl] reserved for future cloud synchronization.
  */
 data class Vehicle(
@@ -26,6 +26,6 @@ data class Vehicle(
     val locationAddress: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val localImageFileName: String? = null,
+    val localImageFileNames: List<String> = emptyList(),
     val remoteImageUrl: String? = null
 )

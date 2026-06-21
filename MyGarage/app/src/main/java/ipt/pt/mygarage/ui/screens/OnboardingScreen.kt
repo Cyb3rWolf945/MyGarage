@@ -346,9 +346,6 @@ private fun SetupPage(
         OutlinedTextField(
             value = uiState.userName,
             onValueChange = onUserNameChanged,
-            label = {
-                Text(stringResource(id = R.string.onboarding_setup_user_name_label))
-            },
             placeholder = {
                 Text(stringResource(id = R.string.onboarding_setup_user_name_placeholder))
             },
@@ -376,9 +373,6 @@ private fun SetupPage(
         OutlinedTextField(
             value = uiState.garageName,
             onValueChange = onGarageNameChanged,
-            label = {
-                Text(stringResource(id = R.string.onboarding_setup_garage_name_label))
-            },
             placeholder = {
                 Text(stringResource(id = R.string.onboarding_setup_garage_name_placeholder))
             },

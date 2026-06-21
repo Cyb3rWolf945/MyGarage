@@ -1,5 +1,6 @@
 package ipt.pt.mygarage.presentation.service
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -11,6 +12,8 @@ import ipt.pt.mygarage.data.local.entity.ServiceLogPieceCrossRef
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
 import ipt.pt.mygarage.data.local.relation.VehicleWithServices
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
+import ipt.pt.mygarage.domain.locale.DistanceFormatter
+import ipt.pt.mygarage.domain.locale.LocaleManager
 import ipt.pt.mygarage.domain.repository.VehicleRepository
 import ipt.pt.mygarage.ui.screens.servicelog.ServiceDialogMode
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,8 +31,23 @@ import java.util.UUID
  */
 class ServiceViewModel(
     private val repository: VehicleRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val application: Application
 ) : ViewModel() {
+
+    /** Resolved distance unit derived from DataStore preference + OS locale. */
+    private val _resolvedDistanceUnit = MutableStateFlow("MILES")
+    val resolvedDistanceUnit: StateFlow<String> = _resolvedDistanceUnit.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            userPreferencesRepository.userPreferencesFlow.collect { prefs ->
+                _resolvedDistanceUnit.value = LocaleManager.resolveDistanceUnit(
+                    prefs.distanceUnit, application
+                )
+            }
+        }
+    }
 
     // Expose all vehicles for selection on the service page
     val vehicles: StateFlow<List<VehicleEntity>> = repository.getAllVehicles()
@@ -122,6 +140,32 @@ class ServiceViewModel(
 
     fun onTypeChanged(type: String) {
         _selectedType.value = type
+        // ── Auto-fill mileage for Inspection type; clear for all others ────
+        if (type == "Inspection") {
+            val currentVehicle = _selectedVehicleWithServices.value?.vehicle
+            var canonicalKm = currentVehicle?.mileageKm ?: 0.0
+            if (canonicalKm <= 0.0 && currentVehicle != null && currentVehicle.mileage.isNotBlank()) {
+                val parsed = DistanceFormatter.parseUserInput(currentVehicle.mileage)
+                if (parsed > 0) {
+                    val isMiles = currentVehicle.mileage.contains("mi", ignoreCase = true) ||
+                                  currentVehicle.mileage.contains("Miles", ignoreCase = true)
+                    canonicalKm = if (isMiles) {
+                        DistanceFormatter.forStorage(parsed, "MILES")
+                    } else {
+                        parsed
+                    }
+                }
+            }
+            if (canonicalKm > 0.0) {
+                val resolvedUnit = _resolvedDistanceUnit.value
+                val displayValue = DistanceFormatter.forDisplay(canonicalKm, resolvedUnit)
+                _mileage.value = displayValue.toLong().toString()
+            }
+        } else {
+            // User changed away from Inspection — clear any previously auto-filled mileage
+            // to prevent accidentally persisting stale data.
+            _mileage.value = ""
+        }
     }
 
     /**
@@ -223,6 +267,9 @@ class ServiceViewModel(
      * Validates mandatory fields first; if valid, either inserts a new
      * service log or updates an existing one.
      * Only executes when [dialogMode] is ADD or EDIT.
+     *
+     * Mileage is stored canonically as Kilometers in [ServiceLogEntity.mileageKm].
+     * The display string [ServiceLogEntity.mileage] reflects the user's preferred unit.
      */
     fun onSaveServiceLog() {
         val mode = _dialogMode.value
@@ -233,6 +280,8 @@ class ServiceViewModel(
         val vehicleId = _selectedVehicleId.value
         val date = _serviceDate.value
         val type = _selectedType.value
+        val resolvedUnit = _resolvedDistanceUnit.value
+        val unitLabel = LocaleManager.unitLabel(resolvedUnit)
 
         if (!validateServiceLogFields(
                 description = desc,
@@ -240,18 +289,37 @@ class ServiceViewModel(
                 selectedVehicleId = vehicleId
             )) return
 
-        // ── Business Rule: service mileage must not be lower than the vehicle's current mileage ──
-        val vehicleCurrentMileage = _selectedVehicleWithServices.value?.vehicle?.mileage
-        val inputMileageNum = mileage.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
-        val currentMileageNum = vehicleCurrentMileage
-            ?.replace(Regex("[^0-9]"), "")
-            ?.toIntOrNull() ?: 0
-        if (vehicleCurrentMileage != null && inputMileageNum < currentMileageNum) {
+        // Parse user input → canonical km
+        val inputKm = DistanceFormatter.forStorage(
+            DistanceFormatter.parseUserInput(mileage), resolvedUnit
+        )
+
+        // ── Business Rule: service mileage (canonical km) must not be lower than the vehicle's current mileage ──
+        var vehicleCurrentMileageKm = _selectedVehicleWithServices.value?.vehicle?.mileageKm ?: 0.0
+        if (vehicleCurrentMileageKm <= 0.0 && _selectedVehicleWithServices.value?.vehicle != null) {
+            val currentVehicle = _selectedVehicleWithServices.value!!.vehicle
+            if (currentVehicle.mileage.isNotBlank()) {
+                val parsed = DistanceFormatter.parseUserInput(currentVehicle.mileage)
+                if (parsed > 0) {
+                    val isMiles = currentVehicle.mileage.contains("mi", ignoreCase = true) ||
+                                  currentVehicle.mileage.contains("Miles", ignoreCase = true)
+                    vehicleCurrentMileageKm = if (isMiles) {
+                        DistanceFormatter.forStorage(parsed, "MILES")
+                    } else {
+                        parsed
+                    }
+                }
+            }
+        }
+        if (vehicleCurrentMileageKm > 0.0 && inputKm < vehicleCurrentMileageKm) {
             _formErrors.update { it + ("mileage" to R.string.error_mileage_lower_than_current) }
             return
         }
 
         viewModelScope.launch {
+            // Build display string for the legacy mileage field
+            val displayMileage = DistanceFormatter.formatDisplay(inputKm, resolvedUnit)
+
             if (mode == ServiceDialogMode.EDIT) {
                 // ── EDIT MODE: update existing log with current parts ──────
                 val editingId = _selectedLog.value?.id ?: return@launch
@@ -260,7 +328,8 @@ class ServiceViewModel(
                     vehicleId = vehicleId!!,
                     date = date,
                     description = desc,
-                    mileage = if (mileage.contains("mi")) mileage else "$mileage mi",
+                    mileage = displayMileage,
+                    mileageKm = inputKm,
                     type = type
                 )
                 val partsToSave = _temporaryParts.value.map { part ->
@@ -269,13 +338,13 @@ class ServiceViewModel(
                 repository.updateServiceLogWithParts(updatedLog, partsToSave)
             } else {
                 // ── ADD MODE: insert new log with current parts ────────────
-                val newMileage = if (mileage.contains("mi")) mileage else "$mileage mi"
                 val newLog = ServiceLogEntity(
                     id = UUID.randomUUID(),
                     vehicleId = vehicleId!!,
                     date = date,
                     description = desc,
-                    mileage = newMileage,
+                    mileage = displayMileage,
+                    mileageKm = inputKm,
                     type = type
                 )
                 if (type == "revision") {
@@ -291,15 +360,18 @@ class ServiceViewModel(
                 // ── Update vehicle's current mileage and track user-driven delta ──
                 val currentVehicle = _selectedVehicleWithServices.value?.vehicle
                 if (currentVehicle != null) {
-                    // Calculate how many miles the user actually drove (delta)
-                    val delta = inputMileageNum - currentMileageNum
+                    // Calculate how many km the user actually drove (delta)
+                    val delta = (inputKm - vehicleCurrentMileageKm).toInt()
                     if (delta > 0) {
                         userPreferencesRepository.incrementUserMileage(delta)
                     }
 
                     // Always update the vehicle entity so its mileage reflects the latest service
                     repository.updateVehicle(
-                        currentVehicle.copy(mileage = newMileage)
+                        currentVehicle.copy(
+                            mileage = displayMileage,
+                            mileageKm = inputKm
+                        )
                     )
                 }
             }
@@ -428,12 +500,13 @@ class ServiceViewModel(
     companion object {
         fun factory(
             repository: VehicleRepository,
-            userPreferencesRepository: UserPreferencesRepository
+            userPreferencesRepository: UserPreferencesRepository,
+            application: Application
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return ServiceViewModel(repository, userPreferencesRepository) as T
+                    return ServiceViewModel(repository, userPreferencesRepository, application) as T
                 }
             }
     }
