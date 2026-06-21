@@ -226,4 +226,37 @@
     <string name="error_unknown">Ocorreu um erro desconhecido</string>
     <string name="scanner_plate_label_colon">Matrícula</string>
     <string name="spec_model_label">Modelo</string>
+
+    <!-- About Screen -->
+    <string name="about_title">SOBRE</string>
+    <string name="about_version">v%1$s</string>
+    <string name="about_course_label">Curso</string>
+    <string name="about_curricular_unit_label">Unidade Curricular</string>
+    <string name="about_author_label">Autor</string>
+    <string name="about_course_value">Engenharia Informática-Internet das Coisas</string>
+    <string name="about_unit_value">Desenvolvimento de Aplicações Móveis Avançadas</string>
+    <string name="about_architecture_header">ARQUITETURA</string>
+    <string name="about_architecture_body">Fundação Offline-First — Construída sobre Room Database e DataStore para uma persistência local robusta e imediata. A arquitetura separa claramente as responsabilidades utilizando Unidirectional Data Flow (UDF) com Jetpack Compose e Android ViewModels, garantindo uma transição perfeita para sincronização na nuvem através de uma camada de abstração do repositório.</string>
+    <string name="about_libraries_header">BIBLIOTECAS OPEN SOURCE</string>
+    <string name="about_lib_compose_name">Jetpack Compose</string>
+    <string name="about_lib_compose_desc">Kit de UI declarativo moderno para Android nativo</string>
+    <string name="about_lib_room_name">Room Database</string>
+    <string name="about_lib_room_desc">Persistência local SQLite com verificação em compilação</string>
+    <string name="about_lib_datastore_name">DataStore Preferences</string>
+    <string name="about_lib_datastore_desc">Armazenamento chave-valor com suporte a corrotinas e Flow</string>
+    <string name="about_lib_navigation_name">Navigation Compose</string>
+    <string name="about_lib_navigation_desc">Navegação type-safe dentro da aplicação Compose</string>
+    <string name="about_lib_coil_name">Coil</string>
+    <string name="about_lib_coil_desc">Carregamento de imagens Kotlin-first com integração Compose</string>
+    <string name="about_lib_camerax_name">CameraX</string>
+    <string name="about_lib_camerax_desc">Integração de câmara com pré-visualização lifecycle-aware</string>
+    <string name="about_lib_mlkit_name">ML Kit Text Recognition</string>
+    <string name="about_lib_mlkit_desc">OCR no dispositivo para leitura de matrículas</string>
+    <string name="about_lib_maps_name">Google Maps Compose</string>
+    <string name="about_lib_maps_desc">Mapas interativos e integração de serviços de localização</string>
+    <string name="about_lib_retrofit_name">Retrofit + Gson</string>
+    <string name="about_lib_retrofit_desc">Cliente HTTP type-safe para API de registo de veículos</string>
+    <string name="about_author_value">António Gonçalves</string>
+    <string name="about_footer">2026 · Projeto Académico · MyGarage</string>
+    <string name="nav_about">Sobre</string>
 </resources>
