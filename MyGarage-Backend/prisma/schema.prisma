@@ -1,0 +1,146 @@
+// ── Prisma Schema — MyGarage Backend ──────────────────────────────
+// PostgreSQL-backed, mirrors the Android Room entities with added
+// multi-tenancy (userId) and sync metadata (createdAt, updatedAt, isDeleted).
+//
+// Prisma 7+: connection URL lives in prisma.config.ts
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Models ────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  vehicles               Vehicle[]
+  serviceLogs            ServiceLog[]
+  parts                  Part[]
+  pieces                 Piece[]
+  serviceLogPieceCrossRefs ServiceLogPieceCrossRef[]
+}
+
+model Vehicle {
+  id                  String   @id @default(uuid())
+  plate               String
+  name                String
+  year                String
+  mileage             String
+  mileageKm           Float    @default(0.0)
+  inspectionDate      String?
+  oilType             String?
+  owner               String
+  seatCount           String?
+  doorCount           String?
+  fuelType            String
+  engineCapacity      String
+  iucValue            String?
+  mileageToNextService String?
+  locationAddress     String?
+  latitude            Float?
+  longitude           Float?
+  localImageFileNames String[] @default([])
+  remoteImageUrl      String?
+
+  // ── Multi-tenancy & sync ──
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  isDeleted Boolean   @default(false)
+
+  serviceLogs ServiceLog[]
+
+  @@index([userId])
+  @@index([updatedAt])
+}
+
+model ServiceLog {
+  id          String   @id @default(uuid())
+  vehicleId   String
+  date        String
+  description String
+  mileage     String
+  mileageKm   Float    @default(0.0)
+  type        String   // "revision", "Inspection", "regular"
+
+  // ── Multi-tenancy & sync ──
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  isDeleted Boolean   @default(false)
+
+  parts                  Part[]
+  serviceLogPieceCrossRefs ServiceLogPieceCrossRef[]
+
+  @@index([userId])
+  @@index([vehicleId])
+  @@index([updatedAt])
+}
+
+model Part {
+  id           String @id @default(uuid())
+  serviceLogId String
+  name         String
+  quantity     Int
+  reference    String?
+
+  // ── Multi-tenancy & sync ──
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceLog ServiceLog @relation(fields: [serviceLogId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  isDeleted Boolean    @default(false)
+
+  @@index([userId])
+  @@index([serviceLogId])
+  @@index([updatedAt])
+}
+
+model Piece {
+  id    String @id @default(uuid())
+  name  String
+  price Float
+
+  // ── Multi-tenancy & sync ──
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false)
+
+  serviceLogPieceCrossRefs ServiceLogPieceCrossRef[]
+
+  @@index([userId])
+  @@index([updatedAt])
+}
+
+model ServiceLogPieceCrossRef {
+  serviceLogId String
+  pieceId      String
+  quantity     Int
+
+  // ── Multi-tenancy & sync ──
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceLog ServiceLog @relation(fields: [serviceLogId], references: [id], onDelete: Cascade)
+  piece     Piece      @relation(fields: [pieceId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  isDeleted Boolean    @default(false)
+
+  @@id([serviceLogId, pieceId])
+  @@index([userId])
+  @@index([updatedAt])
+}
