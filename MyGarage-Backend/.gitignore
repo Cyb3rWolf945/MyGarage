@@ -1,0 +1,20 @@
+node_modules/
+dist/
+
+# Environment files (keep the example)
+.env
+.env.local
+
+# Prisma generated client
+node_modules/.prisma/
+
+# Docker
+pgdata/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
