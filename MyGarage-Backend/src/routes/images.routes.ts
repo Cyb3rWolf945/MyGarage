@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import multer from 'multer';
 import { MulterRequest } from '../types';
 import { authMiddleware } from '../middleware/auth';
@@ -21,5 +21,6 @@ const upload = multer({
 });
 
 (router.post as any)('/upload', authMiddleware, upload.single('image'), imagesController.upload);
+router.get('/proxy', imagesController.proxy);
 
 export default router;

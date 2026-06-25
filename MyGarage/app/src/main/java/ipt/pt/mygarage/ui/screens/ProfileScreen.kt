@@ -58,11 +58,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.R
+import ipt.pt.mygarage.data.network.NetworkModule
 import ipt.pt.mygarage.presentation.profile.ProfileUiState
 import ipt.pt.mygarage.presentation.profile.ProfileViewModel
+import ipt.pt.mygarage.ui.components.ShimmerPlaceholder
+import ipt.pt.mygarage.ui.components.GradientPlaceholder
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 import java.io.File
 import java.text.NumberFormat
@@ -84,8 +87,12 @@ fun ProfileScreen(
     val app = context.applicationContext as MyGarageApplication
     val imageStorageManager = app.imageStorageManager
 
-    // Resolve avatar file path from stored filename
+    // Resolve avatar file path from stored filename, fall back to proxy URL
     val avatarPath = state.avatarFileName?.let { imageStorageManager.getImagePath(it) }
+    val avatarProxyUrl = if (avatarPath == null && !state.avatarRemoteUrl.isNullOrBlank()) {
+        NetworkModule.buildImageProxyUrl(context, state.avatarRemoteUrl?.replace("\"", ""))
+    } else null
+    val avatarModel: Any? = avatarPath?.let { java.io.File(it) } ?: avatarProxyUrl
 
     // Photo picker launcher
     val photoPicker = rememberLauncherForActivityResult(
@@ -124,7 +131,7 @@ fun ProfileScreen(
             } else {
                 ViewModeContent(
                     state = state,
-                    avatarPath = avatarPath,
+                    avatarModel = avatarModel,
                     onAvatarClick = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                     onEditClick = viewModel::onEditToggled,
                     onNavigateToGarage = onNavigateToGarage,
@@ -144,7 +151,7 @@ fun ProfileScreen(
 @Composable
 private fun ViewModeContent(
     state: ProfileUiState,
-    avatarPath: String?,
+    avatarModel: Any?,
     onAvatarClick: () -> Unit,
     onEditClick: () -> Unit,
     onNavigateToGarage: () -> Unit,
@@ -162,7 +169,7 @@ private fun ViewModeContent(
     HeroSection(
         userName = state.userName,
         garageName = state.garageName,
-        avatarPath = avatarPath,
+        avatarModel = avatarModel,
         onAvatarClick = onAvatarClick
     )
 
@@ -298,7 +305,7 @@ private fun ViewModeContent(
 private fun HeroSection(
     userName: String,
     garageName: String,
-    avatarPath: String?,
+    avatarModel: Any?,
     onAvatarClick: () -> Unit
 ) {
     Column(
@@ -314,17 +321,18 @@ private fun HeroSection(
             contentAlignment = Alignment.Center
         ) {
             Crossfade(
-                targetState = avatarPath,
+                targetState = avatarModel,
                 label = "avatar_crossfade"
-            ) { path ->
-                val file = path?.let { File(it) }
-                if (file != null) {
-                    AsyncImage(
-                        model = file,
+            ) { model ->
+                if (model != null) {
+                    SubcomposeAsyncImage(
+                        model = model,
                         contentDescription = stringResource(R.string.profile_avatar_description),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
-                        alignment = Alignment.Center
+                        alignment = Alignment.Center,
+                        loading = { ShimmerPlaceholder() },
+                        error = { GradientPlaceholder() }
                     )
                 } else {
                     // Centered person icon placeholder

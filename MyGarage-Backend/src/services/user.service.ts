@@ -1,12 +1,30 @@
 import prisma from "../prisma";
 
 /**
- * Updates user profile (name and garageName).
+ * Retrieves the user profile including avatarUrl.
+ */
+export async function getUserProfile(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      garageName: true,
+      avatarUrl: true,
+    },
+  });
+  return user;
+}
+
+/**
+ * Updates user profile (name, garageName, and avatarUrl).
  */
 export async function updateUserProfile(
   userId: string,
   name?: string,
-  garageName?: string
+  garageName?: string,
+  avatarUrl?: string | null
 ): Promise<{ ok: boolean }> {
   const updates: any = {};
   
@@ -16,6 +34,11 @@ export async function updateUserProfile(
   
   if (garageName !== undefined && garageName.trim()) {
     updates.garageName = garageName.trim();
+  }
+
+  // avatarUrl can be explicitly null (to clear) or a string (to set)
+  if (avatarUrl !== undefined) {
+    updates.avatarUrl = avatarUrl || null;
   }
 
   if (Object.keys(updates).length === 0) {

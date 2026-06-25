@@ -3,8 +3,26 @@ import * as userService from "../services/user.service";
 import { AuthenticatedRequest } from "../types";
 
 /**
+ * GET /api/user/profile
+ * Returns the authenticated user's profile including avatarUrl.
+ */
+export async function getProfile(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user.userId;
+    const profile = await userService.getUserProfile(userId);
+    res.status(200).json(profile);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * PATCH /api/user/profile
- * Updates authenticated user's profile (name, garageName).
+ * Updates authenticated user's profile (name, garageName, avatarUrl).
  */
 export async function updateProfile(
   req: AuthenticatedRequest,
@@ -13,9 +31,9 @@ export async function updateProfile(
 ): Promise<void> {
   try {
     const userId = req.user.userId;
-    const { name, garageName } = req.body;
+    const { name, garageName, avatarUrl } = req.body;
 
-    const result = await userService.updateUserProfile(userId, name, garageName);
+    const result = await userService.updateUserProfile(userId, name, garageName, avatarUrl);
     res.status(200).json(result);
   } catch (err) {
     next(err);

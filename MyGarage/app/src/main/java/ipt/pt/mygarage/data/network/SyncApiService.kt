@@ -13,7 +13,16 @@ import retrofit2.http.Query
 
 data class UserProfileUpdate(
     @SerializedName("name") val name: String?,
-    @SerializedName("garageName") val garageName: String?
+    @SerializedName("garageName") val garageName: String?,
+    @SerializedName("avatarUrl") val avatarUrl: String? = null
+)
+
+data class UserProfileResponse(
+    @SerializedName("id") val id: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("name") val name: String?,
+    @SerializedName("garageName") val garageName: String?,
+    @SerializedName("avatarUrl") val avatarUrl: String?
 )
 
 interface SyncApiService {
@@ -36,4 +45,7 @@ interface SyncApiService {
 
     @PATCH("api/user/profile")
     suspend fun updateProfile(@Body profile: UserProfileUpdate): Response<SyncResponse>
+
+    @GET("api/user/profile")
+    suspend fun getProfile(): Response<UserProfileResponse>
 }
