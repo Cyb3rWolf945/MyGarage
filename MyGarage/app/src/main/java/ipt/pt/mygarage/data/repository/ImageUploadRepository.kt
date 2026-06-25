@@ -6,9 +6,9 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.parse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.MediaType.Companion.toMediaType
 import ipt.pt.mygarage.data.network.NetworkModule
 import java.io.ByteArrayOutputStream
 
@@ -34,7 +34,7 @@ class ImageUploadRepository(private val context: Context) {
             val compressedBitmap = compressImage(bitmap)
             val imageBytes = bitmapToByteArray(compressedBitmap)
 
-            val requestBody = imageBytes.toRequestBody("image/jpeg".parse())
+            val requestBody = imageBytes.toRequestBody("image/jpeg".toMediaType())
             val part = MultipartBody.Part.createFormData("image", "image.jpg", requestBody)
 
             val response = imageUploadService.uploadImage(part, imageType)

@@ -41,14 +41,18 @@ import androidx.navigation.compose.rememberNavController
 import ipt.pt.mygarage.presentation.garage.GarageViewModel
 import ipt.pt.mygarage.presentation.main.MainViewModel
 import ipt.pt.mygarage.presentation.onboarding.OnboardingViewModel
+import ipt.pt.mygarage.presentation.auth.AuthViewModel
 import ipt.pt.mygarage.presentation.profile.ProfileViewModel
 import ipt.pt.mygarage.presentation.profile.VehicleProfileViewModel
 import ipt.pt.mygarage.presentation.service.ServiceViewModel
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
+import ipt.pt.mygarage.data.sync.SyncWorker
 import ipt.pt.mygarage.domain.locale.DistanceFormatter
+import kotlinx.coroutines.flow.firstOrNull
 import ipt.pt.mygarage.ui.components.AtelierBottomNav
 import ipt.pt.mygarage.ui.components.AtelierTopBar
 import ipt.pt.mygarage.ui.screens.AboutScreen
+import ipt.pt.mygarage.ui.screens.AuthScreen
 import ipt.pt.mygarage.ui.screens.CameraScreen
 import ipt.pt.mygarage.ui.screens.GarageScreen
 import ipt.pt.mygarage.ui.screens.OnboardingScreen
@@ -97,6 +101,15 @@ fun MainScreen(
     val context = LocalContext.current
     val app = context.applicationContext as MyGarageApplication
     val repository = app.repository
+
+    // ── Periodic cloud sync for authenticated users ───────────────────────
+    LaunchedEffect(Unit) {
+        val prefsRepo = UserPreferencesRepository(context)
+        val token = prefsRepo.userAuthTokenFlow.firstOrNull()
+        if (!token.isNullOrBlank()) {
+            SyncWorker.enqueuePeriodicSync(context)
+        }
+    }
 
     val startDestination by mainViewModel.startDestination.collectAsStateWithLifecycle()
     val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
@@ -172,8 +185,8 @@ fun MainScreen(
         return
     }
 
-    // Determine if we are on an onboarding screen (hide chrome)
-    val isOnboardingRoute = currentRoute == MainViewModel.ROUTE_ONBOARDING_GRAPH
+    // Determine if we are on an onboarding or auth screen (hide chrome)
+    val isOnboardingRoute = currentRoute == MainViewModel.ROUTE_ONBOARDING_GRAPH || currentRoute == "auth_graph"
 
     Scaffold(
         topBar = {
@@ -256,18 +269,19 @@ fun MainScreen(
                 )
             }
 
-            // ── Auth Graph (placeholder) ─────────────────────────────────
+            // ── Auth Graph ──────────────────────────────────────────────
             composable("auth_graph") {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Auth — Coming Soon",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = MyGarageColors.onSurfaceVariant
-                    )
-                }
+                val authViewModel: AuthViewModel = viewModel()
+                AuthScreen(
+                    onAuthSuccess = {
+                        navController.navigate(MainViewModel.ROUTE_GARAGE_GRAPH) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             // ── Garage Graph (main pager) ─────────────────────────────────
@@ -570,6 +584,11 @@ fun MainScreen(
                     },
                     onNavigateToAbout = {
                         navController.navigate("about") {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToAuth = {
+                        navController.navigate("auth_graph") {
                             launchSingleTop = true
                         }
                     }

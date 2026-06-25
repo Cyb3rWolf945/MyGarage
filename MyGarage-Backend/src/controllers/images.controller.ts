@@ -1,15 +1,16 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { MulterRequest } from '../types';
 import { uploadImage, validateImage } from '../services/storage.service';
 
-export async function upload(req: Request, res: Response): Promise<void> {
+export async function upload(req: MulterRequest, res: Response): Promise<void> {
   try {
-    const userId = (req as any).user?.userId;
+    const userId = req.user?.userId;
     if (!userId) {
       res.status(401).json({ ok: false, error: 'User not authenticated' });
       return;
     }
 
-    const file = (req as any).file;
+    const file = req.file;
     if (!file) {
       res.status(400).json({ ok: false, error: 'No image file provided' });
       return;

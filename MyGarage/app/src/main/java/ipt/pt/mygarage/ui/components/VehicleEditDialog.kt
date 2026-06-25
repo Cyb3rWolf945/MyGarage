@@ -202,20 +202,7 @@ fun VehicleEditDialog(
         val uri = pickedUri
         if (uri != null && uri != lastProcessedUri && imageStorageManager != null) {
             val fileName = withContext(Dispatchers.IO) {
-                try {
-                    val generatedFileName = "${java.util.UUID.randomUUID()}.jpg"
-                    val targetFile = java.io.File(context.filesDir, "vehicle_images/$generatedFileName")
-                    targetFile.parentFile?.mkdirs()
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        targetFile.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                    generatedFileName
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
-                }
+                imageStorageManager.saveImage(uri.toString())
             }
             if (fileName != null) {
                 lastProcessedUri = uri
@@ -273,13 +260,19 @@ fun VehicleEditDialog(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // ── Image Placeholder ─────────────────────────────────────────
-            val imageModel = remember(newlyAddedImageFileNames, existingImageFileName) {
+            val imageModel = remember(newlyAddedImageFileNames, existingImageFileName, keptImageFileNames, vehicle?.remoteImageUrl) {
                 if (newlyAddedImageFileNames.isNotEmpty()) {
                     // Show first newly added image
                     imageStorageManager?.getImagePath(newlyAddedImageFileNames.first())?.let { java.io.File(it) }
+                } else if (keptImageFileNames.isNotEmpty()) {
+                    // Show first kept image
+                    imageStorageManager?.getImagePath(keptImageFileNames.first())?.let { java.io.File(it) }
                 } else if (existingImageFileName != null) {
                     // Show existing image
                     imageStorageManager?.getImagePath(existingImageFileName)?.let { java.io.File(it) }
+                } else if (!vehicle?.remoteImageUrl.isNullOrEmpty()) {
+                    // Show remote image
+                    vehicle?.remoteImageUrl
                 } else {
                     null
                 }

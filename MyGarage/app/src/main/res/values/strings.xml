@@ -258,4 +258,37 @@
     <string name="about_author_value">António Gonçalves</string>
     <string name="about_footer">2026 · Academic Project · MyGarage</string>
     <string name="nav_about">About</string>
+
+    <!-- Authentication -->
+    <string name="auth_title_sign_in">Welcome Back</string>
+    <string name="auth_title_create_account">Create Your Account</string>
+    <string name="auth_name_placeholder">Your name</string>
+    <string name="auth_garage_name_placeholder">Garage name (e.g. Wolf\'s Workshop)</string>
+    <string name="auth_email_placeholder">Email</string>
+    <string name="auth_password_placeholder">Password</string>
+    <string name="auth_confirm_password_placeholder">Confirm Password</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_confirm_password_label">Confirm Password</string>
+    <string name="auth_action_sign_in">SIGN IN</string>
+    <string name="auth_action_create_account">CREATE ACCOUNT</string>
+    <string name="auth_toggle_to_register">Don\'t have an account? Create one</string>
+    <string name="auth_toggle_to_login">Already have an account? Sign in</string>
+    <string name="auth_password_show">Show password</string>
+    <string name="auth_password_hide">Hide password</string>
+    <string name="auth_error_email_blank">Please enter your email</string>
+    <string name="auth_error_email_invalid">Please enter a valid email address</string>
+    <string name="auth_error_password_blank">Please enter your password</string>
+    <string name="auth_error_password_short">Password must be at least 6 characters</string>
+    <string name="auth_error_password_weak">Password must contain at least one capital letter and one symbol</string>
+    <string name="auth_error_password_match">Passwords do not match</string>
+
+    <!-- Sync (Profile Screen) -->
+    <string name="profile_sync_title">Cloud Sync</string>
+    <string name="profile_sync_action">SYNC NOW</string>
+    <string name="profile_sync_last_synced">Last synced: %1$s</string>
+    <string name="profile_sync_never">Never synced</string>
+    <string name="profile_sync_syncing">Syncing…</string>
+    <string name="profile_sync_error">Sync failed. Tap to retry.</string>
+    <string name="profile_signed_in_email">Signed in as %1$s</string>
 </resources>

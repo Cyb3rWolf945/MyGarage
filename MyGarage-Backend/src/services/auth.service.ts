@@ -7,7 +7,12 @@ const SALT_ROUNDS = 12;
 /**
  * Register a new user.  Returns a JWT on success or throws on conflict.
  */
-export async function register(email: string, password: string) {
+export async function register(
+  email: string,
+  password: string,
+  name?: string,
+  garageName?: string
+) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     throw new ConflictError("A user with this email already exists");
@@ -16,12 +21,12 @@ export async function register(email: string, password: string) {
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
   const user = await prisma.user.create({
-    data: { email, passwordHash },
+    data: { email, passwordHash, name, garageName },
   });
 
   return {
     token: signToken({ userId: user.id }),
-    user: { id: user.id, email: user.email },
+    user: { id: user.id, email: user.email, name: user.name, garageName: user.garageName },
   };
 }
 
@@ -41,7 +46,7 @@ export async function login(email: string, password: string) {
 
   return {
     token: signToken({ userId: user.id }),
-    user: { id: user.id, email: user.email },
+    user: { id: user.id, email: user.email, name: user.name, garageName: user.garageName },
   };
 }
 

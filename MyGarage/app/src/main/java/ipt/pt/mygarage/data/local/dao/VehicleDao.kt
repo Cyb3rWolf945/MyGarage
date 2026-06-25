@@ -33,17 +33,17 @@ interface VehicleDao {
     @Delete
     suspend fun deleteVehicle(vehicle: VehicleEntity)
 
-    @Query("SELECT * FROM vehicles WHERE id = :vehicleId")
+    @Query("SELECT * FROM vehicles WHERE id = :vehicleId AND isDeleted = 0")
     suspend fun getVehicleById(vehicleId: String): VehicleEntity?
 
-    @Query("SELECT * FROM vehicles")
+    @Query("SELECT * FROM vehicles WHERE isDeleted = 0")
     fun getAllVehicles(): Flow<List<VehicleEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertServiceLog(serviceLog: ServiceLogEntity)
 
     @Transaction
-    @Query("SELECT * FROM vehicles WHERE id = :vehicleId")
+    @Query("SELECT * FROM vehicles WHERE id = :vehicleId AND isDeleted = 0")
     fun getVehicleWithServices(vehicleId: String): Flow<VehicleWithServices>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -75,4 +75,36 @@ interface VehicleDao {
 
     @Delete
     suspend fun deleteServiceLog(serviceLog: ServiceLogEntity)
+
+    // ── Bulk / sync operations ───────────────────────────────────────────
+
+    @Query("SELECT * FROM vehicles")
+    suspend fun getAllVehiclesList(): List<VehicleEntity>
+
+    @Query("SELECT * FROM service_logs")
+    suspend fun getAllServiceLogsList(): List<ServiceLogEntity>
+
+    @Query("SELECT * FROM service_parts")
+    suspend fun getAllPartsList(): List<PartEntity>
+
+    @Query("SELECT * FROM pieces")
+    suspend fun getAllPiecesList(): List<PieceEntity>
+
+    @Query("SELECT * FROM service_log_pieces")
+    suspend fun getAllCrossRefsList(): List<ServiceLogPieceCrossRef>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertVehicles(vehicles: List<VehicleEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertServiceLogs(logs: List<ServiceLogEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertParts(parts: List<PartEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPieces(pieces: List<PieceEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertCrossRefs(refs: List<ServiceLogPieceCrossRef>)
 }

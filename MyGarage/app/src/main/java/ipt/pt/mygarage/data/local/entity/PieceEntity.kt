@@ -11,5 +11,7 @@ data class PieceEntity(
     @PrimaryKey
     val id: String,
     val name: String,
-    val price: Double
+    val price: Double,
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false
 )
