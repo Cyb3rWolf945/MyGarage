@@ -11,14 +11,14 @@ export async function register(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { email, password } = req.body;
+    const { email, password, name, garageName } = req.body;
 
     if (!email || !password) {
       res.status(400).json({ error: "email and password are required" });
       return;
     }
 
-    const result = await authService.register(email, password);
+    const result = await authService.register(email, password, name, garageName);
     res.status(201).json(result);
   } catch (err) {
     if (
