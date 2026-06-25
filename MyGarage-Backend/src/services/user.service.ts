@@ -52,3 +52,16 @@ export async function updateUserProfile(
 
   return { ok: true };
 }
+
+/**
+ * Permanently deletes the user account and all associated data.
+ * Prisma cascades deletes to vehicles, serviceLogs, parts, pieces, and
+ * serviceLogPieceCrossRefs via onDelete: Cascade relations.
+ */
+export async function deleteUserAccount(userId: string): Promise<{ ok: boolean }> {
+  await prisma.user.delete({
+    where: { id: userId },
+  });
+
+  return { ok: true };
+}

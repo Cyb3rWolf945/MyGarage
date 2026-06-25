@@ -292,4 +292,34 @@
     <string name="profile_sync_syncing">A sincronizar…</string>
     <string name="profile_sync_error">Falha na sincronização. Toque para tentar novamente.</string>
     <string name="profile_signed_in_email">Sessão iniciada como %1$s</string>
+
+    <!-- Apagar Conta -->
+    <string name="delete_account_button">Apagar Conta</string>
+    <string name="delete_account_dialog_title">Apagar Conta</string>
+    <string name="delete_account_dialog_message">Isto irá apagar permanentemente a sua conta e todos os dados associados (veículos, registos de serviço, imagens). Esta ação não pode ser desfeita. Tem a certeza?</string>
+    <string name="delete_account_confirm">Sim, Apagar</string>
+    <string name="delete_account_cancel">Cancelar</string>
+    <string name="delete_account_error">Falha ao apagar a conta. Por favor, tente novamente.</string>
+
+    <!-- Termos e Condições -->
+    <string name="terms_back">Voltar</string>
+    <string name="terms_title">Termos e Condições</string>
+    <string name="terms_last_updated">Última atualização: Junho 2026</string>
+    <string name="terms_section1_title">1. Aceitação dos Termos</string>
+    <string name="terms_section1_content">Ao descarregar, instalar ou utilizar o MyGarage ("a Aplicação"), concorda em ficar vinculado a estes Termos e Condições. Se não concordar, por favor, não utilize a Aplicação. Estes termos constituem um acordo legal vinculativo entre si e o programador da Aplicação.</string>
+    <string name="terms_section2_title">2. Conta de Utilizador</string>
+    <string name="terms_section2_content">Para aceder a determinadas funcionalidades, poderá necessitar de criar uma conta. É responsável por manter a confidencialidade das suas credenciais de acesso e por todas as atividades que ocorram na sua conta. Deve fornecer informações precisas e completas ao criar a sua conta. Pode apagar a sua conta a qualquer momento no ecrã de Perfil, o que removerá permanentemente todos os dados associados.</string>
+    <string name="terms_section3_title">3. Dados e Privacidade</string>
+    <string name="terms_section3_content">O MyGarage armazena informações de veículos, registos de serviço e imagens fornecidas por si. Estes dados são armazenados de forma segura utilizando encriptação padrão da indústria. As imagens dos veículos são armazenadas em armazenamento na nuvem (compatível com S3). Mantém a total propriedade dos seus dados. Não vendemos, partilhamos ou utilizamos os seus dados pessoais para fins publicitários. Para mais detalhes, consulte a nossa Política de Privacidade.</string>
+    <string name="terms_section4_title">4. Propriedade Intelectual</string>
+    <string name="terms_section4_content">A Aplicação, incluindo o seu design, código, gráficos e marca, está protegida por leis de direitos de autor e propriedade intelectual. Não pode copiar, modificar, distribuir ou fazer engenharia reversa de qualquer parte da Aplicação sem autorização prévia por escrito. O MyGarage é um projeto académico desenvolvido para fins educacionais.</string>
+    <string name="terms_section5_title">5. Limitação de Responsabilidade</string>
+    <string name="terms_section5_content">O MyGarage é fornecido "como está", sem garantias de qualquer tipo, expressas ou implícitas. O programador não será responsabilizado por quaisquer danos decorrentes da utilização ou incapacidade de utilizar a Aplicação, incluindo, mas não se limitando a, perda de dados, interrupções de serviço ou imprecisões nas informações dos veículos. A Aplicação destina-se à gestão pessoal de veículos e não deve ser utilizada como substituta de aconselhamento automóvel profissional.</string>
+    <string name="terms_section6_title">6. Rescisão</string>
+    <string name="terms_section6_content">Reservamo-nos o direito de suspender ou terminar o seu acesso à Aplicação a qualquer momento, com ou sem motivo, e sem aviso prévio. Após a rescisão, o seu direito de utilizar a Aplicação cessa imediatamente. Pode terminar a sua conta a qualquer momento utilizando a funcionalidade Apagar Conta no ecrã de Perfil.</string>
+    <string name="terms_section7_title">7. Alterações aos Termos</string>
+    <string name="terms_section7_content">Reservamo-nos o direito de modificar estes Termos a qualquer momento. As alterações entram em vigor imediatamente após a sua publicação na Aplicação. A utilização continuada da Aplicação após quaisquer alterações constitui aceitação dos Termos atualizados. É da sua responsabilidade rever estes Termos periodicamente.</string>
+    <string name="terms_section8_title">8. Contacto</string>
+    <string name="terms_section8_content">Se tiver alguma dúvida sobre estes Termos e Condições, entre em contacto connosco através dos canais de suporte da Aplicação ou da instituição académica responsável por este projeto.</string>
+    <string name="terms_nav">Termos e Condições</string>
 </resources>
