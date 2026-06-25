@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
         android:name=".MyGarageApplication"
@@ -27,6 +29,10 @@
         <meta-data
             android:name="MATRICULA_USERNAME"
             android:value="${MATRICULA_USERNAME}" />
+
+        <meta-data
+            android:name="MYGARAGE_API_URL"
+            android:value="${MYGARAGE_API_URL}" />
 
         <activity
             android:name=".MainActivity"
