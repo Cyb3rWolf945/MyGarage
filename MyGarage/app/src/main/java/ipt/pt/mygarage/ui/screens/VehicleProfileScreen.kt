@@ -111,6 +111,16 @@ fun VehicleProfileScreen(
     val resolvedImagePath = vehicleEntity.localImageFileNames.firstOrNull()?.let {
         imageStorageManager.getImagePath(it)
     }
+    // Fall back to remote URL when no local file exists (e.g. after reinstall)
+    val remoteUrlClean = vehicleEntity.remoteImageUrl?.replace("\"", "")
+    val displayImageModel: Any? = when {
+        resolvedImagePath != null -> File(resolvedImagePath)
+        !remoteUrlClean.isNullOrBlank() -> remoteUrlClean
+        else -> null
+    }
+    // Show carousel if we have local images OR a remote URL
+    val hasCarouselImages = vehicleEntity.localImageFileNames.isNotEmpty() ||
+        !remoteUrlClean.isNullOrBlank()
 
     if (showEditDialog) {
         VehicleEditDialog(
@@ -134,14 +144,22 @@ fun VehicleProfileScreen(
         )
     }
 
-    if (isCarouselVisible && vehicleEntity.localImageFileNames.isNotEmpty()) {
+    if (isCarouselVisible && hasCarouselImages) {
         val imageStorageManager = app.imageStorageManager
         val resolvedPaths = vehicleEntity.localImageFileNames.mapNotNull { fileName ->
             imageStorageManager.getImagePath(fileName)
         }
-        if (resolvedPaths.isNotEmpty()) {
+        // Fall back to remote URL if no local files resolved
+        val displayPaths = if (resolvedPaths.isNotEmpty()) {
+            resolvedPaths
+        } else if (!remoteUrlClean.isNullOrBlank()) {
+            listOf(remoteUrlClean)
+        } else {
+            emptyList()
+        }
+        if (displayPaths.isNotEmpty()) {
             FullScreenImageCarousel(
-                imageFilePaths = resolvedPaths,
+                imageFilePaths = displayPaths,
                 onDismiss = onCloseCarousel
             )
         }
@@ -161,14 +179,13 @@ fun VehicleProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(280.dp)
-                    .clickable(enabled = vehicleEntity.localImageFileNames.isNotEmpty()) {
+                    .clickable(enabled = hasCarouselImages) {
                         onOpenCarousel(0)
                     }
             ) {
-                val imageFile = resolvedImagePath?.let { File(it) }
-                if (imageFile != null) {
+                if (displayImageModel != null) {
                     AsyncImage(
-                        model = imageFile,
+                        model = displayImageModel,
                         contentDescription = stringResource(R.string.vehicle_photo_cd),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
