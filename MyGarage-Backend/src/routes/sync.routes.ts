@@ -9,5 +9,7 @@ router.use("/", authMiddleware as any);
 
 router.get("/pull", syncController.pull as any);
 router.post("/push", syncController.push as any);
+router.post("/merge-guest-data", syncController.mergeGuestData as any);
+router.get("/pull-initial", syncController.pullInitial as any);
 
 export default router;

@@ -14,6 +14,23 @@ const s3Client = new S3Client({
   },
 });
 
+// Validate S3 configuration on startup
+if (!process.env.S3_ENDPOINT) {
+  console.warn('WARNING: S3_ENDPOINT environment variable is not set');
+}
+if (!process.env.S3_ACCESS_KEY_ID) {
+  console.warn('WARNING: S3_ACCESS_KEY_ID environment variable is not set');
+}
+if (!process.env.S3_SECRET_ACCESS_KEY) {
+  console.warn('WARNING: S3_SECRET_ACCESS_KEY environment variable is not set');
+}
+if (!process.env.S3_BUCKET_NAME) {
+  console.warn('WARNING: S3_BUCKET_NAME environment variable is not set');
+}
+if (!process.env.S3_PUBLIC_URL_PREFIX) {
+  console.warn('WARNING: S3_PUBLIC_URL_PREFIX environment variable is not set');
+}
+
 export async function uploadImage(
   fileBuffer: Buffer,
   originalFileName: string,
@@ -25,12 +42,21 @@ export async function uploadImage(
   }
 
   try {
+    console.log('Starting image upload for user:', userId);
     const optimizedBuffer = await optimizeImage(fileBuffer);
     const timestamp = Date.now();
     const sanitizedFileName = originalFileName
       .replace(/[^a-zA-Z0-9.-]/g, '_')
       .toLowerCase();
     const key = `images/${userId}/${imageType}/${timestamp}-${sanitizedFileName}`;
+
+    console.log('S3 Upload params:', {
+      bucket: process.env.S3_BUCKET_NAME,
+      key,
+      endpoint: process.env.S3_ENDPOINT,
+      region: process.env.S3_REGION,
+      bufferSize: optimizedBuffer.length,
+    });
 
     await s3Client.send(
       new PutObjectCommand({
@@ -46,7 +72,9 @@ export async function uploadImage(
       })
     );
 
+    console.log('Image uploaded successfully to S3:', key);
     const publicUrl = `${process.env.S3_PUBLIC_URL_PREFIX || ''}${key}`;
+    console.log('Public URL:', publicUrl);
     return publicUrl;
   } catch (error) {
     console.error('S3 upload error:', error);

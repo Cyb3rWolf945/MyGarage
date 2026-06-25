@@ -112,6 +112,7 @@ async function upsertVehicle(userId: string, v: VehiclePayload) {
       longitude: v.longitude ?? null,
       localImageFileNames: v.localImageFileNames ?? [],
       remoteImageUrl: v.remoteImageUrl ?? null,
+      isDeleted: v.isDeleted ?? false,
       userId, // ⬅ FORCED
     },
     update: {
@@ -134,6 +135,7 @@ async function upsertVehicle(userId: string, v: VehiclePayload) {
       longitude: v.longitude ?? null,
       localImageFileNames: v.localImageFileNames ?? [],
       remoteImageUrl: v.remoteImageUrl ?? null,
+      isDeleted: v.isDeleted ?? false,
       // userId is intentionally NOT in the update block —
       // ownership cannot be changed via sync.
     },
@@ -218,6 +220,93 @@ async function upsertCrossRef(userId: string, x: ServiceLogPieceCrossRefPayload)
       quantity: x.quantity,
     },
   });
+}
+
+// ── GUEST DATA MERGE ────────────────────────────────────────────
+// Merges guest data from mobile with authenticated account.
+// Applies Last-Write-Wins by updatedAt timestamp.
+
+export async function mergeGuestData(userId: string, body: SyncPushBody): Promise<void> {
+  const operations: Promise<unknown>[] = [];
+
+  if (body.vehicles) {
+    for (const v of body.vehicles) {
+      operations.push(upsertVehicleWithLWW(userId, v));
+    }
+  }
+  if (body.services) {
+    for (const s of body.services) {
+      operations.push(upsertServiceLogWithLWW(userId, s));
+    }
+  }
+  if (body.parts) {
+    for (const p of body.parts) {
+      operations.push(upsertPartWithLWW(userId, p));
+    }
+  }
+  if (body.pieces) {
+    for (const pc of body.pieces) {
+      operations.push(upsertPieceWithLWW(userId, pc));
+    }
+  }
+  if (body.servicePieceCrossRefs) {
+    for (const x of body.servicePieceCrossRefs) {
+      operations.push(upsertCrossRefWithLWW(userId, x));
+    }
+  }
+
+  await Promise.all(operations);
+}
+
+// ── PULL INITIAL ─────────────────────────────────────────────────
+// Returns all user data (no timestamp filter) for first-login.
+
+export async function pullInitial(userId: string): Promise<SyncPullResult> {
+  return pull(userId, undefined);
+}
+
+// ── LWW Upsert Helpers ──────────────────────────────────────────
+
+async function upsertVehicleWithLWW(userId: string, v: VehiclePayload) {
+  const existing = await prisma.vehicle.findUnique({ where: { id: v.id } });
+
+  if (!existing || new Date(v.updatedAt) > existing.updatedAt) {
+    await upsertVehicle(userId, v);
+  }
+}
+
+async function upsertServiceLogWithLWW(userId: string, s: ServiceLogPayload) {
+  const existing = await prisma.serviceLog.findUnique({ where: { id: s.id } });
+
+  if (!existing || new Date(s.updatedAt) > existing.updatedAt) {
+    await upsertServiceLog(userId, s);
+  }
+}
+
+async function upsertPartWithLWW(userId: string, p: PartPayload) {
+  const existing = await prisma.part.findUnique({ where: { id: p.id } });
+
+  if (!existing || new Date(p.updatedAt) > existing.updatedAt) {
+    await upsertPart(userId, p);
+  }
+}
+
+async function upsertPieceWithLWW(userId: string, pc: PiecePayload) {
+  const existing = await prisma.piece.findUnique({ where: { id: pc.id } });
+
+  if (!existing || new Date(pc.updatedAt) > existing.updatedAt) {
+    await upsertPiece(userId, pc);
+  }
+}
+
+async function upsertCrossRefWithLWW(userId: string, x: ServiceLogPieceCrossRefPayload) {
+  const existing = await prisma.serviceLogPieceCrossRef.findUnique({
+    where: { serviceLogId_pieceId: { serviceLogId: x.serviceLogId, pieceId: x.pieceId } },
+  });
+
+  if (!existing || new Date(x.updatedAt) > existing.updatedAt) {
+    await upsertCrossRef(userId, x);
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────
