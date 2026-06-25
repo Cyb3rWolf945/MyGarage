@@ -41,6 +41,20 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _navigateToAuth = MutableStateFlow(false)
     val navigateToAuth: StateFlow<Boolean> = _navigateToAuth.asStateFlow()
 
+    /** Emits true when navigation is from account deletion — goes to onboarding. */
+    private val _navigateToOnboarding = MutableStateFlow(false)
+    val navigateToOnboarding: StateFlow<Boolean> = _navigateToOnboarding.asStateFlow()
+
+    // ── Delete Account state ───────────────────────────────────────────
+    private val _showDeleteAccountDialog = MutableStateFlow(false)
+    val showDeleteAccountDialog: StateFlow<Boolean> = _showDeleteAccountDialog.asStateFlow()
+
+    private val _isDeletingAccount = MutableStateFlow(false)
+    val isDeletingAccount: StateFlow<Boolean> = _isDeletingAccount.asStateFlow()
+
+    private val _deleteAccountError = MutableStateFlow<String?>(null)
+    val deleteAccountError: StateFlow<String?> = _deleteAccountError.asStateFlow()
+
     init {
         viewModelScope.launch {
             combine(
@@ -202,6 +216,51 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     fun onDistanceUnitChanged(unit: String) {
         viewModelScope.launch {
             userPreferencesRepository.updateDistanceUnit(unit)
+        }
+    }
+
+    // ── Delete Account ─────────────────────────────────────────────────
+
+    fun onDeleteAccountClicked() {
+        _showDeleteAccountDialog.value = true
+    }
+
+    fun onDismissDeleteAccountDialog() {
+        _showDeleteAccountDialog.value = false
+        _deleteAccountError.value = null
+    }
+
+    fun onConfirmDeleteAccount() {
+        _showDeleteAccountDialog.value = false
+        _isDeletingAccount.value = true
+        _deleteAccountError.value = null
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val app = getApplication<android.app.Application>()
+                val api = ipt.pt.mygarage.data.network.NetworkModule
+                    .createSyncApiService(app)
+                val response = api.deleteAccount()
+
+                if (response.isSuccessful) {
+                    // Clear local Room database
+                    val db = (app as MyGarageApplication).database
+                    db.clearAllTables()
+
+                    // Clear DataStore (logout also clears auth token)
+                    userPreferencesRepository.clearAllUserData()
+
+                    _navigateToOnboarding.value = true
+                    _navigateToAuth.value = true
+                } else {
+                    _deleteAccountError.value = app.getString(R.string.delete_account_error)
+                }
+            } catch (_: Exception) {
+                _deleteAccountError.value = getApplication<android.app.Application>()
+                    .getString(R.string.delete_account_error)
+            } finally {
+                _isDeletingAccount.value = false
+            }
         }
     }
 }

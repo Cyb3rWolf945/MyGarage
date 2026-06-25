@@ -291,4 +291,34 @@
     <string name="profile_sync_syncing">Syncing…</string>
     <string name="profile_sync_error">Sync failed. Tap to retry.</string>
     <string name="profile_signed_in_email">Signed in as %1$s</string>
+
+    <!-- Delete Account -->
+    <string name="delete_account_button">Delete Account</string>
+    <string name="delete_account_dialog_title">Delete Account</string>
+    <string name="delete_account_dialog_message">This will permanently delete your account and all associated data (vehicles, service logs, images). This action cannot be undone. Are you sure?</string>
+    <string name="delete_account_confirm">Yes, Delete</string>
+    <string name="delete_account_cancel">Cancel</string>
+    <string name="delete_account_error">Failed to delete account. Please try again.</string>
+
+    <!-- Terms & Conditions -->
+    <string name="terms_back">Back</string>
+    <string name="terms_title">Terms &amp; Conditions</string>
+    <string name="terms_last_updated">Last updated: June 2026</string>
+    <string name="terms_section1_title">1. Acceptance of Terms</string>
+    <string name="terms_section1_content">By downloading, installing, or using MyGarage ("the App"), you agree to be bound by these Terms &amp; Conditions. If you do not agree, please do not use the App. These terms constitute a legally binding agreement between you and the App developer.</string>
+    <string name="terms_section2_title">2. User Account</string>
+    <string name="terms_section2_content">To access certain features, you may need to create an account. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account. You must provide accurate and complete information when creating your account. You may delete your account at any time from the Profile screen, which will permanently remove all associated data.</string>
+    <string name="terms_section3_title">3. Data &amp; Privacy</string>
+    <string name="terms_section3_content">MyGarage stores vehicle information, service logs, and images that you provide. This data is stored securely using industry-standard encryption. Vehicle images are stored in cloud storage (S3-compatible). You retain full ownership of your data. We do not sell, share, or use your personal data for advertising purposes. For more details, please refer to our Privacy Policy.</string>
+    <string name="terms_section4_title">4. Intellectual Property</string>
+    <string name="terms_section4_content">The App, including its design, code, graphics, and branding, is protected by copyright and intellectual property laws. You may not copy, modify, distribute, or reverse-engineer any part of the App without prior written permission. MyGarage is an academic project developed for educational purposes.</string>
+    <string name="terms_section5_title">5. Limitation of Liability</string>
+    <string name="terms_section5_content">MyGarage is provided "as is" without warranties of any kind, either express or implied. The developer shall not be held liable for any damages arising from the use or inability to use the App, including but not limited to data loss, service interruptions, or inaccuracies in vehicle information. The App is intended for personal vehicle management and should not be used as a substitute for professional automotive advice.</string>
+    <string name="terms_section6_title">6. Termination</string>
+    <string name="terms_section6_content">We reserve the right to suspend or terminate your access to the App at any time, with or without cause, and without prior notice. Upon termination, your right to use the App ceases immediately. You may terminate your account at any time by using the Delete Account feature in the Profile screen.</string>
+    <string name="terms_section7_title">7. Changes to Terms</string>
+    <string name="terms_section7_content">We reserve the right to modify these Terms at any time. Changes will be effective immediately upon posting within the App. Your continued use of the App after any changes constitutes acceptance of the updated Terms. It is your responsibility to review these Terms periodically.</string>
+    <string name="terms_section8_title">8. Contact</string>
+    <string name="terms_section8_content">If you have any questions about these Terms &amp; Conditions, please contact us through the App\'s support channels or the academic institution overseeing this project.</string>
+    <string name="terms_nav">Terms &amp; Conditions</string>
 </resources>

@@ -199,4 +199,14 @@ class UserPreferencesRepository(private val context: Context) {
             }
         }
     }
+
+    /**
+     * Clears all user data from DataStore. Used after account deletion.
+     * Note: hasCompletedOnboarding is intentionally NOT cleared here —
+     * the app will show onboarding again because isGuestMode becomes true
+     * and hasCompletedOnboarding is set to false.
+     */
+    suspend fun clearAllUserData() {
+        context.dataStore.edit { it.clear() }
+    }
 }

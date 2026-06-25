@@ -39,3 +39,21 @@ export async function updateProfile(
     next(err);
   }
 }
+
+/**
+ * DELETE /api/user/account
+ * Permanently deletes the authenticated user's account and all data.
+ */
+export async function deleteAccount(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user.userId;
+    const result = await userService.deleteUserAccount(userId);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
