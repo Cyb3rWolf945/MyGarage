@@ -6,11 +6,13 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import ipt.pt.mygarage.data.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
@@ -23,9 +25,16 @@ class UserPreferencesRepository(private val context: Context) {
         val KEY_IS_GUEST_MODE = booleanPreferencesKey("is_guest_mode")
         val KEY_HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         val KEY_AVATAR_FILE_NAME = stringPreferencesKey("avatar_file_name")
+        val KEY_AVATAR_REMOTE_URL = stringPreferencesKey("avatar_remote_url")
         val KEY_TOTAL_USER_MILEAGE = intPreferencesKey("total_user_mileage")
         val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
         val KEY_DISTANCE_UNIT = stringPreferencesKey("distance_unit")
+        val KEY_AUTH_TOKEN = stringPreferencesKey("auth_token")
+        val KEY_USER_EMAIL = stringPreferencesKey("user_email")
+        val KEY_LAST_SYNC_TIMESTAMP = longPreferencesKey("last_sync_timestamp")
+        val KEY_DELETED_VEHICLE_IDS = stringPreferencesKey("deleted_vehicle_ids")
+        val KEY_REQUIRES_GUEST_MERGE = booleanPreferencesKey("requires_guest_merge")
+        val KEY_GUEST_DATA_SIGNATURE = stringPreferencesKey("guest_data_signature")
     }
 
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data.map { preferences ->
@@ -35,23 +44,34 @@ class UserPreferencesRepository(private val context: Context) {
             isGuestMode = preferences[KEY_IS_GUEST_MODE] ?: true,
             hasCompletedOnboarding = preferences[KEY_HAS_COMPLETED_ONBOARDING] ?: false,
             avatarFileName = preferences[KEY_AVATAR_FILE_NAME],
+            avatarRemoteUrl = preferences[KEY_AVATAR_REMOTE_URL],
             totalUserMileage = preferences[KEY_TOTAL_USER_MILEAGE] ?: 0,
             appLanguage = preferences[KEY_APP_LANGUAGE] ?: "SYSTEM",
-            distanceUnit = preferences[KEY_DISTANCE_UNIT] ?: "SYSTEM"
+            distanceUnit = preferences[KEY_DISTANCE_UNIT] ?: "SYSTEM",
+            authToken = preferences[KEY_AUTH_TOKEN],
+            userEmail = preferences[KEY_USER_EMAIL],
+            lastSyncTimestamp = preferences[KEY_LAST_SYNC_TIMESTAMP],
+            requiresGuestMerge = preferences[KEY_REQUIRES_GUEST_MERGE] ?: false,
+            guestDataSignature = preferences[KEY_GUEST_DATA_SIGNATURE]
         )
     }
 
-    /** Exposes the raw distance unit preference ("SYSTEM", "KILOMETERS", or "MILES"). */
+    val userAuthTokenFlow: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[KEY_AUTH_TOKEN]
+    }.distinctUntilChanged()
+
+    val lastSyncTimestampFlow: Flow<Long?> = context.dataStore.data.map { preferences ->
+        preferences[KEY_LAST_SYNC_TIMESTAMP]
+    }.distinctUntilChanged()
+
     val distanceUnitFlow: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[KEY_DISTANCE_UNIT] ?: "SYSTEM"
     }.distinctUntilChanged()
 
-    /** Exposes the running total of miles driven by the user across all vehicles. */
     val totalUserMileageFlow: Flow<Int> = context.dataStore.data.map { preferences ->
         preferences[KEY_TOTAL_USER_MILEAGE] ?: 0
     }.distinctUntilChanged()
 
-    /** Adds [delta] miles to the user's lifetime driven total. */
     suspend fun incrementUserMileage(delta: Int) {
         context.dataStore.edit { preferences ->
             val current = preferences[KEY_TOTAL_USER_MILEAGE] ?: 0
@@ -74,7 +94,52 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun setGuestMode(isGuest: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_IS_GUEST_MODE] = isGuest
+            if (isGuest) {
+                preferences.remove(KEY_AUTH_TOKEN)
+                preferences.remove(KEY_USER_EMAIL)
+            }
         }
+    }
+
+    suspend fun saveAuth(token: String, email: String, name: String? = null, garageName: String? = null) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_AUTH_TOKEN] = token
+            preferences[KEY_USER_EMAIL] = email
+            preferences[KEY_IS_GUEST_MODE] = false
+            if (!name.isNullOrBlank()) preferences[KEY_USER_NAME] = name
+            if (!garageName.isNullOrBlank()) preferences[KEY_GARAGE_NAME] = garageName
+        }
+    }
+
+    suspend fun clearAuth() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(KEY_AUTH_TOKEN)
+            preferences.remove(KEY_USER_EMAIL)
+            preferences[KEY_IS_GUEST_MODE] = true
+            // Note: hasCompletedOnboarding is NOT cleared - user should not see onboarding again
+        }
+    }
+
+    suspend fun setLastSyncTimestamp(timestampMillis: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_LAST_SYNC_TIMESTAMP] = timestampMillis
+        }
+    }
+
+    suspend fun markVehicleDeleted(vehicleId: String) {
+        context.dataStore.edit { preferences ->
+            val current = preferences[KEY_DELETED_VEHICLE_IDS] ?: ""
+            val ids = current.split(",").filter { it.isNotBlank() }.toMutableSet()
+            ids.add(vehicleId)
+            preferences[KEY_DELETED_VEHICLE_IDS] = ids.joinToString(",")
+        }
+    }
+
+    suspend fun getDeletedVehicleIds(): Set<String> {
+        val raw = context.dataStore.data.map { preferences ->
+            preferences[KEY_DELETED_VEHICLE_IDS] ?: ""
+        }.first()
+        return raw.split(",").filter { it.isNotBlank() }.toSet()
     }
 
     suspend fun completeOnboarding(userName: String, garageName: String) {
@@ -104,6 +169,34 @@ class UserPreferencesRepository(private val context: Context) {
     suspend fun updateDistanceUnit(unit: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_DISTANCE_UNIT] = unit
+        }
+    }
+
+    suspend fun setGuestDataSignature(signature: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_GUEST_DATA_SIGNATURE] = signature
+        }
+    }
+
+    suspend fun setRequiresGuestMerge(required: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_REQUIRES_GUEST_MERGE] = required
+        }
+    }
+
+    suspend fun markOnboardingComplete() {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_HAS_COMPLETED_ONBOARDING] = true
+        }
+    }
+
+    suspend fun updateAvatarRemoteUrl(url: String?) {
+        context.dataStore.edit { preferences ->
+            if (url != null) {
+                preferences[KEY_AVATAR_REMOTE_URL] = url
+            } else {
+                preferences.remove(KEY_AVATAR_REMOTE_URL)
+            }
         }
     }
 }
