@@ -19,6 +19,7 @@ object NetworkModule {
     private fun createGson(): Gson {
         return GsonBuilder()
             .setLenient()
+            .serializeNulls()
             .create()
     }
 
@@ -44,6 +45,17 @@ object NetworkModule {
         } catch (_: Exception) {
             "https://mygaragebackend-production.up.railway.app"
         }
+    }
+
+    /**
+     * Wraps a raw S3 URL into a backend proxy URL so the client never needs
+     * direct S3 access. Returns null if the input is null/blank.
+     */
+    fun buildImageProxyUrl(context: Context, remoteUrl: String?): String? {
+        if (remoteUrl.isNullOrBlank()) return null
+        val base = readMyGarageApiUrl(context).trimEnd('/')
+        val encoded = java.net.URLEncoder.encode(remoteUrl, "UTF-8")
+        return "$base/api/images/proxy?url=$encoded"
     }
 
     private fun createAuthInterceptor(context: Context): Interceptor {

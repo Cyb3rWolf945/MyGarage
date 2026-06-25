@@ -39,6 +39,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _avatarFileName = MutableStateFlow<String?>(null)
     val avatarFileName: StateFlow<String?> = _avatarFileName.asStateFlow()
 
+    private val _avatarRemoteUrl = MutableStateFlow<String?>(null)
+    val avatarRemoteUrl: StateFlow<String?> = _avatarRemoteUrl.asStateFlow()
+
     init {
         viewModelScope.launch {
             userPreferencesRepository.userPreferencesFlow.collect { preferences ->
@@ -49,6 +52,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     else -> ROUTE_ONBOARDING_GRAPH
                 }
                 _avatarFileName.value = preferences.avatarFileName
+                _avatarRemoteUrl.value = preferences.avatarRemoteUrl
                 // Apply the stored language preference to the app process on the Main thread
                 withContext(Dispatchers.Main) {
                     LocaleManager.applyLanguage(preferences.appLanguage)

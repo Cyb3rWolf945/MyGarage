@@ -7,6 +7,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.UUID
 
 /**
@@ -43,6 +45,37 @@ class LocalImageStorageManager(
             e.printStackTrace()
             null
         } catch (e: SecurityException) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    override suspend fun downloadImage(url: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val connection = URL(url).openConnection() as HttpURLConnection
+            connection.connectTimeout = 15000
+            connection.readTimeout = 30000
+            connection.requestMethod = "GET"
+            connection.doInput = true
+            connection.connect()
+
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                connection.disconnect()
+                return@withContext null
+            }
+
+            val fileName = "${UUID.randomUUID()}.$DEFAULT_EXTENSION"
+            val targetFile = File(imagesDir, fileName)
+
+            connection.inputStream.use { input ->
+                targetFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            connection.disconnect()
+
+            fileName
+        } catch (e: IOException) {
             e.printStackTrace()
             null
         }

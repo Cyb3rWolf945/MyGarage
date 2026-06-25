@@ -1,6 +1,7 @@
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
@@ -157,5 +158,48 @@ export async function deleteImage(imageUrl: string): Promise<void> {
   } catch (error) {
     console.error('S3 delete error:', error);
     throw new Error(`Failed to delete image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Proxies an image from S3 by extracting the key from the stored public URL.
+ * Returns the image body as a Buffer with its content type.
+ */
+export async function getImage(
+  imageUrl: string
+): Promise<{ buffer: Buffer; contentType: string } | null> {
+  if (!process.env.S3_BUCKET_NAME || !process.env.S3_PUBLIC_URL_PREFIX) {
+    throw new Error('S3 configuration is incomplete');
+  }
+
+  try {
+    // Strip quotes that may have been stored in old URLs
+    const cleanUrl = imageUrl.replace(/"/g, '');
+    const key = cleanUrl.replace(process.env.S3_PUBLIC_URL_PREFIX, '');
+
+    if (!key || key === cleanUrl) {
+      console.warn('Could not extract S3 key from URL:', cleanUrl);
+      return null;
+    }
+
+    const response = await s3Client.send(
+      new GetObjectCommand({
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: key,
+      })
+    );
+
+    if (!response.Body) {
+      return null;
+    }
+
+    // Convert stream/body to buffer
+    const buffer = await response.Body.transformToByteArray();
+    const contentType = response.ContentType || 'image/jpeg';
+
+    return { buffer: Buffer.from(buffer), contentType };
+  } catch (error) {
+    console.error('S3 proxy error:', error);
+    return null;
   }
 }
