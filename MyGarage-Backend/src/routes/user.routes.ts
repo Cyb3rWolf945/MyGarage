@@ -9,5 +9,6 @@ router.use("/", authMiddleware as any);
 
 router.get("/profile", userController.getProfile as any);
 router.patch("/profile", userController.updateProfile as any);
+router.delete("/account", userController.deleteAccount as any);
 
 export default router;
