@@ -1,5 +1,6 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import multer from 'multer';
+import { MulterRequest } from '../types';
 import { authMiddleware } from '../middleware/auth';
 import * as imagesController from '../controllers/images.controller';
 
@@ -19,11 +20,6 @@ const upload = multer({
   },
 });
 
-router.post(
-  '/upload',
-  authMiddleware,
-  upload.single('image'),
-  imagesController.upload
-);
+(router.post as any)('/upload', authMiddleware, upload.single('image'), imagesController.upload);
 
 export default router;

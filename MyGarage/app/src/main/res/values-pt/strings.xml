@@ -259,4 +259,37 @@
     <string name="about_author_value">António Gonçalves</string>
     <string name="about_footer">2026 · Projeto Académico · MyGarage</string>
     <string name="nav_about">Sobre</string>
+
+    <!-- Authentication -->
+    <string name="auth_title_sign_in">Bem-vindo de Volta</string>
+    <string name="auth_title_create_account">Crie a Sua Conta</string>
+    <string name="auth_name_placeholder">O seu nome</string>
+    <string name="auth_garage_name_placeholder">Nome da garagem (ex.: Oficina do Wolf)</string>
+    <string name="auth_email_placeholder">Email</string>
+    <string name="auth_password_placeholder">Palavra-passe</string>
+    <string name="auth_confirm_password_placeholder">Confirmar Palavra-passe</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_password_label">Palavra-passe</string>
+    <string name="auth_confirm_password_label">Confirmar Palavra-passe</string>
+    <string name="auth_action_sign_in">INICIAR SESSÃO</string>
+    <string name="auth_action_create_account">CRIAR CONTA</string>
+    <string name="auth_toggle_to_register">Não tem conta? Crie uma</string>
+    <string name="auth_toggle_to_login">Já tem conta? Inicie sessão</string>
+    <string name="auth_password_show">Mostrar palavra-passe</string>
+    <string name="auth_password_hide">Esconder palavra-passe</string>
+    <string name="auth_error_email_blank">Introduza o seu email</string>
+    <string name="auth_error_email_invalid">Introduza um email válido</string>
+    <string name="auth_error_password_blank">Introduza a sua palavra-passe</string>
+    <string name="auth_error_password_short">A palavra-passe deve ter pelo menos 6 caracteres</string>
+    <string name="auth_error_password_weak">A palavra-passe deve conter pelo menos uma letra maiúscula e um símbolo</string>
+    <string name="auth_error_password_match">As palavras-passe não coincidem</string>
+
+    <!-- Sync (Profile Screen) -->
+    <string name="profile_sync_title">Sincronização na Nuvem</string>
+    <string name="profile_sync_action">SINCRONIZAR</string>
+    <string name="profile_sync_last_synced">Última sincronização: %1$s</string>
+    <string name="profile_sync_never">Nunca sincronizado</string>
+    <string name="profile_sync_syncing">A sincronizar…</string>
+    <string name="profile_sync_error">Falha na sincronização. Toque para tentar novamente.</string>
+    <string name="profile_signed_in_email">Sessão iniciada como %1$s</string>
 </resources>

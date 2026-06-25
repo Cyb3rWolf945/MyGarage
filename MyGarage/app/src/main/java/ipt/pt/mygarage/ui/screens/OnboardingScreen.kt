@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ipt.pt.mygarage.R
+import ipt.pt.mygarage.presentation.auth.AuthViewModel
 import ipt.pt.mygarage.presentation.onboarding.OnboardingUiState
 import ipt.pt.mygarage.presentation.onboarding.OnboardingViewModel
 import ipt.pt.mygarage.ui.theme.MyGarageColors
@@ -51,8 +52,9 @@ import kotlinx.coroutines.launch
 // ── Page keys ────────────────────────────────────────────────────────────────
 private const val PAGE_WELCOME = 0
 private const val PAGE_AUTH_FORK = 1
-private const val PAGE_SETUP = 2
-private const val PAGE_COUNT = 3
+private const val PAGE_AUTH = 2
+private const val PAGE_SETUP = 3
+private const val PAGE_COUNT = 4
 
 /**
  * 3-step onboarding flow with authentication decision gate.
@@ -130,8 +132,22 @@ fun OnboardingScreen(
                         }
                     )
                     PAGE_AUTH_FORK -> AuthForkPage(
-                        onSignIn = viewModel::onSignInClicked,
+                        onSignIn = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(PAGE_AUTH)
+                            }
+                        },
                         onContinueAsGuest = viewModel::onContinueAsGuest
+                    )
+                    PAGE_AUTH -> AuthScreen(
+                        onAuthSuccess = {
+                            onOnboardingComplete()
+                        },
+                        onBackClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(PAGE_AUTH_FORK)
+                            }
+                        }
                     )
                     PAGE_SETUP -> SetupPage(
                         uiState = uiState,

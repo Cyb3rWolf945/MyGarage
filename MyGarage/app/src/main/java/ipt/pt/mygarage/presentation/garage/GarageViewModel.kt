@@ -1,12 +1,15 @@
 package ipt.pt.mygarage.presentation.garage
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
+import ipt.pt.mygarage.data.repository.ImageUploadRepository
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
+import ipt.pt.mygarage.data.sync.SyncWorker
 import ipt.pt.mygarage.domain.engine.EngineCapacityHelper
 import ipt.pt.mygarage.domain.repository.ImageStorageManager
 import ipt.pt.mygarage.domain.repository.VehicleRepository
@@ -30,6 +33,7 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     private val repository: VehicleRepository = (application as MyGarageApplication).repository
     private val imageStorageManager: ImageStorageManager =
         (application as MyGarageApplication).imageStorageManager
+    private val imageUploadRepository = ImageUploadRepository(application)
 
     // ── User Preferences (garage name) ────────────────────────────────────
     private val _uiState = MutableStateFlow(GarageUiState())
@@ -119,14 +123,27 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     fun confirmEdit(vehicle: VehicleEntity) {
         viewModelScope.launch {
             val fileName = saveSelectedImage()
-            val updated = if (fileName != null) {
+            var updated = if (fileName != null) {
                 val updatedImages = vehicle.localImageFileNames.toMutableList().apply { add(0, fileName) }
                 vehicle.copy(localImageFileNames = updatedImages)
             } else {
                 vehicle
             }
+
+            if (fileName != null) {
+                val imagePath = imageStorageManager.getImagePath(fileName)
+                if (imagePath != null) {
+                    val uri = Uri.fromFile(java.io.File(imagePath))
+                    val uploadResult = imageUploadRepository.uploadImage(uri, "vehicle")
+                    uploadResult.onSuccess { imageUrl ->
+                        updated = updated.copy(remoteImageUrl = imageUrl)
+                    }
+                }
+            }
+
             repository.updateVehicle(updated)
             clearImageSelection()
+            SyncWorker.enqueueOneTimeSync(getApplication())
         }
     }
 
@@ -184,8 +201,23 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     fun insertVehicle(vehicle: VehicleEntity) {
         if (!validateVehicle(vehicle)) return
         viewModelScope.launch {
-            repository.insertVehicle(vehicle)
+            var vehicleToInsert = vehicle
+
+            if (vehicle.localImageFileNames.isNotEmpty()) {
+                val firstImageFileName = vehicle.localImageFileNames.first()
+                val imagePath = imageStorageManager.getImagePath(firstImageFileName)
+                if (imagePath != null) {
+                    val uri = Uri.fromFile(java.io.File(imagePath))
+                    val uploadResult = imageUploadRepository.uploadImage(uri, "vehicle")
+                    uploadResult.onSuccess { imageUrl ->
+                        vehicleToInsert = vehicleToInsert.copy(remoteImageUrl = imageUrl)
+                    }
+                }
+            }
+
+            repository.insertVehicle(vehicleToInsert)
             clearImageSelection()
+            SyncWorker.enqueueOneTimeSync(getApplication())
         }
     }
 
