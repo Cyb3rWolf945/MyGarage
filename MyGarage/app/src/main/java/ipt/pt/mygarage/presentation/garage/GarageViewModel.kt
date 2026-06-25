@@ -120,18 +120,20 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
         return imageStorageManager.saveImage(uri)
     }
 
+    /**
+     * Confirms an edit to an existing vehicle.
+     * The dialog already saved images to internal storage via LaunchedEffect
+     * and populated localImageFileNames — we just need to upload the newest
+     * one (first in the list) to S3 and update the entity.
+     */
     fun confirmEdit(vehicle: VehicleEntity) {
         viewModelScope.launch {
-            val fileName = saveSelectedImage()
-            var updated = if (fileName != null) {
-                val updatedImages = vehicle.localImageFileNames.toMutableList().apply { add(0, fileName) }
-                vehicle.copy(localImageFileNames = updatedImages)
-            } else {
-                vehicle
-            }
+            var updated = vehicle
 
-            if (fileName != null) {
-                val imagePath = imageStorageManager.getImagePath(fileName)
+            // Upload the first local image if present (dialog already saved it)
+            val imageFileName = vehicle.localImageFileNames.firstOrNull()
+            if (imageFileName != null) {
+                val imagePath = imageStorageManager.getImagePath(imageFileName)
                 if (imagePath != null) {
                     val uri = Uri.fromFile(java.io.File(imagePath))
                     val uploadResult = imageUploadRepository.uploadImage(uri, "vehicle")
@@ -203,9 +205,10 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             var vehicleToInsert = vehicle
 
-            if (vehicle.localImageFileNames.isNotEmpty()) {
-                val firstImageFileName = vehicle.localImageFileNames.first()
-                val imagePath = imageStorageManager.getImagePath(firstImageFileName)
+            // Upload the first local image (dialog already saved it to storage)
+            val imageFileName = vehicle.localImageFileNames.firstOrNull()
+            if (imageFileName != null) {
+                val imagePath = imageStorageManager.getImagePath(imageFileName)
                 if (imagePath != null) {
                     val uri = Uri.fromFile(java.io.File(imagePath))
                     val uploadResult = imageUploadRepository.uploadImage(uri, "vehicle")
