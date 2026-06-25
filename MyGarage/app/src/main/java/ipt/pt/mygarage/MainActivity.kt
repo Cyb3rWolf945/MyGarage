@@ -46,6 +46,7 @@ import ipt.pt.mygarage.presentation.profile.ProfileViewModel
 import ipt.pt.mygarage.presentation.profile.VehicleProfileViewModel
 import ipt.pt.mygarage.presentation.service.ServiceViewModel
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
+import ipt.pt.mygarage.data.repository.SyncRepository
 import ipt.pt.mygarage.data.sync.SyncWorker
 import ipt.pt.mygarage.domain.locale.DistanceFormatter
 import kotlinx.coroutines.flow.firstOrNull
@@ -101,19 +102,29 @@ fun MainScreen(
     val context = LocalContext.current
     val app = context.applicationContext as MyGarageApplication
     val repository = app.repository
+    val prefsRepo = remember { UserPreferencesRepository(context) }
 
     // ── Periodic cloud sync for authenticated users ───────────────────────
     LaunchedEffect(Unit) {
-        val prefsRepo = UserPreferencesRepository(context)
         val token = prefsRepo.userAuthTokenFlow.firstOrNull()
         if (!token.isNullOrBlank()) {
             SyncWorker.enqueuePeriodicSync(context)
         }
     }
 
+    // ── Pull profile (avatar) immediately on login ───────────────────────
+    val authToken by prefsRepo.userAuthTokenFlow.collectAsStateWithLifecycle(initialValue = null)
+    LaunchedEffect(authToken) {
+        if (!authToken.isNullOrBlank()) {
+            val syncRepo = SyncRepository(context)
+            syncRepo.pullAndSyncUserProfile()
+        }
+    }
+
     val startDestination by mainViewModel.startDestination.collectAsStateWithLifecycle()
     val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
     val topBarAvatarFileName by mainViewModel.avatarFileName.collectAsStateWithLifecycle()
+    val topBarAvatarRemoteUrl by mainViewModel.avatarRemoteUrl.collectAsStateWithLifecycle()
 
     val garageViewModel: GarageViewModel = viewModel()
     val serviceViewModel: ServiceViewModel = viewModel(
@@ -134,6 +145,9 @@ fun MainScreen(
     val garageState by garageViewModel.uiState.collectAsStateWithLifecycle()
     val imageStorageManager = app.imageStorageManager
     val topBarAvatarFile = topBarAvatarFileName?.let { imageStorageManager.getImagePath(it) }?.let { java.io.File(it) }
+    val topBarAvatarModel: Any? = topBarAvatarFile ?: topBarAvatarRemoteUrl
+        ?.replace("\"", "")
+        ?.let { ipt.pt.mygarage.data.network.NetworkModule.buildImageProxyUrl(context, it) }
 
     // ── Service state ─────────────────────────────────────────────────────
     val selectedVehicleId by serviceViewModel.selectedVehicleId.collectAsState()
@@ -198,7 +212,7 @@ fun MainScreen(
             ) {
                 AtelierTopBar(
                     garageName = garageState.garageName,
-                    avatarFile = topBarAvatarFile,
+                    avatarModel = topBarAvatarModel,
                     onAvatarClick = {
                         navController.navigate("profile") {
                             launchSingleTop = true

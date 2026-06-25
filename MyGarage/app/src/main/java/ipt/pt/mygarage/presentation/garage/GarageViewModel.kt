@@ -172,6 +172,8 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
                 _showDeleteConfirmation.value = false
                 _vehicleToDelete.value = null
             }
+            // Push the deletion to backend immediately so pull doesn't resurrect it
+            SyncWorker.enqueueOneTimeSync(getApplication())
         }
     }
 
