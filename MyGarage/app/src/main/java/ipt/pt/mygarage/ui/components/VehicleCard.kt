@@ -44,6 +44,7 @@ fun VehicleCard(
     model: String,
     plate: String,
     imagePath: String? = null,
+    remoteImageUrl: String? = null,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null
@@ -67,10 +68,15 @@ fun VehicleCard(
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                val file = imagePath?.let { File(it) }
-                if (file != null) {
+                val remoteUrlClean = remoteImageUrl?.replace("\"", "")
+                val imageModel: Any? = when {
+                    imagePath != null -> File(imagePath)
+                    !remoteUrlClean.isNullOrBlank() -> remoteUrlClean
+                    else -> null
+                }
+                if (imageModel != null) {
                     AsyncImage(
-                        model = file,
+                        model = imageModel,
                         contentDescription = stringResource(R.string.vehicle_photo_cd),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,

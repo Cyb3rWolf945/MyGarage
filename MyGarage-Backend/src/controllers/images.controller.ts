@@ -22,7 +22,9 @@ export async function upload(req: MulterRequest, res: Response): Promise<void> {
       return;
     }
 
-    const imageType = (req.body.imageType as string) || 'general';
+    // Strip quotes — Retrofit/Gson wraps @Part String values in JSON quotes
+    const imageTypeRaw = (req.body.imageType as string) || 'general';
+    const imageType = imageTypeRaw.replace(/^"|"$/g, '').replace(/"/g, '');
     const imageUrl = await uploadImage(
       file.buffer,
       file.originalname,
