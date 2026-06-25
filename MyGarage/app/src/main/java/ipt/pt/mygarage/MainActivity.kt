@@ -38,6 +38,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import ipt.pt.mygarage.presentation.garage.GarageViewModel
 import ipt.pt.mygarage.presentation.main.MainViewModel
 import ipt.pt.mygarage.presentation.onboarding.OnboardingViewModel
@@ -53,6 +55,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import ipt.pt.mygarage.ui.components.AtelierBottomNav
 import ipt.pt.mygarage.ui.components.AtelierTopBar
 import ipt.pt.mygarage.ui.screens.AboutScreen
+import ipt.pt.mygarage.ui.screens.TermsScreen
 import ipt.pt.mygarage.ui.screens.AuthScreen
 import ipt.pt.mygarage.ui.screens.CameraScreen
 import ipt.pt.mygarage.ui.screens.GarageScreen
@@ -284,7 +287,13 @@ fun MainScreen(
             }
 
             // ── Auth Graph ──────────────────────────────────────────────
-            composable("auth_graph") {
+            composable(
+                route = "auth_graph?noBack={noBack}",
+                arguments = listOf(
+                    navArgument("noBack") { type = NavType.BoolType; defaultValue = false }
+                )
+            ) { backStackEntry ->
+                val noBack = backStackEntry.arguments?.getBoolean("noBack") ?: false
                 val authViewModel: AuthViewModel = viewModel()
                 AuthScreen(
                     onAuthSuccess = {
@@ -292,8 +301,8 @@ fun MainScreen(
                             popUpTo(0) { inclusive = true }
                         }
                     },
-                    onBackClick = {
-                        navController.popBackStack()
+                    onBackClick = if (noBack) null else {
+                        { navController.popBackStack() }
                     }
                 )
             }
@@ -605,6 +614,11 @@ fun MainScreen(
                         navController.navigate("auth_graph") {
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToOnboarding = {
+                        navController.navigate(MainViewModel.ROUTE_ONBOARDING_GRAPH) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -612,6 +626,18 @@ fun MainScreen(
             // ── About Screen ─────────────────────────────────────────────
             composable("about") {
                 AboutScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToTerms = {
+                        navController.navigate("terms")
+                    }
+                )
+            }
+
+            // ── Terms & Conditions Screen ────────────────────────────────
+            composable("terms") {
+                TermsScreen(
                     onBackClick = {
                         navController.popBackStack()
                     }

@@ -6,6 +6,7 @@ import ipt.pt.mygarage.data.model.SyncPushBody
 import ipt.pt.mygarage.data.model.SyncResponse
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.POST
@@ -48,4 +49,7 @@ interface SyncApiService {
 
     @GET("api/user/profile")
     suspend fun getProfile(): Response<UserProfileResponse>
+
+    @DELETE("api/user/account")
+    suspend fun deleteAccount(): Response<SyncResponse>
 }

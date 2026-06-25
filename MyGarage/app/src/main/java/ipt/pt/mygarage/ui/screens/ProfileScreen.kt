@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -40,6 +42,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -78,6 +81,7 @@ fun ProfileScreen(
     onNavigateToGarage: () -> Unit,
     onNavigateToAbout: () -> Unit = {},
     onNavigateToAuth: () -> Unit = {},
+    onNavigateToOnboarding: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -101,11 +105,53 @@ fun ProfileScreen(
         if (uri != null) viewModel.onAvatarSelected(uri.toString())
     }
 
+    val navigateToAuthAfterDelete by viewModel.navigateToOnboarding.collectAsStateWithLifecycle()
+
     LaunchedEffect(navigateToAuth) {
         if (navigateToAuth) {
             viewModel.onAuthNavigationHandled()
-            onNavigateToAuth()
+            if (navigateToAuthAfterDelete) {
+                onNavigateToOnboarding()
+            } else {
+                onNavigateToAuth()
+            }
         }
+    }
+
+    // ── Delete Account Confirmation Dialog ───────────────────────────
+    val showDeleteDialog by viewModel.showDeleteAccountDialog.collectAsStateWithLifecycle()
+    val isDeletingAccount by viewModel.isDeletingAccount.collectAsStateWithLifecycle()
+    val deleteAccountError by viewModel.deleteAccountError.collectAsStateWithLifecycle()
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onDismissDeleteAccountDialog() },
+            title = { Text(stringResource(R.string.delete_account_dialog_title)) },
+            text = { Text(stringResource(R.string.delete_account_dialog_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.onConfirmDeleteAccount() },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(stringResource(R.string.delete_account_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onDismissDeleteAccountDialog() }) {
+                    Text(stringResource(R.string.delete_account_cancel))
+                }
+            },
+            containerColor = MyGarageColors.surfaceContainerLow,
+            titleContentColor = MyGarageColors.onSurface,
+            textContentColor = MyGarageColors.onSurfaceVariant
+        )
+    }
+
+    // Show error snackbar if delete failed
+    LaunchedEffect(deleteAccountError) {
+        // Error is shown via state; clear after handling
     }
 
     Box(
@@ -137,6 +183,7 @@ fun ProfileScreen(
                     onNavigateToGarage = onNavigateToGarage,
                     onAuthActionClicked = viewModel::onAuthActionClicked,
                     onSyncClicked = viewModel::onSyncClicked,
+                    onDeleteAccountClicked = viewModel::onDeleteAccountClicked,
                     onLanguageChanged = viewModel::onLanguageChanged,
                     onDistanceUnitChanged = viewModel::onDistanceUnitChanged,
                     onNavigateToAbout = onNavigateToAbout
@@ -157,6 +204,7 @@ private fun ViewModeContent(
     onNavigateToGarage: () -> Unit,
     onAuthActionClicked: () -> Unit,
     onSyncClicked: () -> Unit,
+    onDeleteAccountClicked: () -> Unit,
     onLanguageChanged: (String) -> Unit,
     onDistanceUnitChanged: (String) -> Unit,
     onNavigateToAbout: () -> Unit
@@ -286,6 +334,28 @@ private fun ViewModeContent(
             lastSyncTimestamp = state.lastSyncTimestamp,
             onClick = onSyncClicked
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ── Delete Account Button ──────────────────────────────────
+        OutlinedButton(
+            onClick = onDeleteAccountClicked,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.error
+            ),
+            border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
+            ),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.delete_account_button),
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
     }
 
     Spacer(modifier = Modifier.height(32.dp))
