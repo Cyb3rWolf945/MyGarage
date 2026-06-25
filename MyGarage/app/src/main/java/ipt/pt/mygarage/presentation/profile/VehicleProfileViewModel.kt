@@ -14,6 +14,7 @@ import android.net.Uri
 import android.util.Log
 import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.data.repository.ImageUploadRepository
+import ipt.pt.mygarage.data.sync.SyncWorker
 import ipt.pt.mygarage.domain.location.LocationResult
 import ipt.pt.mygarage.domain.repository.ImageStorageManager
 import ipt.pt.mygarage.domain.repository.VehicleRepository
@@ -99,6 +100,8 @@ class VehicleProfileViewModel(
                 _showDeleteConfirmation.value = false
                 _deleteCompleted.value = true
             }
+            // Push the deletion to backend immediately so pull doesn't resurrect it
+            SyncWorker.enqueueOneTimeSync(application)
         }
     }
 

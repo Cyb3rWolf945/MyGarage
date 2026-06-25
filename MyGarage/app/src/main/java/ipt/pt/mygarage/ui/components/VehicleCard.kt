@@ -26,8 +26,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.SubcomposeAsyncImage
 import ipt.pt.mygarage.R
+import ipt.pt.mygarage.data.network.NetworkModule
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 import java.io.File
 
@@ -68,19 +70,23 @@ fun VehicleCard(
                     .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
                 contentAlignment = Alignment.Center
             ) {
+                val context = LocalContext.current
                 val remoteUrlClean = remoteImageUrl?.replace("\"", "")
+                val proxyUrl = NetworkModule.buildImageProxyUrl(context, remoteUrlClean)
                 val imageModel: Any? = when {
                     imagePath != null -> File(imagePath)
-                    !remoteUrlClean.isNullOrBlank() -> remoteUrlClean
+                    proxyUrl != null -> proxyUrl
                     else -> null
                 }
                 if (imageModel != null) {
-                    AsyncImage(
+                    SubcomposeAsyncImage(
                         model = imageModel,
                         contentDescription = stringResource(R.string.vehicle_photo_cd),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
-                        alignment = Alignment.Center
+                        alignment = Alignment.Center,
+                        loading = { ShimmerPlaceholder() },
+                        error = { GradientPlaceholder() }
                     )
                 } else {
                     // Premium gradient placeholder

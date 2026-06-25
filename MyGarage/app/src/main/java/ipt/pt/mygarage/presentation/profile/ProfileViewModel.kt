@@ -10,6 +10,7 @@ import ipt.pt.mygarage.data.repository.AuthRepository
 import ipt.pt.mygarage.data.repository.ImageUploadRepository
 import ipt.pt.mygarage.data.repository.SyncRepository
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
+import ipt.pt.mygarage.data.sync.SyncWorker
 import ipt.pt.mygarage.domain.repository.ImageStorageManager
 import ipt.pt.mygarage.domain.repository.VehicleRepository
 import ipt.pt.mygarage.domain.locale.LocaleManager
@@ -169,6 +170,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                             avatarRemoteUrl = imageUrl,
                             avatarUploadError = null
                         )
+                        // Push avatar URL to backend immediately so it survives reinstalls
+                        SyncWorker.enqueueOneTimeSync(getApplication())
                     }.onFailure { error ->
                         _uiState.value = _uiState.value.copy(
                             isUploadingAvatar = false,
