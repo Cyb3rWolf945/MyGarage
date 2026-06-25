@@ -55,13 +55,19 @@ fun FullScreenImageCarousel(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
-                val filePath = imageFilePaths[page]
+                val path = imageFilePaths[page]
+                // Support both local file paths and remote URLs
+                val model: Any = if (path.startsWith("http://") || path.startsWith("https://")) {
+                    path
+                } else {
+                    File(path)
+                }
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     AsyncImage(
-                        model = File(filePath),
+                        model = model,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit
