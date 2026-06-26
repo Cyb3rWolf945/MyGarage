@@ -89,6 +89,7 @@
 
     <string name="onboarding_action_next">Next</string>
     <string name="onboarding_action_finish">Finish &amp; Enter Garage</string>
+    <string name="onboarding_sign_in_instead">Sign in instead</string>
     <string name="onboarding_action_get_started">Get Started</string>
 
     <string name="onboarding_page_indicator_description">Page %1$d of %2$d</string>
@@ -232,7 +233,7 @@
     <string name="about_course_label">Course</string>
     <string name="about_curricular_unit_label">Curricular Unit</string>
     <string name="about_author_label">Author</string>
-    <string name="about_course_value">Engenharia Informática-Internet das Coisas</string>
+    <string name="about_course_value">Mestrado: Engenharia Informática-Internet das Coisas</string>
     <string name="about_unit_value">Desenvolvimento de Aplicações Móveis Avançadas</string>
     <string name="about_architecture_header">ARCHITECTURE</string>
     <string name="about_architecture_body">Offline-First Foundation — Built on Room Database and DataStore for robust, immediate local persistence. The architecture cleanly separates concerns using Unidirectional Data Flow (UDF) with Jetpack Compose and Android ViewModels, ensuring a seamless transition to cloud synchronisation via a repository abstraction layer.</string>
