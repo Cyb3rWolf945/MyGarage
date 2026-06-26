@@ -25,16 +25,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.ui.theme.MyGarageColors
-import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AtelierTopBar(
     garageName: String = "My Garage",
-    avatarFile: File? = null,
+    avatarModel: Any? = null,
     onAvatarClick: (() -> Unit)? = null
 ) {
     TopAppBar(
@@ -51,13 +50,15 @@ fun AtelierTopBar(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (avatarFile != null) {
-                        AsyncImage(
-                            model = avatarFile,
+                    if (avatarModel != null) {
+                        SubcomposeAsyncImage(
+                            model = avatarModel,
                             contentDescription = stringResource(id = R.string.profile_avatar_description),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
-                            alignment = Alignment.Center
+                            alignment = Alignment.Center,
+                            loading = { ShimmerPlaceholder() },
+                            error = { GradientPlaceholder() }
                         )
                     } else {
                         Icon(

@@ -86,6 +86,11 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
         _advanceToSetupPage.value = true
     }
 
+    /** Reset so the user can re-enter the guest form after going back. */
+    fun onAdvanceToSetupConsumed() {
+        _advanceToSetupPage.value = false
+    }
+
     fun onFinishClicked() {
         val state = _uiState.value
         val errors = mutableMapOf<String, Int>()

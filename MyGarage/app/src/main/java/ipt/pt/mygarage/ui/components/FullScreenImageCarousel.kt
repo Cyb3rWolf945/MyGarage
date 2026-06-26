@@ -24,7 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import androidx.compose.ui.unit.dp
 import java.io.File
 
@@ -55,16 +55,36 @@ fun FullScreenImageCarousel(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
-                val filePath = imageFilePaths[page]
+                val path = imageFilePaths[page]
+                // Support both local file paths and remote URLs
+                val model: Any = if (path.startsWith("http://") || path.startsWith("https://")) {
+                    path
+                } else {
+                    File(path)
+                }
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    AsyncImage(
-                        model = File(filePath),
+                    SubcomposeAsyncImage(
+                        model = model,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
+                        contentScale = ContentScale.Fit,
+                        loading = { ShimmerPlaceholder() },
+                        error = {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Load failed",
+                                    tint = Color.White.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+                        }
                     )
                 }
             }

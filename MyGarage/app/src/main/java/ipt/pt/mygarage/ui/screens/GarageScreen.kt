@@ -157,6 +157,7 @@ fun GarageScreen(
                                 model = vehicle.name,
                                 plate = vehicle.plate,
                                 imagePath = resolvedPath,
+                                remoteImageUrl = vehicle.remoteImageUrl,
                                 onClick = { onVehicleClick(vehicle.id) },
                                 onLongClick = { onVehicleLongPressed(vehicle) }
                             )
