@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="429ce392-6920-47b0-8819-33fe6b5d0320" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/build.gradle.kts" beforeDir="false" afterPath="$PROJECT_DIR$/build.gradle.kts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/androidTest/java/ipt/pt/mygarage/ExampleInstrumentedTest.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/MainActivity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/MyGarageApplication.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/local/converter/Converters.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/local/dao/VehicleDao.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/local/db/AppDatabase.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/local/entity/PartEntity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/local/entity/PieceEntity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/local/entity/ServiceLogEntity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/local/entity/ServiceLogPieceCrossRef.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/local/entity/VehicleEntity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/local/relation/ServiceLogWithParts.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/local/relation/ServiceLogWithPieces.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/local/relation/VehicleWithServices.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/location/AndroidLocationManager.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/mapper/LicensePlateMapper.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/mapper/VehicleMappers.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/model/AuthModels.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/model/LicensePlateApiResponse.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/model/SyncModels.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/model/UserPreferences.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/model/VehicleEntity.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/network/AuthApiService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/network/ImageUploadService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/network/LicensePlateNetworkService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/network/MatriculaApiService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/network/NetworkModule.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/network/SyncApiService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/repository/AuthRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/repository/ImageUploadRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/repository/OfflineVehicleRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/repository/SyncRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/repository/UserPreferencesRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/repository/VehicleRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/storage/LocalImageStorageManager.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/sync/ConflictResolver.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/data/sync/SyncWorker.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/domain/camera/LicensePlateAnalyzer.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/domain/engine/EngineCapacityHelper.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/domain/licenseplates/LicensePlateApiResult.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/domain/licenseplates/LicensePlateApiService.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/domain/locale/DistanceFormatter.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/domain/locale/LocaleManager.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/domain/location/LocationManager.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/domain/location/LocationResult.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/domain/model/Vehicle.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/domain/repository/ImageStorageManager.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/domain/repository/VehicleRepository.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/auth/AuthUiState.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/auth/AuthViewModel.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/camera/CameraUiState.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/camera/CameraViewModel.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/garage/GarageUiState.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/garage/GarageViewModel.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/main/MainViewModel.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/onboarding/OnboardingViewModel.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/profile/ProfileUiState.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/profile/ProfileViewModel.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/profile/VehicleProfileViewModel.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/presentation/service/ServiceViewModel.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/components/AtelierBottomNav.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/components/AtelierTopBar.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/components/DeleteConfirmationDialog.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/components/FullScreenImageCarousel.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/components/LicensePlateVisualTransformation.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/components/LocationPermissionHandler.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/components/MileageVisualTransformation.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/components/ServiceLogActionDialog.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/components/ShimmerPlaceholder.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/components/VehicleCard.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/components/VehicleEditDialog.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/AboutScreen.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/AuthScreen.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/CameraScreen.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/GarageScreen.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/OnboardingScreen.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/ProfileScreen.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/ServiceScreen.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/SplashScreen.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/TermsScreen.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/VehicleProfileScreen.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/servicelog/ServiceDialogMode.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/servicelog/ServiceLogUiState.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/vehicleprofile/ServiceHistoryItem.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/screens/vehicleprofile/VehicleProfileUiState.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/theme/Color.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/theme/Theme.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/ipt/pt/mygarage/ui/theme/Type.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/ipt/pt/mygarage/ExampleUnitTest.kt" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 0,
+  "fromUser": false
+}]]></component>
+  <component name="ProjectId" id="3FfpXKAhFdJasUGXni3FcajEbET" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "android.gradle.sync.needed": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "feature/build-api",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/cyb3rwolf/IPT/MyGarage/MyGarage"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="429ce392-6920-47b0-8819-33fe6b5d0320" name="Changes" comment="" />
+      <created>1782476016756</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1782476016756</updated>
+    </task>
+    <servers />
+  </component>
+</project>
