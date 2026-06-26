@@ -140,31 +140,9 @@ class ServiceViewModel(
 
     fun onTypeChanged(type: String) {
         _selectedType.value = type
-        // ── Auto-fill mileage for Inspection type; clear for all others ────
-        if (type == "Inspection") {
-            val currentVehicle = _selectedVehicleWithServices.value?.vehicle
-            var canonicalKm = currentVehicle?.mileageKm ?: 0.0
-            if (canonicalKm <= 0.0 && currentVehicle != null && currentVehicle.mileage.isNotBlank()) {
-                val parsed = DistanceFormatter.parseUserInput(currentVehicle.mileage)
-                if (parsed > 0) {
-                    val isMiles = currentVehicle.mileage.contains("mi", ignoreCase = true) ||
-                                  currentVehicle.mileage.contains("Miles", ignoreCase = true)
-                    canonicalKm = if (isMiles) {
-                        DistanceFormatter.forStorage(parsed, "MILES")
-                    } else {
-                        parsed
-                    }
-                }
-            }
-            if (canonicalKm > 0.0) {
-                val resolvedUnit = _resolvedDistanceUnit.value
-                val displayValue = DistanceFormatter.forDisplay(canonicalKm, resolvedUnit)
-                _mileage.value = displayValue.toLong().toString()
-            }
-        } else {
-            // User changed away from Inspection — clear any previously auto-filled mileage
-            // to prevent accidentally persisting stale data.
-            _mileage.value = ""
+        // Auto-fill mileage for Inspection type only when field is empty
+        if (type == "Inspection" && _mileage.value.isBlank()) {
+            prefillCurrentMileage()
         }
     }
 
@@ -434,7 +412,31 @@ class ServiceViewModel(
      */
     fun onAddFabClicked() {
         clearFormState()
+        prefillCurrentMileage()
         _dialogMode.value = ServiceDialogMode.ADD
+    }
+
+    /** Pre-fills the mileage field with the current vehicle's mileage. */
+    private fun prefillCurrentMileage() {
+        val vehicle = _selectedVehicleWithServices.value?.vehicle ?: return
+        var canonicalKm = vehicle.mileageKm
+        if (canonicalKm <= 0.0 && vehicle.mileage.isNotBlank()) {
+            val parsed = DistanceFormatter.parseUserInput(vehicle.mileage)
+            if (parsed > 0) {
+                val isMiles = vehicle.mileage.contains("mi", ignoreCase = true)
+                        || vehicle.mileage.contains("Miles", ignoreCase = true)
+                canonicalKm = if (isMiles) {
+                    DistanceFormatter.forStorage(parsed, "MILES")
+                } else {
+                    parsed
+                }
+            }
+        }
+        if (canonicalKm > 0.0) {
+            val resolvedUnit = _resolvedDistanceUnit.value
+            val displayValue = DistanceFormatter.forDisplay(canonicalKm, resolvedUnit)
+            _mileage.value = displayValue.toLong().toString()
+        }
     }
 
     /**
@@ -482,18 +484,20 @@ class ServiceViewModel(
     fun onConfirmDeleteLog() {
         val log = _logToDelete.value ?: return
 
-        // ── Dismiss dialogs & clear entity references BEFORE the delete ──
-        _logToDelete.value = null
-        _selectedLogForOptions.value = null
-
-        // If the deleted log is the one currently selected for viewing/editing,
-        // reset the dialog to HIDDEN so the UI does not try to render it.
-        if (_selectedLog.value?.id == log.id) {
-            clearFormState()
-        }
-
         viewModelScope.launch {
-            repository.deleteServiceLog(log)
+            try {
+                repository.deleteServiceLog(log)
+            } catch (_: Exception) {
+                // If delete fails, keep the log so user can retry
+                return@launch
+            }
+
+            // Only clear state AFTER successful delete
+            _logToDelete.value = null
+            _selectedLogForOptions.value = null
+            if (_selectedLog.value?.id == log.id) {
+                clearFormState()
+            }
         }
     }
 
