@@ -39,7 +39,7 @@
             android:exported="true"
             android:configChanges="locale|layoutDirection|uiMode|screenLayout|screenSize|smallestScreenSize"
             android:label="@string/app_name"
-            android:theme="@style/Theme.App.Starting">
+            android:theme="@style/Theme.MyGarage">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
