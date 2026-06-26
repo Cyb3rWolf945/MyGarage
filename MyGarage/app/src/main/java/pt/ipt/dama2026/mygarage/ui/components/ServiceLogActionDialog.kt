@@ -55,6 +55,7 @@ import pt.ipt.dama2026.mygarage.data.local.entity.PartEntity
 import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogEntity
 import pt.ipt.dama2026.mygarage.domain.locale.LocaleManager
 import pt.ipt.dama2026.mygarage.ui.screens.servicelog.ServiceDialogMode
+import pt.ipt.dama2026.mygarage.ui.components.MileageVisualTransformation
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -244,34 +245,50 @@ fun ServiceLogActionDialog(
                 // ── ADD / EDIT mode: editable form layout ──────────────────
                 isEditable -> {
                     // Service Date — tap to open DatePickerDialog
-                    Box(modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true }) {
+                    Box(modifier = Modifier.fillMaxWidth().clickable(
+                        indication = null,
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                    ) { showDatePicker = true }) {
                         OutlinedTextField(
                             value = serviceDate,
                             onValueChange = {},
-                            placeholder = {
-                                Text(
-                                    text = if (serviceDate.isBlank()) todayFormatted else stringResource(R.string.dialog_service_date_label),
-                                    color = MyGarageColors.onSurfaceVariant
-                                )
-                            },
-                            colors = textFieldColors,
+                            readOnly = true,
+                            enabled = false,
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            trailingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.DateRange,
-                                    contentDescription = stringResource(R.string.dialog_service_date_hint),
-                                    tint = MyGarageColors.primary
-                                )
-                            },
-                            supportingText = {
-                                Text(
-                                    stringResource(R.string.dialog_service_date_hint),
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                        )
+                            placeholder = {
+                            Text(
+                                text = if (serviceDate.isBlank()) todayFormatted else stringResource(R.string.dialog_service_date_label),
+                                color = MyGarageColors.onSurfaceVariant
+                            )
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MyGarageColors.primary,
+                            unfocusedBorderColor = MyGarageColors.surfaceContainerHigh,
+                            focusedTextColor = MyGarageColors.onSurface,
+                            unfocusedTextColor = MyGarageColors.onSurface,
+                            disabledTextColor = MyGarageColors.onSurface,
+                            disabledBorderColor = MyGarageColors.surfaceContainerHigh,
+                            focusedContainerColor = MyGarageColors.background,
+                            unfocusedContainerColor = MyGarageColors.background,
+                            disabledContainerColor = MyGarageColors.background
+                        ),
+                        singleLine = true,
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.DateRange,
+                                contentDescription = stringResource(R.string.dialog_service_date_hint),
+                                tint = MyGarageColors.primary
+                            )
+                        },
+                        supportingText = {
+                            Text(
+                                stringResource(R.string.dialog_service_date_hint),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    )
                     }
+
 
                     OutlinedTextField(
                         value = description,
@@ -294,12 +311,15 @@ fun ServiceLogActionDialog(
                             else stringResource(R.string.unit_miles)
                             Text(stringResource(R.string.dialog_service_mileage_label, unitName))
                         },
+                        visualTransformation = MileageVisualTransformation,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         isError = formErrors.containsKey("mileage"),
                         supportingText = {
                             formErrors["mileage"]?.let { Text(stringResource(it)) }
                         },
                         colors = textFieldColors,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
 
                     // Service Type Chips
