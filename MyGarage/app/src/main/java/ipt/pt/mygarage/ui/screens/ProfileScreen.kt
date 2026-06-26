@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,8 +27,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -39,7 +42,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,11 +61,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import ipt.pt.mygarage.MyGarageApplication
 import ipt.pt.mygarage.R
+import ipt.pt.mygarage.data.network.NetworkModule
 import ipt.pt.mygarage.presentation.profile.ProfileUiState
 import ipt.pt.mygarage.presentation.profile.ProfileViewModel
+import ipt.pt.mygarage.ui.components.ShimmerPlaceholder
+import ipt.pt.mygarage.ui.components.GradientPlaceholder
 import ipt.pt.mygarage.ui.theme.MyGarageColors
 import java.io.File
 import java.text.NumberFormat
@@ -72,22 +80,78 @@ fun ProfileScreen(
     onBackClick: () -> Unit,
     onNavigateToGarage: () -> Unit,
     onNavigateToAbout: () -> Unit = {},
+    onNavigateToAuth: () -> Unit = {},
+    onNavigateToOnboarding: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val navigateToAuth by viewModel.navigateToAuth.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     val context = LocalContext.current
     val app = context.applicationContext as MyGarageApplication
     val imageStorageManager = app.imageStorageManager
 
-    // Resolve avatar file path from stored filename
+    // Resolve avatar file path from stored filename, fall back to proxy URL
     val avatarPath = state.avatarFileName?.let { imageStorageManager.getImagePath(it) }
+    val avatarProxyUrl = if (avatarPath == null && !state.avatarRemoteUrl.isNullOrBlank()) {
+        NetworkModule.buildImageProxyUrl(context, state.avatarRemoteUrl?.replace("\"", ""))
+    } else null
+    val avatarModel: Any? = avatarPath?.let { java.io.File(it) } ?: avatarProxyUrl
 
     // Photo picker launcher
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         if (uri != null) viewModel.onAvatarSelected(uri.toString())
+    }
+
+    val navigateToAuthAfterDelete by viewModel.navigateToOnboarding.collectAsStateWithLifecycle()
+
+    LaunchedEffect(navigateToAuth) {
+        if (navigateToAuth) {
+            viewModel.onAuthNavigationHandled()
+            if (navigateToAuthAfterDelete) {
+                onNavigateToOnboarding()
+            } else {
+                onNavigateToAuth()
+            }
+        }
+    }
+
+    // ── Delete Account Confirmation Dialog ───────────────────────────
+    val showDeleteDialog by viewModel.showDeleteAccountDialog.collectAsStateWithLifecycle()
+    val isDeletingAccount by viewModel.isDeletingAccount.collectAsStateWithLifecycle()
+    val deleteAccountError by viewModel.deleteAccountError.collectAsStateWithLifecycle()
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.onDismissDeleteAccountDialog() },
+            title = { Text(stringResource(R.string.delete_account_dialog_title)) },
+            text = { Text(stringResource(R.string.delete_account_dialog_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.onConfirmDeleteAccount() },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text(stringResource(R.string.delete_account_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.onDismissDeleteAccountDialog() }) {
+                    Text(stringResource(R.string.delete_account_cancel))
+                }
+            },
+            containerColor = MyGarageColors.surfaceContainerLow,
+            titleContentColor = MyGarageColors.onSurface,
+            textContentColor = MyGarageColors.onSurfaceVariant
+        )
+    }
+
+    // Show error snackbar if delete failed
+    LaunchedEffect(deleteAccountError) {
+        // Error is shown via state; clear after handling
     }
 
     Box(
@@ -113,11 +177,13 @@ fun ProfileScreen(
             } else {
                 ViewModeContent(
                     state = state,
-                    avatarPath = avatarPath,
+                    avatarModel = avatarModel,
                     onAvatarClick = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                     onEditClick = viewModel::onEditToggled,
                     onNavigateToGarage = onNavigateToGarage,
                     onAuthActionClicked = viewModel::onAuthActionClicked,
+                    onSyncClicked = viewModel::onSyncClicked,
+                    onDeleteAccountClicked = viewModel::onDeleteAccountClicked,
                     onLanguageChanged = viewModel::onLanguageChanged,
                     onDistanceUnitChanged = viewModel::onDistanceUnitChanged,
                     onNavigateToAbout = onNavigateToAbout
@@ -132,11 +198,13 @@ fun ProfileScreen(
 @Composable
 private fun ViewModeContent(
     state: ProfileUiState,
-    avatarPath: String?,
+    avatarModel: Any?,
     onAvatarClick: () -> Unit,
     onEditClick: () -> Unit,
     onNavigateToGarage: () -> Unit,
     onAuthActionClicked: () -> Unit,
+    onSyncClicked: () -> Unit,
+    onDeleteAccountClicked: () -> Unit,
     onLanguageChanged: (String) -> Unit,
     onDistanceUnitChanged: (String) -> Unit,
     onNavigateToAbout: () -> Unit
@@ -149,7 +217,7 @@ private fun ViewModeContent(
     HeroSection(
         userName = state.userName,
         garageName = state.garageName,
-        avatarPath = avatarPath,
+        avatarModel = avatarModel,
         onAvatarClick = onAvatarClick
     )
 
@@ -253,11 +321,42 @@ private fun ViewModeContent(
 
     Spacer(modifier = Modifier.height(32.dp))
 
-    // ═══ Auth Action ═══
     AuthActionCard(
         isGuestMode = state.isGuestMode,
+        userEmail = state.userEmail,
         onClick = onAuthActionClicked
     )
+
+    if (!state.isGuestMode) {
+        Spacer(modifier = Modifier.height(16.dp))
+        SyncActionCard(
+            isSyncing = state.isSyncing,
+            lastSyncTimestamp = state.lastSyncTimestamp,
+            onClick = onSyncClicked
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ── Delete Account Button ──────────────────────────────────
+        OutlinedButton(
+            onClick = onDeleteAccountClicked,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.error
+            ),
+            border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.error.copy(alpha = 0.4f)
+            ),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.delete_account_button),
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
 
     Spacer(modifier = Modifier.height(32.dp))
 
@@ -276,7 +375,7 @@ private fun ViewModeContent(
 private fun HeroSection(
     userName: String,
     garageName: String,
-    avatarPath: String?,
+    avatarModel: Any?,
     onAvatarClick: () -> Unit
 ) {
     Column(
@@ -292,17 +391,18 @@ private fun HeroSection(
             contentAlignment = Alignment.Center
         ) {
             Crossfade(
-                targetState = avatarPath,
+                targetState = avatarModel,
                 label = "avatar_crossfade"
-            ) { path ->
-                val file = path?.let { File(it) }
-                if (file != null) {
-                    AsyncImage(
-                        model = file,
+            ) { model ->
+                if (model != null) {
+                    SubcomposeAsyncImage(
+                        model = model,
                         contentDescription = stringResource(R.string.profile_avatar_description),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
-                        alignment = Alignment.Center
+                        alignment = Alignment.Center,
+                        loading = { ShimmerPlaceholder() },
+                        error = { GradientPlaceholder() }
                     )
                 } else {
                     // Centered person icon placeholder
@@ -380,11 +480,10 @@ private fun BentoStatCard(
     }
 }
 
-// ── AUTH ACTION CARD ──────────────────────────────────────────────────────────
-
 @Composable
 private fun AuthActionCard(
     isGuestMode: Boolean,
+    userEmail: String? = null,
     onClick: () -> Unit
 ) {
     Box(
@@ -428,6 +527,18 @@ private fun AuthActionCard(
                 textAlign = TextAlign.Center
             )
 
+            // Show email when authenticated
+            if (!isGuestMode && !userEmail.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(id = R.string.profile_signed_in_email, userEmail),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MyGarageColors.primary,
+                    fontWeight = FontWeight.Medium,
+                    textAlign = TextAlign.Center
+                )
+            }
+
             Spacer(modifier = Modifier.height(20.dp))
 
             Button(
@@ -464,6 +575,81 @@ private fun AuthActionCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = if (isGuestMode) MyGarageColors.surfaceContainerLowest
                             else MyGarageColors.error
+                )
+            }
+        }
+    }
+}
+
+// ── SYNC ACTION CARD ──────────────────────────────────────────────────────────
+
+@Composable
+private fun SyncActionCard(
+    isSyncing: Boolean,
+    lastSyncTimestamp: Long?,
+    onClick: () -> Unit
+) {
+    val lastSyncText = if (lastSyncTimestamp != null) {
+        val minutes = (System.currentTimeMillis() - lastSyncTimestamp) / 60_000
+        when {
+            minutes < 1 -> stringResource(R.string.profile_sync_last_synced, "just now")
+            minutes < 60 -> stringResource(R.string.profile_sync_last_synced, "${minutes}m ago")
+            else -> stringResource(R.string.profile_sync_last_synced, "${minutes / 60}h ago")
+        }
+    } else {
+        stringResource(R.string.profile_sync_never)
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MyGarageColors.surfaceContainerLow)
+            .padding(24.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(id = R.string.profile_sync_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MyGarageColors.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = if (isSyncing) stringResource(R.string.profile_sync_syncing) else lastSyncText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MyGarageColors.onSurfaceVariant
+                )
+            }
+
+            Button(
+                onClick = onClick,
+                enabled = !isSyncing,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MyGarageColors.primary,
+                    disabledContainerColor = MyGarageColors.primary.copy(alpha = 0.4f)
+                ),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                    horizontal = 20.dp,
+                    vertical = 12.dp
+                )
+            ) {
+                if (isSyncing) {
+                    CircularProgressIndicator(
+                        color = MyGarageColors.surfaceContainerLowest,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    text = stringResource(id = R.string.profile_sync_action),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MyGarageColors.surfaceContainerLowest
                 )
             }
         }

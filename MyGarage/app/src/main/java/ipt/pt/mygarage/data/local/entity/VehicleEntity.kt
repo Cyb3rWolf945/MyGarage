@@ -31,5 +31,7 @@ data class VehicleEntity(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val localImageFileNames: List<String> = emptyList(),
-    val remoteImageUrl: String? = null
+    val remoteImageUrl: String? = null,
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false
 )

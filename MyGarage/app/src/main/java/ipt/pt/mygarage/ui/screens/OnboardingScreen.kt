@@ -29,10 +29,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ipt.pt.mygarage.R
+import ipt.pt.mygarage.presentation.auth.AuthViewModel
 import ipt.pt.mygarage.presentation.onboarding.OnboardingUiState
 import ipt.pt.mygarage.presentation.onboarding.OnboardingViewModel
 import ipt.pt.mygarage.ui.theme.MyGarageColors
@@ -95,11 +100,13 @@ fun OnboardingScreen(
 
     val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
     val coroutineScope = rememberCoroutineScope()
+    var showAuthOverlay by remember { mutableStateOf(false) }
 
     // Programmatic scroll to setup page when "Continue as Guest" is selected
     LaunchedEffect(advanceToSetupPage) {
         if (advanceToSetupPage) {
             pagerState.animateScrollToPage(PAGE_SETUP)
+            viewModel.onAdvanceToSetupConsumed()
         }
     }
 
@@ -130,14 +137,19 @@ fun OnboardingScreen(
                         }
                     )
                     PAGE_AUTH_FORK -> AuthForkPage(
-                        onSignIn = viewModel::onSignInClicked,
+                        onSignIn = { showAuthOverlay = true },
                         onContinueAsGuest = viewModel::onContinueAsGuest
                     )
                     PAGE_SETUP -> SetupPage(
                         uiState = uiState,
                         onUserNameChanged = viewModel::onUserNameChanged,
                         onGarageNameChanged = viewModel::onGarageNameChanged,
-                        onFinish = viewModel::onFinishClicked
+                        onFinish = viewModel::onFinishClicked,
+                        onBackToAuthFork = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(PAGE_AUTH_FORK)
+                            }
+                        }
                     )
                 }
             }
@@ -151,6 +163,18 @@ fun OnboardingScreen(
                 .fillMaxWidth()
                 .padding(bottom = 8.dp)
         )
+    }
+
+    // ── Auth overlay (shown on top of pager) ─────────────────────────
+    if (showAuthOverlay) {
+        Box(
+            modifier = Modifier.fillMaxSize().background(MyGarageColors.background)
+        ) {
+            AuthScreen(
+                onAuthSuccess = onOnboardingComplete,
+                onBackClick = { showAuthOverlay = false }
+            )
+        }
     }
 }
 
@@ -315,6 +339,7 @@ private fun SetupPage(
     onUserNameChanged: (String) -> Unit,
     onGarageNameChanged: (String) -> Unit,
     onFinish: () -> Unit,
+    onBackToAuthFork: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -408,6 +433,16 @@ private fun SetupPage(
                 text = stringResource(id = R.string.onboarding_action_finish),
                 style = MaterialTheme.typography.labelSmall,
                 color = MyGarageColors.surfaceContainerLowest
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        TextButton(onClick = onBackToAuthFork) {
+            Text(
+                text = stringResource(R.string.onboarding_sign_in_instead),
+                style = MaterialTheme.typography.labelSmall,
+                color = MyGarageColors.primary
             )
         }
     }

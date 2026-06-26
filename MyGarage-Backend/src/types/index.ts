@@ -10,6 +10,11 @@ export interface AuthenticatedRequest extends Request {
   user: JwtPayload;
 }
 
+// ── Multer file upload request ────────────────────────────────
+export interface MulterRequest extends AuthenticatedRequest {
+  file?: any;
+}
+
 // ── Sync Push body shapes ─────────────────────────────────────
 export interface VehiclePayload {
   id: string; // UUID
@@ -32,6 +37,7 @@ export interface VehiclePayload {
   longitude?: number | null;
   localImageFileNames: string[];
   remoteImageUrl?: string | null;
+  isDeleted?: boolean;
   updatedAt: string; // ISO-8601
 }
 
@@ -43,6 +49,7 @@ export interface ServiceLogPayload {
   mileage: string;
   mileageKm: number;
   type: string;
+  isDeleted?: boolean;
   updatedAt: string; // ISO-8601
 }
 
@@ -52,6 +59,7 @@ export interface PartPayload {
   name: string;
   quantity: number;
   reference?: string | null;
+  isDeleted?: boolean;
   updatedAt: string; // ISO-8601
 }
 
@@ -59,6 +67,7 @@ export interface PiecePayload {
   id: string;
   name: string;
   price: number;
+  isDeleted?: boolean;
   updatedAt: string; // ISO-8601
 }
 
@@ -66,6 +75,7 @@ export interface ServiceLogPieceCrossRefPayload {
   serviceLogId: string;
   pieceId: string;
   quantity: number;
+  isDeleted?: boolean;
   updatedAt: string; // ISO-8601
 }
 

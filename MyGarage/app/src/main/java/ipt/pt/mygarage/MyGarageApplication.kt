@@ -6,6 +6,7 @@ import ipt.pt.mygarage.data.location.AndroidLocationManager
 import ipt.pt.mygarage.data.local.db.AppDatabase
 import ipt.pt.mygarage.data.network.LicensePlateNetworkService
 import ipt.pt.mygarage.data.repository.OfflineVehicleRepository
+import ipt.pt.mygarage.data.repository.UserPreferencesRepository
 import ipt.pt.mygarage.data.storage.LocalImageStorageManager
 import ipt.pt.mygarage.domain.location.LocationManager
 import ipt.pt.mygarage.domain.licenseplates.LicensePlateApiService
@@ -20,7 +21,7 @@ import ipt.pt.mygarage.domain.repository.ImageStorageManager
  */
 class MyGarageApplication : Application() {
     val database by lazy { AppDatabase.getDatabase(this) }
-    val repository by lazy { OfflineVehicleRepository(database.vehicleDao()) }
+    val repository by lazy { OfflineVehicleRepository(database.vehicleDao(), UserPreferencesRepository(this)) }
 
     /** Singleton [ImageStorageManager] wired to the local filesystem implementation. */
     val imageStorageManager: ImageStorageManager by lazy {
