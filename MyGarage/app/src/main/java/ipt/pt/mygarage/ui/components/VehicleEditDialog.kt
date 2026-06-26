@@ -68,9 +68,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import coil.compose.SubcomposeAsyncImage
 import coil.compose.AsyncImage
 import ipt.pt.mygarage.R
 import ipt.pt.mygarage.data.local.entity.VehicleEntity
+import ipt.pt.mygarage.data.network.NetworkModule
 import ipt.pt.mygarage.domain.locale.DistanceFormatter
 import ipt.pt.mygarage.domain.locale.LocaleManager
 import ipt.pt.mygarage.MyGarageApplication
@@ -154,6 +156,17 @@ fun VehicleEditDialog(
         mutableStateOf<List<String>>(emptyList())
     }
 
+    // Snapshot initial image count so we can detect user-initiated deletions.
+    // When the user deletes images, we suppress the remote-URL fallback —
+    // otherwise the same image would reappear from S3 via proxy.
+    val initialTotalImages = remember {
+        (vehicle?.localImageFileNames?.size ?: 0)
+    }
+    // Track whether the user explicitly deleted the remote-only image
+    var userMarkedRemoteDeleted by remember { mutableStateOf(false) }
+    val hasDeletedImages = userMarkedRemoteDeleted ||
+        ((newlyAddedImageFileNames.size + keptImageFileNames.size) < initialTotalImages)
+
     fun clearFieldError(field: String) {
         if (localErrors.containsKey(field)) localErrors = localErrors - field
         onFieldChanged(field)
@@ -168,6 +181,13 @@ fun VehicleEditDialog(
     fun onDeleteExistingImage(index: Int) {
         if (index >= 0 && index < keptImageFileNames.size) {
             keptImageFileNames = keptImageFileNames.filterIndexed { i, _ -> i != index }
+            // If this was the last local image and a remote copy exists,
+            // auto-mark it deleted too — one tap removes both.
+            if (keptImageFileNames.isEmpty() && newlyAddedImageFileNames.isEmpty() &&
+                !vehicle?.remoteImageUrl.isNullOrEmpty()
+            ) {
+                userMarkedRemoteDeleted = true
+            }
         }
     }
 
@@ -202,20 +222,7 @@ fun VehicleEditDialog(
         val uri = pickedUri
         if (uri != null && uri != lastProcessedUri && imageStorageManager != null) {
             val fileName = withContext(Dispatchers.IO) {
-                try {
-                    val generatedFileName = "${java.util.UUID.randomUUID()}.jpg"
-                    val targetFile = java.io.File(context.filesDir, "vehicle_images/$generatedFileName")
-                    targetFile.parentFile?.mkdirs()
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        targetFile.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                    generatedFileName
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    null
-                }
+                imageStorageManager.saveImage(uri.toString())
             }
             if (fileName != null) {
                 lastProcessedUri = uri
@@ -273,16 +280,27 @@ fun VehicleEditDialog(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // ── Image Placeholder ─────────────────────────────────────────
-            val imageModel = remember(newlyAddedImageFileNames, existingImageFileName) {
-                if (newlyAddedImageFileNames.isNotEmpty()) {
-                    // Show first newly added image
-                    imageStorageManager?.getImagePath(newlyAddedImageFileNames.first())?.let { java.io.File(it) }
-                } else if (existingImageFileName != null) {
-                    // Show existing image
-                    imageStorageManager?.getImagePath(existingImageFileName)?.let { java.io.File(it) }
-                } else {
-                    null
+            val context = LocalContext.current
+            val imageModel = remember(newlyAddedImageFileNames, keptImageFileNames, vehicle?.remoteImageUrl, hasDeletedImages) {
+                // Resolve the best available image to display, trying each source
+                // and falling through if the local file doesn't actually exist on disk.
+                fun resolvePath(fileName: String?): java.io.File? {
+                    if (fileName == null) return null
+                    val path = imageStorageManager?.getImagePath(fileName) ?: return null
+                    val file = java.io.File(path)
+                    return if (file.exists()) file else null
                 }
+
+                // 1. Newly picked images (saved in this edit session)
+                resolvePath(newlyAddedImageFileNames.firstOrNull())
+                // 2. Kept images from previous sessions (may be stale after reinstall)
+                ?: resolvePath(keptImageFileNames.firstOrNull())
+                // 3. Remote URL via proxy — only if user hasn't just deleted local images
+                ?: if (!hasDeletedImages) {
+                    vehicle?.remoteImageUrl
+                        ?.replace("\"", "")
+                        ?.let { NetworkModule.buildImageProxyUrl(context, it) }
+                } else null
             }
 
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -300,12 +318,16 @@ fun VehicleEditDialog(
                         label = "vehicle_photo_crossfade"
                     ) { model ->
                         if (model != null) {
-                            AsyncImage(
+                            SubcomposeAsyncImage(
                                 model = model,
                                 contentDescription = stringResource(R.string.vehicle_photo_cd),
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop,
-                                alignment = Alignment.Center
+                                alignment = Alignment.Center,
+                                loading = { ShimmerPlaceholder() },
+                                error = {
+                                    GradientPlaceholder()
+                                }
                             )
                         } else {
                                 // Premium empty-state placeholder
@@ -355,7 +377,18 @@ fun VehicleEditDialog(
             }
 
             // ── Image Thumbnails with Delete Buttons ─────────────────────
-            if (newlyAddedImageFileNames.isNotEmpty() || keptImageFileNames.isNotEmpty()) {
+            // Show thumbnails if we have newly added images, kept images,
+            // OR a remote URL (as fallback thumbnail when local files are stale
+            // AND the user hasn't just deleted those local images)
+            val remoteThumbCount = if (!hasDeletedImages && !vehicle?.remoteImageUrl.isNullOrEmpty() && keptImageFileNames.isEmpty()) 1 else 0
+            val thumbnailCount = newlyAddedImageFileNames.size + keptImageFileNames.size + remoteThumbCount
+            if (thumbnailCount > 0) {
+                // Build proxy URL once for remote fallback thumbnails
+                val remoteThumbUrl = remember(vehicle?.remoteImageUrl) {
+                    vehicle?.remoteImageUrl
+                        ?.replace("\"", "")
+                        ?.let { NetworkModule.buildImageProxyUrl(context, it) }
+                }
                 androidx.compose.foundation.lazy.LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -402,7 +435,8 @@ fun VehicleEditDialog(
                         }
                     }
 
-                    // Existing images (no accent)
+                    // Existing images (no accent) — fall back to proxy URL
+                    // if the local file doesn't exist (e.g., after reinstall)
                     itemsIndexed(keptImageFileNames) { index, fileName ->
                         Box(
                             modifier = Modifier
@@ -411,9 +445,16 @@ fun VehicleEditDialog(
                                 .background(MyGarageColors.surfaceContainerLow)
                         ) {
                             val imagePath = imageStorageManager?.getImagePath(fileName)
-                            if (imagePath != null) {
+                            val thumbModel: Any? = if (imagePath != null) {
+                                java.io.File(imagePath)
+                            } else if (index == 0 && remoteThumbUrl != null && !hasDeletedImages) {
+                                remoteThumbUrl
+                            } else {
+                                null
+                            }
+                            if (thumbModel != null) {
                                 AsyncImage(
-                                    model = java.io.File(imagePath),
+                                    model = thumbModel,
                                     contentDescription = null,
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop
@@ -435,6 +476,46 @@ fun VehicleEditDialog(
                                         tint = Color.White,
                                         modifier = Modifier.size(16.dp)
                                     )
+                                }
+                            }
+                        }
+                    }
+
+                    // Remote-only thumbnail: deletable — marks the remote image
+                    // as removed so it won't reappear after save.
+                    if (keptImageFileNames.isEmpty() && remoteThumbUrl != null && !hasDeletedImages) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MyGarageColors.surfaceContainerLow)
+                            ) {
+                                AsyncImage(
+                                    model = remoteThumbUrl,
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.3f)),
+                                    contentAlignment = Alignment.TopEnd
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            userMarkedRemoteDeleted = true
+                                        },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = stringResource(R.string.action_delete),
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -956,7 +1037,11 @@ fun VehicleEditDialog(
                                 latitude = latitude,
                                 longitude = longitude,
                                 localImageFileNames = newlyAddedImageFileNames + keptImageFileNames,
-                                remoteImageUrl = vehicle?.remoteImageUrl
+                                remoteImageUrl = if (hasDeletedImages && newlyAddedImageFileNames.isEmpty() && keptImageFileNames.isEmpty()) {
+                                    null // User removed all images — clear remote too
+                                } else {
+                                    vehicle?.remoteImageUrl
+                                }
                             )
                             onConfirm(result)
                         }

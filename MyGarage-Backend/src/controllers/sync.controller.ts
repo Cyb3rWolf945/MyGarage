@@ -44,3 +44,42 @@ export async function push(
     next(err);
   }
 }
+
+/**
+ * POST /api/sync/merge-guest-data
+ *
+ * Merges guest data from mobile with authenticated user account.
+ * Uses Last-Write-Wins conflict resolution by updatedAt timestamp.
+ */
+export async function mergeGuestData(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const body = req.body as SyncPushBody;
+
+    await syncService.mergeGuestData(req.user.userId, body);
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * GET /api/sync/pull-initial
+ *
+ * Returns all user data (no timestamp filter) for first-login scenario.
+ */
+export async function pullInitial(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const data = await syncService.pullInitial(req.user.userId);
+    res.status(200).json(data);
+  } catch (err) {
+    next(err);
+  }
+}

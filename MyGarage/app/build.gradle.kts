@@ -22,6 +22,10 @@ android {
         // Read from local.properties or gradle.properties
         val matriculaUsername = project.findProperty("MATRICULA_USERNAME")?.toString() ?: "Cyb3rWolf945"
         manifestPlaceholders["MATRICULA_USERNAME"] = matriculaUsername
+
+        val mygarageApiUrl = project.findProperty("MYGARAGE_API_URL")?.toString()
+            ?: "https://mygaragebackend-production.up.railway.app"
+        manifestPlaceholders["MYGARAGE_API_URL"] = mygarageApiUrl
     }
 
     buildTypes {
@@ -50,7 +54,6 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation("androidx.core:core-splashscreen:1.0.1")
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -86,7 +89,11 @@ dependencies {
     // Retrofit & Gson
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp)
     implementation(libs.gson)
+
+    // WorkManager (background sync)
+    implementation(libs.androidx.work.runtime.ktx)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

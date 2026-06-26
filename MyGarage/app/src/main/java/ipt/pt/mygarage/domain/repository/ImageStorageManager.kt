@@ -16,6 +16,13 @@ interface ImageStorageManager {
     suspend fun saveImage(uri: String): String?
 
     /**
+     * Downloads an image from a remote [url] and saves it to internal
+     * storage. Returns the generated file name, or `null` on failure.
+     * Used to cache remote images locally for offline access.
+     */
+    suspend fun downloadImage(url: String): String?
+
+    /**
      * Returns the absolute file-system path for a previously saved
      * image identified by [fileName], or `null` if the file does
      * not exist.

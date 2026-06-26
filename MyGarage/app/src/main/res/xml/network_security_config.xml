@@ -3,4 +3,8 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">www.regcheck.org.uk</domain>
     </domain-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">t3.storageapi.dev</domain>
+        <domain includeSubdomains="true">mygaragebackend-production.up.railway.app</domain>
+    </domain-config>
 </network-security-config>

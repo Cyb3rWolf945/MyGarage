@@ -48,6 +48,7 @@ import ipt.pt.mygarage.ui.theme.MyGarageColors
 @Composable
 fun AboutScreen(
     onBackClick: () -> Unit,
+    onNavigateToTerms: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -110,6 +111,20 @@ fun AboutScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             // ── Footer ──────────────────────────────────────────────────
+            // Terms & Conditions link (required by Google Play policy)
+            Text(
+                text = stringResource(R.string.terms_nav),
+                style = MaterialTheme.typography.labelSmall,
+                color = MyGarageColors.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToTerms() }
+                    .padding(vertical = 8.dp),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = stringResource(R.string.about_footer),
                 style = MaterialTheme.typography.labelSmall,

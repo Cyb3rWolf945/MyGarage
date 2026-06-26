@@ -28,5 +28,7 @@ data class PartEntity(
     val serviceLogId: String,
     val name: String,
     val quantity: Int,
-    val reference: String? = null
+    val reference: String? = null,
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false
 )
