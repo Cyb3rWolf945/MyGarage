@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "ipt.pt.mygarage"
+    namespace = "pt.ipt.dama2026.mygarage"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "ipt.pt.mygarage"
+        applicationId = "pt.ipt.dama2026.mygarage"
         minSdk = 28
         targetSdk = 36
         versionCode = 1
