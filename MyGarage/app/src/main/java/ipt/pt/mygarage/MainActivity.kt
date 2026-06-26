@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,7 +32,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
@@ -62,6 +62,7 @@ import ipt.pt.mygarage.ui.screens.GarageScreen
 import ipt.pt.mygarage.ui.screens.OnboardingScreen
 import ipt.pt.mygarage.ui.screens.ProfileScreen
 import ipt.pt.mygarage.ui.screens.ServiceScreen
+import ipt.pt.mygarage.ui.screens.SplashScreen
 import ipt.pt.mygarage.ui.screens.VehicleProfileScreen
 import ipt.pt.mygarage.ui.screens.vehicleprofile.ServiceHistoryItem
 import ipt.pt.mygarage.ui.screens.vehicleprofile.VehicleProfileUiState
@@ -80,19 +81,21 @@ private val bottomNavItems = listOf(Screen.Garage, Screen.Camera, Screen.Service
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val mainViewModel by lazy { MainViewModel(application) }
-
-        installSplashScreen().apply {
-            setKeepOnScreenCondition {
-                mainViewModel.isLoading.value
-            }
-        }
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
         setContent {
             MyGarageTheme {
-                MainScreen(mainViewModel = mainViewModel)
+                val mainViewModel = remember { MainViewModel(application) }
+                val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
+
+                Crossfade(targetState = isLoading, label = "splash_crossfade") { loading ->
+                    if (loading) {
+                        SplashScreen()
+                    } else {
+                        MainScreen(mainViewModel = mainViewModel)
+                    }
+                }
             }
         }
     }
