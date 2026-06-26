@@ -21,7 +21,8 @@ import java.util.UUID
  * Applies business rules for database updates upon registering new service logs.
  */
 class OfflineVehicleRepository(
-    private val vehicleDao: VehicleDao
+    private val vehicleDao: VehicleDao,
+    private val userPreferencesRepository: UserPreferencesRepository? = null
 ) : VehicleRepository {
 
     override suspend fun insertVehicle(vehicle: VehicleEntity) {
@@ -33,7 +34,8 @@ class OfflineVehicleRepository(
     }
 
     override suspend fun deleteVehicle(vehicle: VehicleEntity) {
-        vehicleDao.deleteVehicle(vehicle)
+        userPreferencesRepository?.markVehicleDeleted(vehicle.id)
+        vehicleDao.updateVehicle(vehicle.copy(isDeleted = true))
     }
 
     override fun getAllVehicles(): Flow<List<VehicleEntity>> {

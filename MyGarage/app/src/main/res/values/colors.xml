@@ -16,4 +16,8 @@
     <color name="inverse_surface">#233144</color>
     <color name="error">#BA1A1A</color>
     <color name="on_error">#FFFFFF</color>
+
+    <!-- Splash / dark theme -->
+    <color name="splash_background">#1A1A2E</color>
+    <color name="splash_accent">#E94560</color>
 </resources>

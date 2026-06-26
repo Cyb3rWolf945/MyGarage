@@ -10,8 +10,13 @@ import android.app.Application
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
 import ipt.pt.mygarage.domain.locale.LocaleManager
 import ipt.pt.mygarage.domain.location.LocationManager
+import android.net.Uri
 import android.util.Log
+import ipt.pt.mygarage.MyGarageApplication
+import ipt.pt.mygarage.data.repository.ImageUploadRepository
+import ipt.pt.mygarage.data.sync.SyncWorker
 import ipt.pt.mygarage.domain.location.LocationResult
+import ipt.pt.mygarage.domain.repository.ImageStorageManager
 import ipt.pt.mygarage.domain.repository.VehicleRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -95,6 +100,8 @@ class VehicleProfileViewModel(
                 _showDeleteConfirmation.value = false
                 _deleteCompleted.value = true
             }
+            // Push the deletion to backend immediately so pull doesn't resurrect it
+            SyncWorker.enqueueOneTimeSync(application)
         }
     }
 
@@ -144,7 +151,25 @@ class VehicleProfileViewModel(
     fun updateVehicle(vehicle: VehicleEntity) {
         if (!validateVehicle(vehicle)) return
         viewModelScope.launch {
-            repository.updateVehicle(vehicle)
+            var updated = vehicle
+            val app = application as MyGarageApplication
+            val imageStorageManager: ImageStorageManager = app.imageStorageManager
+            val imageUploadRepo = ImageUploadRepository(application)
+
+            // Upload the first local image if present (dialog already saved it to storage)
+            val imageFileName = vehicle.localImageFileNames.firstOrNull()
+            if (imageFileName != null) {
+                val imagePath = imageStorageManager.getImagePath(imageFileName)
+                if (imagePath != null) {
+                    val uri = Uri.fromFile(java.io.File(imagePath))
+                    val uploadResult = imageUploadRepo.uploadImage(uri, "vehicle")
+                    uploadResult.onSuccess { imageUrl ->
+                        updated = updated.copy(remoteImageUrl = imageUrl)
+                    }
+                }
+            }
+
+            repository.updateVehicle(updated)
         }
     }
 

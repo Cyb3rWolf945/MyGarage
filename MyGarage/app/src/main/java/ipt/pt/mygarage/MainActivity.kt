@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,29 +32,37 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import ipt.pt.mygarage.presentation.garage.GarageViewModel
 import ipt.pt.mygarage.presentation.main.MainViewModel
 import ipt.pt.mygarage.presentation.onboarding.OnboardingViewModel
+import ipt.pt.mygarage.presentation.auth.AuthViewModel
 import ipt.pt.mygarage.presentation.profile.ProfileViewModel
 import ipt.pt.mygarage.presentation.profile.VehicleProfileViewModel
 import ipt.pt.mygarage.presentation.service.ServiceViewModel
 import ipt.pt.mygarage.data.repository.UserPreferencesRepository
+import ipt.pt.mygarage.data.repository.SyncRepository
+import ipt.pt.mygarage.data.sync.SyncWorker
 import ipt.pt.mygarage.domain.locale.DistanceFormatter
+import kotlinx.coroutines.flow.firstOrNull
 import ipt.pt.mygarage.ui.components.AtelierBottomNav
 import ipt.pt.mygarage.ui.components.AtelierTopBar
 import ipt.pt.mygarage.ui.screens.AboutScreen
+import ipt.pt.mygarage.ui.screens.TermsScreen
+import ipt.pt.mygarage.ui.screens.AuthScreen
 import ipt.pt.mygarage.ui.screens.CameraScreen
 import ipt.pt.mygarage.ui.screens.GarageScreen
 import ipt.pt.mygarage.ui.screens.OnboardingScreen
 import ipt.pt.mygarage.ui.screens.ProfileScreen
 import ipt.pt.mygarage.ui.screens.ServiceScreen
+import ipt.pt.mygarage.ui.screens.SplashScreen
 import ipt.pt.mygarage.ui.screens.VehicleProfileScreen
 import ipt.pt.mygarage.ui.screens.vehicleprofile.ServiceHistoryItem
 import ipt.pt.mygarage.ui.screens.vehicleprofile.VehicleProfileUiState
@@ -72,19 +81,21 @@ private val bottomNavItems = listOf(Screen.Garage, Screen.Camera, Screen.Service
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val mainViewModel by lazy { MainViewModel(application) }
-
-        installSplashScreen().apply {
-            setKeepOnScreenCondition {
-                mainViewModel.isLoading.value
-            }
-        }
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
         setContent {
             MyGarageTheme {
-                MainScreen(mainViewModel = mainViewModel)
+                val mainViewModel = remember { MainViewModel(application) }
+                val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
+
+                Crossfade(targetState = isLoading, label = "splash_crossfade") { loading ->
+                    if (loading) {
+                        SplashScreen()
+                    } else {
+                        MainScreen(mainViewModel = mainViewModel)
+                    }
+                }
             }
         }
     }
@@ -97,10 +108,29 @@ fun MainScreen(
     val context = LocalContext.current
     val app = context.applicationContext as MyGarageApplication
     val repository = app.repository
+    val prefsRepo = remember { UserPreferencesRepository(context) }
+
+    // ── Periodic cloud sync for authenticated users ───────────────────────
+    LaunchedEffect(Unit) {
+        val token = prefsRepo.userAuthTokenFlow.firstOrNull()
+        if (!token.isNullOrBlank()) {
+            SyncWorker.enqueuePeriodicSync(context)
+        }
+    }
+
+    // ── Pull profile (avatar) immediately on login ───────────────────────
+    val authToken by prefsRepo.userAuthTokenFlow.collectAsStateWithLifecycle(initialValue = null)
+    LaunchedEffect(authToken) {
+        if (!authToken.isNullOrBlank()) {
+            val syncRepo = SyncRepository(context)
+            syncRepo.pullAndSyncUserProfile()
+        }
+    }
 
     val startDestination by mainViewModel.startDestination.collectAsStateWithLifecycle()
     val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
     val topBarAvatarFileName by mainViewModel.avatarFileName.collectAsStateWithLifecycle()
+    val topBarAvatarRemoteUrl by mainViewModel.avatarRemoteUrl.collectAsStateWithLifecycle()
 
     val garageViewModel: GarageViewModel = viewModel()
     val serviceViewModel: ServiceViewModel = viewModel(
@@ -121,6 +151,9 @@ fun MainScreen(
     val garageState by garageViewModel.uiState.collectAsStateWithLifecycle()
     val imageStorageManager = app.imageStorageManager
     val topBarAvatarFile = topBarAvatarFileName?.let { imageStorageManager.getImagePath(it) }?.let { java.io.File(it) }
+    val topBarAvatarModel: Any? = topBarAvatarFile ?: topBarAvatarRemoteUrl
+        ?.replace("\"", "")
+        ?.let { ipt.pt.mygarage.data.network.NetworkModule.buildImageProxyUrl(context, it) }
 
     // ── Service state ─────────────────────────────────────────────────────
     val selectedVehicleId by serviceViewModel.selectedVehicleId.collectAsState()
@@ -172,8 +205,8 @@ fun MainScreen(
         return
     }
 
-    // Determine if we are on an onboarding screen (hide chrome)
-    val isOnboardingRoute = currentRoute == MainViewModel.ROUTE_ONBOARDING_GRAPH
+    // Determine if we are on an onboarding or auth screen (hide chrome)
+    val isOnboardingRoute = currentRoute == MainViewModel.ROUTE_ONBOARDING_GRAPH || currentRoute == "auth_graph"
 
     Scaffold(
         topBar = {
@@ -185,7 +218,7 @@ fun MainScreen(
             ) {
                 AtelierTopBar(
                     garageName = garageState.garageName,
-                    avatarFile = topBarAvatarFile,
+                    avatarModel = topBarAvatarModel,
                     onAvatarClick = {
                         navController.navigate("profile") {
                             launchSingleTop = true
@@ -256,18 +289,25 @@ fun MainScreen(
                 )
             }
 
-            // ── Auth Graph (placeholder) ─────────────────────────────────
-            composable("auth_graph") {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Auth — Coming Soon",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = MyGarageColors.onSurfaceVariant
-                    )
-                }
+            // ── Auth Graph ──────────────────────────────────────────────
+            composable(
+                route = "auth_graph?noBack={noBack}",
+                arguments = listOf(
+                    navArgument("noBack") { type = NavType.BoolType; defaultValue = false }
+                )
+            ) { backStackEntry ->
+                val noBack = backStackEntry.arguments?.getBoolean("noBack") ?: false
+                val authViewModel: AuthViewModel = viewModel()
+                AuthScreen(
+                    onAuthSuccess = {
+                        navController.navigate(MainViewModel.ROUTE_GARAGE_GRAPH) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    onBackClick = if (noBack) null else {
+                        { navController.popBackStack() }
+                    }
+                )
             }
 
             // ── Garage Graph (main pager) ─────────────────────────────────
@@ -572,6 +612,16 @@ fun MainScreen(
                         navController.navigate("about") {
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToAuth = {
+                        navController.navigate("auth_graph") {
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToOnboarding = {
+                        navController.navigate(MainViewModel.ROUTE_ONBOARDING_GRAPH) {
+                            popUpTo(0) { inclusive = true }
+                        }
                     }
                 )
             }
@@ -579,6 +629,18 @@ fun MainScreen(
             // ── About Screen ─────────────────────────────────────────────
             composable("about") {
                 AboutScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToTerms = {
+                        navController.navigate("terms")
+                    }
+                )
+            }
+
+            // ── Terms & Conditions Screen ────────────────────────────────
+            composable("terms") {
+                TermsScreen(
                     onBackClick = {
                         navController.popBackStack()
                     }

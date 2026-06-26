@@ -34,5 +34,7 @@ import java.util.UUID
 data class ServiceLogPieceCrossRef(
     val serviceLogId: UUID,
     val pieceId: String,
-    val quantity: Int
+    val quantity: Int,
+    val updatedAt: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false
 )
