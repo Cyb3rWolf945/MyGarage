@@ -98,7 +98,7 @@ private val engineCapacityOptions = listOf(
     "2000 cc", "2500 cc", "3000 cc", "3500 cc", "4000 cc"
 )
 private val doorCountOptions = listOf("2", "3", "4", "5")
-private val seatCountOptions = listOf("2", "4", "5", "7")
+private val seatCountOptions = listOf("2", "4", "5", "7", "9")
 private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
 /**
@@ -620,28 +620,45 @@ fun VehicleEditDialog(
             val todayFormatted = remember {
                 java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(java.util.Date())
             }
-            Box(modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true }) {
+            val dateInteractionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+            Box(modifier = Modifier.fillMaxWidth().clickable(
+                interactionSource = dateInteractionSource,
+                indication = null
+            ) { showDatePicker = true }) {
                 OutlinedTextField(
                     value = inspectionDate,
                     onValueChange = {},
+                    readOnly = true,
+                    enabled = false,
                     placeholder = {
-                        Text(
-                            text = if (inspectionDate.isBlank()) todayFormatted else stringResource(R.string.dialog_vehicle_inspection_date_label),
-                            color = MyGarageColors.onSurfaceVariant
-                        )
-                    },
-                    colors = textFieldColors,
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = stringResource(R.string.dialog_vehicle_tap_date_hint),
-                            tint = MyGarageColors.primary
-                        )
-                    },
-                    supportingText = { Text(stringResource(R.string.dialog_vehicle_tap_date_hint), style = MaterialTheme.typography.labelSmall) }
-                )
+                    Text(
+                        text = if (inspectionDate.isBlank()) todayFormatted else stringResource(R.string.dialog_vehicle_inspection_date_label),
+                        color = MyGarageColors.onSurfaceVariant
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MyGarageColors.primary,
+                    unfocusedBorderColor = MyGarageColors.surfaceContainerHigh,
+                    focusedLabelColor = MyGarageColors.primary,
+                    unfocusedLabelColor = MyGarageColors.onSurfaceVariant,
+                    focusedTextColor = MyGarageColors.onSurface,
+                    unfocusedTextColor = MyGarageColors.onSurface,
+                    disabledTextColor = MyGarageColors.onSurface,
+                    disabledBorderColor = MyGarageColors.surfaceContainerHigh,
+                    focusedContainerColor = MyGarageColors.surfaceContainerLow,
+                    unfocusedContainerColor = MyGarageColors.surfaceContainerLow,
+                    disabledContainerColor = MyGarageColors.surfaceContainerLow
+                ),
+                singleLine = true,
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = stringResource(R.string.dialog_vehicle_tap_date_hint),
+                        tint = MyGarageColors.primary
+                    )
+                },
+                supportingText = { Text(stringResource(R.string.dialog_vehicle_tap_date_hint), style = MaterialTheme.typography.labelSmall) }
+            )
             }
 
             // Oil Type
