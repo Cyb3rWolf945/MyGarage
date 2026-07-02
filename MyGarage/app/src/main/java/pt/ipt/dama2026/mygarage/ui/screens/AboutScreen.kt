@@ -66,7 +66,6 @@ fun AboutScreen(
                 .padding(horizontal = 24.dp)
                 .padding(top = 8.dp, bottom = 48.dp)
         ) {
-            // ── Back Row ───────────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -90,28 +89,22 @@ fun AboutScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Hero Section ────────────────────────────────────────────
             HeroSection(versionName = versionName)
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ── Academic Card ───────────────────────────────────────────
             AcademicCard()
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Architecture Section ────────────────────────────────────
             ArchitectureSection()
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Open Source Libraries ───────────────────────────────────
             LibrariesSection()
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ── Footer ──────────────────────────────────────────────────
-            // Terms & Conditions link (required by Google Play policy)
             Text(
                 text = stringResource(R.string.terms_nav),
                 style = MaterialTheme.typography.labelSmall,
@@ -136,15 +129,12 @@ fun AboutScreen(
     }
 }
 
-// ── HERO SECTION ──────────────────────────────────────────────────────────────
-
 @Composable
 private fun HeroSection(versionName: String) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Circular Garage icon surface
         Box(
             modifier = Modifier
                 .size(88.dp)
@@ -162,7 +152,6 @@ private fun HeroSection(versionName: String) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // App Name
         Text(
             text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.headlineMedium,
@@ -173,7 +162,6 @@ private fun HeroSection(versionName: String) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Version badge — pill shape
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(50))
@@ -190,8 +178,6 @@ private fun HeroSection(versionName: String) {
     }
 }
 
-// ── ACADEMIC CARD ────────────────────────────────────────────────────────────
-
 @Composable
 private fun AcademicCard() {
     Box(
@@ -205,7 +191,6 @@ private fun AcademicCard() {
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Course
             AcademicRow(
                 icon = Icons.Outlined.Star,
                 label = stringResource(R.string.about_course_label),
@@ -214,7 +199,6 @@ private fun AcademicCard() {
 
             HorizontalDivider(color = MyGarageColors.surfaceContainerHigh)
 
-            // Curricular Unit
             AcademicRow(
                 icon = Icons.Outlined.Info,
                 label = stringResource(R.string.about_curricular_unit_label),
@@ -223,7 +207,6 @@ private fun AcademicCard() {
 
             HorizontalDivider(color = MyGarageColors.surfaceContainerHigh)
 
-            // Author
             AcademicRow(
                 icon = Icons.Outlined.Person,
                 label = stringResource(R.string.about_author_label),
@@ -267,8 +250,6 @@ private fun AcademicRow(
     }
 }
 
-// ── ARCHITECTURE SECTION ──────────────────────────────────────────────────────
-
 @Composable
 private fun ArchitectureSection() {
     Box(
@@ -300,8 +281,6 @@ private fun ArchitectureSection() {
         }
     }
 }
-
-// ── LIBRARIES SECTION ─────────────────────────────────────────────────────────
 
 @Composable
 private fun LibrariesSection() {

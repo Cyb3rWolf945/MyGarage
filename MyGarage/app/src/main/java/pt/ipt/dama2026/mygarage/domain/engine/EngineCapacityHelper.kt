@@ -1,8 +1,7 @@
 package pt.ipt.dama2026.mygarage.domain.engine
 
 /**
- * Utility for working with engine capacity (cilindrada) values.
- * Provides helpers to round raw CC values to the nearest standardized option.
+ * Rounds raw engine capacity values to nearest standardized option (cc).
  */
 object EngineCapacityHelper {
 
@@ -12,10 +11,8 @@ object EngineCapacityHelper {
     )
 
     /**
-     * Rounds a raw engine capacity value to the nearest option.
-     *
-     * @param rawValue Engine capacity value as a string (e.g., "1587", "1587cc", "1.6L")
-     * @return The closest capacity option formatted as "XXXX cc", or the original value if parsing fails
+     * Rounds raw engine capacity string to nearest standard option.
+     * Handles formats: "1587", "1587cc", "1.6L".
      */
     fun roundToNearestOption(rawValue: String): String {
         return try {
@@ -32,8 +29,7 @@ object EngineCapacityHelper {
     }
 
     /**
-     * Extracts the numeric part from an engine capacity string.
-     * Handles formats like "1587", "1587cc", "1.6L", "1600 cc"
+     * Extracts numeric cc value from engine capacity string.
      */
     private fun extractNumeric(value: String): Int {
         try {
@@ -42,12 +38,10 @@ object EngineCapacityHelper {
                 .takeIf { it.isNotEmpty() } ?: return 0
 
             return when {
-                // If it has a dot, assume it's in liters (e.g., "1.6L" -> 1600cc)
                 cleaned.contains(".") -> {
                     val liters = cleaned.toDouble()
                     (liters * 1000).toInt()
                 }
-                // Otherwise assume it's already in cc
                 else -> cleaned.toInt()
             }
         } catch (e: Exception) {
@@ -56,7 +50,7 @@ object EngineCapacityHelper {
     }
 
     /**
-     * Validates that a value is one of the supported options.
+     * Checks if value is one of the supported options.
      */
     fun isValidOption(value: String): Boolean {
         return try {
@@ -67,7 +61,7 @@ object EngineCapacityHelper {
     }
 
     /**
-     * Returns all available capacity options formatted as strings.
+     * Returns all capacity options as display strings.
      */
     fun getAllOptions(): List<String> {
         return capacityOptions.map { "$it cc" }

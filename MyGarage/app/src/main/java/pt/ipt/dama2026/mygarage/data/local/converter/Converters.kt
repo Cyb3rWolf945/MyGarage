@@ -5,7 +5,7 @@ import org.json.JSONArray
 import java.util.UUID
 
 /**
- * Type converters for Room to handle conversion between complex types and SQLite string representation.
+ * Room type converters for UUID and List<String> to/from SQLite strings.
  */
 class Converters {
     @TypeConverter

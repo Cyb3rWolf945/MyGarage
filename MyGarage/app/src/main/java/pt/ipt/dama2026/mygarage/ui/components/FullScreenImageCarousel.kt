@@ -89,7 +89,6 @@ fun FullScreenImageCarousel(
                 }
             }
 
-            // ── Close Button (Top Right) ──────────────────────────────
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier
@@ -104,7 +103,6 @@ fun FullScreenImageCarousel(
                 )
             }
 
-            // ── Page Indicators (Bottom Center) ───────────────────────
             if (imageFilePaths.size > 1) {
                 Row(
                     modifier = Modifier

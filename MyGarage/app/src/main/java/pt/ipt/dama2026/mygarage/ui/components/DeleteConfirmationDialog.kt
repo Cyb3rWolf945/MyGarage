@@ -26,8 +26,6 @@ import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 
 /**
  * Confirmation dialog for deleting a vehicle.
- * Follows the "Mechanical Atelier" design system with surface_container_low,
- * 16dp rounded corners, and a destructive Delete button in error color.
  */
 @Composable
 fun DeleteConfirmationDialog(

@@ -1,12 +1,7 @@
 package pt.ipt.dama2026.mygarage.domain.model
 
 /**
- * Domain-level representation of a vehicle in the garage.
- * Decoupled from any persistence or UI frameworks.
- *
- * Image fields support an offline-first strategy:
- *   - [localImageFileNames] for locally stored images (multiple support).
- *   - [remoteImageUrl] reserved for future cloud synchronization.
+ * Domain model for a vehicle. Supports offline-first images.
  */
 data class Vehicle(
     val id: String,

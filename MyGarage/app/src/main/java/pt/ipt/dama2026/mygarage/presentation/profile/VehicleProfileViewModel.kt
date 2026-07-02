@@ -28,7 +28,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * ViewModel for managing the profile screen of a specific vehicle.
+ * ViewModel for a single vehicle's profile. Manages vehicle details,
+ * image upload, location fetch, and delete.
  */
 class VehicleProfileViewModel(
     private val repository: VehicleRepository,
@@ -37,7 +38,6 @@ class VehicleProfileViewModel(
     private val application: Application
 ) : ViewModel() {
 
-    /** Resolved distance unit (KILOMETERS or MILES) observed from DataStore + OS locale. */
     private val _resolvedDistanceUnit = MutableStateFlow("MILES")
     val resolvedDistanceUnit: StateFlow<String> = _resolvedDistanceUnit.asStateFlow()
 
@@ -57,15 +57,12 @@ class VehicleProfileViewModel(
     private val _formErrors = MutableStateFlow<Map<String, Int>>(emptyMap())
     val formErrors: StateFlow<Map<String, Int>> = _formErrors.asStateFlow()
 
-    // Delete confirmation state
     private val _showDeleteConfirmation = MutableStateFlow(false)
     val showDeleteConfirmation: StateFlow<Boolean> = _showDeleteConfirmation.asStateFlow()
 
-    // One-time navigation event: emitted after successful deletion, pop backstack
     private val _deleteCompleted = MutableStateFlow(false)
     val deleteCompleted: StateFlow<Boolean> = _deleteCompleted.asStateFlow()
 
-    // Carousel state
     private val _isCarouselVisible = MutableStateFlow(false)
     val isCarouselVisible: StateFlow<Boolean> = _isCarouselVisible.asStateFlow()
 
@@ -100,18 +97,16 @@ class VehicleProfileViewModel(
                 _showDeleteConfirmation.value = false
                 _deleteCompleted.value = true
             }
-            // Push the deletion to backend immediately so pull doesn't resurrect it
             SyncWorker.enqueueOneTimeSync(application)
         }
     }
 
-    /** Consume the one-shot navigation event after handling it. */
     fun onDeleteCompletedHandled() {
         _deleteCompleted.value = false
     }
 
     /**
-     * Starts collecting the vehicle and its services from Room.
+     * Loads vehicle and its services from Room.
      */
     fun loadVehicle(vehicleId: String) {
         _formErrors.value = emptyMap()
@@ -124,7 +119,6 @@ class VehicleProfileViewModel(
         }
     }
 
-    /** Removes the error for the given field so it disappears as the user types. */
     fun clearFieldError(fieldName: String) {
         if (_formErrors.value.containsKey(fieldName)) {
             _formErrors.update { it - fieldName }
@@ -132,8 +126,7 @@ class VehicleProfileViewModel(
     }
 
     /**
-     * Validates all mandatory fields of the vehicle entity.
-     * Returns true if all mandatory fields are present, false otherwise.
+     * Validates mandatory vehicle fields. Returns true if valid.
      */
     private fun validateVehicle(vehicle: VehicleEntity): Boolean {
         val errors = mutableMapOf<String, Int>()
@@ -163,8 +156,8 @@ class VehicleProfileViewModel(
                 if (imagePath != null) {
                     val uri = Uri.fromFile(java.io.File(imagePath))
                     val uploadResult = imageUploadRepo.uploadImage(uri, "vehicle")
-                    uploadResult.onSuccess { imageUrl ->
-                        updated = updated.copy(remoteImageUrl = imageUrl)
+                    if (uploadResult.isSuccess) {
+                        updated = updated.copy(remoteImageUrl = uploadResult.getOrNull())
                     }
                 }
             }

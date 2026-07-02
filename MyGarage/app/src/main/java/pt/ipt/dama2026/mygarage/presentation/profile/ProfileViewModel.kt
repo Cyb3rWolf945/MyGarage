@@ -23,7 +23,11 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class ProfileViewModel(application: Application) : AndroidViewModel(application) {
+    /**
+     * ViewModel for the user profile screen. Manages preferences, avatar,
+     * sync, auth, and account deletion.
+     */
+    class ProfileViewModel(application: Application) : AndroidViewModel(application) {
 
     private val userPreferencesRepository = UserPreferencesRepository(application)
     private val vehicleRepository: VehicleRepository =
@@ -37,15 +41,12 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
-    /** Emits true when the user should navigate to the auth screen. */
     private val _navigateToAuth = MutableStateFlow(false)
     val navigateToAuth: StateFlow<Boolean> = _navigateToAuth.asStateFlow()
 
-    /** Emits true when navigation is from account deletion — goes to onboarding. */
     private val _navigateToOnboarding = MutableStateFlow(false)
     val navigateToOnboarding: StateFlow<Boolean> = _navigateToOnboarding.asStateFlow()
 
-    // ── Delete Account state ───────────────────────────────────────────
     private val _showDeleteAccountDialog = MutableStateFlow(false)
     val showDeleteAccountDialog: StateFlow<Boolean> = _showDeleteAccountDialog.asStateFlow()
 
@@ -140,10 +141,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     fun onAuthActionClicked() {
         if (_uiState.value.isGuestMode) {
-            // Navigate to the auth (login/register) screen
             _navigateToAuth.value = true
         } else {
-            // Sign out: clear auth token, switch to guest mode
             viewModelScope.launch {
                 authRepository.logout()
             }
@@ -204,9 +203,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
 
     fun onLanguageChanged(language: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            // 1. Wait for the DataStore write to fully commit to disk
             userPreferencesRepository.updateAppLanguage(language)
-            // 2. Switch to Main thread to trigger UI / Activity recreation
             withContext(Dispatchers.Main) {
                 LocaleManager.applyLanguage(language)
             }
@@ -218,8 +215,6 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             userPreferencesRepository.updateDistanceUnit(unit)
         }
     }
-
-    // ── Delete Account ─────────────────────────────────────────────────
 
     fun onDeleteAccountClicked() {
         _showDeleteAccountDialog.value = true
@@ -243,11 +238,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 val response = api.deleteAccount()
 
                 if (response.isSuccessful) {
-                    // Clear local Room database
                     val db = (app as MyGarageApplication).database
                     db.clearAllTables()
 
-                    // Clear DataStore (logout also clears auth token)
                     userPreferencesRepository.clearAllUserData()
 
                     _navigateToOnboarding.value = true

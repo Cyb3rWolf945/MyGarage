@@ -34,9 +34,8 @@ import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 import java.io.File
 
 /**
- * Premium vehicle card featuring an immersive photo header,
- * vehicle identity, and status badge — following the
- * "Mechanical Atelier" tonal-layering aesthetic.
+ * vehicle card with photo header,
+ * vehicle identity, and status badge.
  *
  * @param imagePath Absolute file path to the vehicle photo, or null.
  */
@@ -62,7 +61,6 @@ fun VehicleCard(
             )
     ) {
         Column {
-            // ── Photo Header ──────────────────────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -113,7 +111,6 @@ fun VehicleCard(
                 }
             }
 
-            // ── Vehicle Identity ──────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

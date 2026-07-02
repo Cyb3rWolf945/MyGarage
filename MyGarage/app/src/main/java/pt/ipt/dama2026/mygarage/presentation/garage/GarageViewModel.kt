@@ -24,8 +24,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * ViewModel for managing the main garage screen.
- * Combines vehicle management (Room) with user preferences (DataStore).
+ * ViewModel for the garage screen. Manages vehicle CRUD, image upload,
+ * form validation, and long-press options.
  */
 class GarageViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -35,13 +35,9 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
         (application as MyGarageApplication).imageStorageManager
     private val imageUploadRepository = ImageUploadRepository(application)
 
-    // ── User Preferences (garage name) ────────────────────────────────────
     private val _uiState = MutableStateFlow(GarageUiState())
     val uiState: StateFlow<GarageUiState> = _uiState.asStateFlow()
 
-    // ── Vehicle management ────────────────────────────────────────────────
-
-    // Expose vehicles from local Room persistence as a read-only StateFlow
     val vehiclesState: StateFlow<List<VehicleEntity>> = repository.getAllVehicles()
         .stateIn(
             scope = viewModelScope,
@@ -52,15 +48,12 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     private val _formErrors = MutableStateFlow<Map<String, Int>>(emptyMap())
     val formErrors: StateFlow<Map<String, Int>> = _formErrors.asStateFlow()
 
-    // Long-press options menu state
     private val _selectedVehicleForOptions = MutableStateFlow<VehicleEntity?>(null)
     val selectedVehicleForOptions: StateFlow<VehicleEntity?> = _selectedVehicleForOptions.asStateFlow()
 
-    // Edit dialog state (for both Add and Edit flows)
     private val _vehicleToEdit = MutableStateFlow<VehicleEntity?>(null)
     val vehicleToEdit: StateFlow<VehicleEntity?> = _vehicleToEdit.asStateFlow()
 
-    // Delete confirmation state
     private val _vehicleToDelete = MutableStateFlow<VehicleEntity?>(null)
     val vehicleToDelete: StateFlow<VehicleEntity?> = _vehicleToDelete.asStateFlow()
 
@@ -76,8 +69,6 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
     }
-
-    // ── Long-Press Options Menu Intents ─────────────────────────────────────
 
     fun onVehicleLongPressed(vehicle: VehicleEntity) {
         _selectedVehicleForOptions.value = vehicle
@@ -112,8 +103,7 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Saves the currently selected image (if any) to internal storage
-     * and returns the resulting file name, or null.
+     * Saves selected image to internal storage. Returns file name or null.
      */
     private suspend fun saveSelectedImage(): String? {
         val uri = _uiState.value.selectedImageUri ?: return null
@@ -121,24 +111,20 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Confirms an edit to an existing vehicle.
-     * The dialog already saved images to internal storage via LaunchedEffect
-     * and populated localImageFileNames — we just need to upload the newest
-     * one (first in the list) to S3 and update the entity.
+     * Confirms edit: uploads image to S3, updates vehicle in Room, triggers sync.
      */
     fun confirmEdit(vehicle: VehicleEntity) {
         viewModelScope.launch {
             var updated = vehicle
 
-            // Upload the first local image if present (dialog already saved it)
             val imageFileName = vehicle.localImageFileNames.firstOrNull()
             if (imageFileName != null) {
                 val imagePath = imageStorageManager.getImagePath(imageFileName)
                 if (imagePath != null) {
                     val uri = Uri.fromFile(java.io.File(imagePath))
                     val uploadResult = imageUploadRepository.uploadImage(uri, "vehicle")
-                    uploadResult.onSuccess { imageUrl ->
-                        updated = updated.copy(remoteImageUrl = imageUrl)
+                    if (uploadResult.isSuccess) {
+                        updated = updated.copy(remoteImageUrl = uploadResult.getOrNull())
                     }
                 }
             }
@@ -148,8 +134,6 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
             SyncWorker.enqueueOneTimeSync(getApplication())
         }
     }
-
-    // ── Delete Confirmation Intents ─────────────────────────────────────────
 
     fun showDeleteDialog(vehicle: VehicleEntity) {
         _vehicleToDelete.value = vehicle
@@ -172,12 +156,10 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
                 _showDeleteConfirmation.value = false
                 _vehicleToDelete.value = null
             }
-            // Push the deletion to backend immediately so pull doesn't resurrect it
             SyncWorker.enqueueOneTimeSync(getApplication())
         }
     }
 
-    /** Removes the error for the given field so it disappears as the user types. */
     fun clearFieldError(fieldName: String) {
         if (_formErrors.value.containsKey(fieldName)) {
             _formErrors.update { it - fieldName }
@@ -185,9 +167,7 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Validates all mandatory fields of the vehicle entity.
-     * Returns true if all mandatory fields are present, false otherwise.
-     * On failure, populates [_formErrors] with field → error resource mappings.
+     * Validates mandatory vehicle fields. Returns true if all valid.
      */
     private fun validateVehicle(vehicle: VehicleEntity): Boolean {
         val errors = mutableMapOf<String, Int>()
@@ -207,15 +187,14 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             var vehicleToInsert = vehicle
 
-            // Upload the first local image (dialog already saved it to storage)
             val imageFileName = vehicle.localImageFileNames.firstOrNull()
             if (imageFileName != null) {
                 val imagePath = imageStorageManager.getImagePath(imageFileName)
                 if (imagePath != null) {
                     val uri = Uri.fromFile(java.io.File(imagePath))
                     val uploadResult = imageUploadRepository.uploadImage(uri, "vehicle")
-                    uploadResult.onSuccess { imageUrl ->
-                        vehicleToInsert = vehicleToInsert.copy(remoteImageUrl = imageUrl)
+                    if (uploadResult.isSuccess) {
+                        vehicleToInsert = vehicleToInsert.copy(remoteImageUrl = uploadResult.getOrNull())
                     }
                 }
             }
@@ -253,7 +232,7 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
             latitude = null,
             longitude = null,
             localImageFileNames = emptyList(),
-            remoteImageUrl = ""
+            remoteImageUrl = null
         )
         _vehicleToEdit.value = newVehicle
         clearImageSelection()

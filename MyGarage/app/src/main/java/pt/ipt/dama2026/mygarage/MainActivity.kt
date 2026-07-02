@@ -110,7 +110,6 @@ fun MainScreen(
     val repository = app.repository
     val prefsRepo = remember { UserPreferencesRepository(context) }
 
-    // ── Periodic cloud sync for authenticated users ───────────────────────
     LaunchedEffect(Unit) {
         val token = prefsRepo.userAuthTokenFlow.firstOrNull()
         if (!token.isNullOrBlank()) {
@@ -118,7 +117,6 @@ fun MainScreen(
         }
     }
 
-    // ── Pull profile (avatar) immediately on login ───────────────────────
     val authToken by prefsRepo.userAuthTokenFlow.collectAsStateWithLifecycle(initialValue = null)
     LaunchedEffect(authToken) {
         if (!authToken.isNullOrBlank()) {
@@ -141,21 +139,20 @@ fun MainScreen(
         )
     )
 
-    // ── Garage state ──────────────────────────────────────────────────────
+    val garageState by garageViewModel.uiState.collectAsStateWithLifecycle()
+    val imageStorageManager = app.imageStorageManager
     val vehicles by garageViewModel.vehiclesState.collectAsState()
     val garageFormErrors by garageViewModel.formErrors.collectAsState()
     val garageShowDelete by garageViewModel.showDeleteConfirmation.collectAsState()
     val garageVehicleToDelete by garageViewModel.vehicleToDelete.collectAsState()
     val garageSelectedForOptions by garageViewModel.selectedVehicleForOptions.collectAsState()
     val garageVehicleToEdit by garageViewModel.vehicleToEdit.collectAsState()
-    val garageState by garageViewModel.uiState.collectAsStateWithLifecycle()
-    val imageStorageManager = app.imageStorageManager
     val topBarAvatarFile = topBarAvatarFileName?.let { imageStorageManager.getImagePath(it) }?.let { java.io.File(it) }
     val topBarAvatarModel: Any? = topBarAvatarFile ?: topBarAvatarRemoteUrl
         ?.replace("\"", "")
         ?.let { pt.ipt.dama2026.mygarage.data.network.NetworkModule.buildImageProxyUrl(context, it) }
 
-    // ── Service state ─────────────────────────────────────────────────────
+
     val selectedVehicleId by serviceViewModel.selectedVehicleId.collectAsState()
     val selectedVehicleWithServices by serviceViewModel.selectedVehicleWithServices.collectAsState()
     val temporaryParts by serviceViewModel.temporaryParts.collectAsState()
@@ -163,12 +160,10 @@ fun MainScreen(
     val serviceSelectedLogForOptions by serviceViewModel.selectedLogForOptions.collectAsState()
     val serviceLogToDelete by serviceViewModel.logToDelete.collectAsState()
 
-    // ── Unified Dialog state ──────────────────────────────────────────────
     val serviceDialogMode by serviceViewModel.dialogMode.collectAsState()
     val serviceSelectedLog by serviceViewModel.selectedLog.collectAsState()
     val serviceSelectedLogParts by serviceViewModel.selectedLogParts.collectAsState()
 
-    // ── Form field state ──────────────────────────────────────────────────
     val serviceDate by serviceViewModel.serviceDate.collectAsState()
     val serviceDescription by serviceViewModel.description.collectAsState()
     val serviceMileage by serviceViewModel.mileage.collectAsState()
@@ -182,17 +177,14 @@ fun MainScreen(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Select the first vehicle by default once the vehicles list is populated
     LaunchedEffect(vehicles) {
         if (selectedVehicleId == null && vehicles.isNotEmpty()) {
             serviceViewModel.selectVehicle(vehicles.first().id)
         }
     }
 
-    // Wait until MainViewModel resolves the start destination
     val resolvedStart = startDestination
     if (resolvedStart == null || isLoading) {
-        // Show a minimal branded loading indicator while the splash is fading
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -205,12 +197,10 @@ fun MainScreen(
         return
     }
 
-    // Determine if we are on an onboarding or auth screen (hide chrome)
     val isOnboardingRoute = currentRoute == MainViewModel.ROUTE_ONBOARDING_GRAPH || currentRoute == "auth_graph"
 
     Scaffold(
         topBar = {
-            // Hide the top bar during onboarding
             AnimatedVisibility(
                 visible = !isOnboardingRoute,
                 enter = fadeIn(),
@@ -232,7 +222,6 @@ fun MainScreen(
             }
         },
         bottomBar = {
-            // Show bottom nav only on the garage graph pager
             AnimatedVisibility(
                 visible = currentRoute == MainViewModel.ROUTE_GARAGE_GRAPH || currentRoute == null,
                 enter = fadeIn(),
@@ -267,7 +256,6 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // ── Onboarding Graph ─────────────────────────────────────────
             composable(MainViewModel.ROUTE_ONBOARDING_GRAPH) {
                 val onboardingViewModel: OnboardingViewModel = viewModel()
                 OnboardingScreen(
@@ -289,7 +277,7 @@ fun MainScreen(
                 )
             }
 
-            // ── Auth Graph ──────────────────────────────────────────────
+
             composable(
                 route = "auth_graph?noBack={noBack}",
                 arguments = listOf(
@@ -310,7 +298,7 @@ fun MainScreen(
                 )
             }
 
-            // ── Garage Graph (main pager) ─────────────────────────────────
+
             composable(MainViewModel.ROUTE_GARAGE_GRAPH) {
                 var duplicateVehicleFound by remember { mutableStateOf<pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity?>(null) }
 
@@ -369,13 +357,12 @@ fun MainScreen(
                                 existingImageFileName = garageState.existingImageFileName,
                                 onImageSelected = garageViewModel::onImageSelected,
                                 imageStorageManager = imageStorageManager,
-                                // ── Long-Press Options Menu ──────────────────
+
                                 selectedVehicleForOptions = garageSelectedForOptions,
                                 onVehicleLongPressed = garageViewModel::onVehicleLongPressed,
                                 onDismissOptionsMenu = garageViewModel::onDismissOptionsMenu,
                                 onSelectEdit = garageViewModel::onSelectEdit,
                                 onSelectDelete = garageViewModel::onSelectDelete,
-                                // ── Edit Dialog State ────────────────────────
                                 vehicleToEdit = garageVehicleToEdit,
                                 onDismissEditDialog = garageViewModel::onDismissEditDialog,
                                 onConfirmEdit = garageViewModel::confirmEdit,
@@ -391,7 +378,6 @@ fun MainScreen(
                                 if (existingVehicle != null) {
                                     duplicateVehicleFound = existingVehicle
                                 } else {
-                                    // Convert API data to Vehicle model with compatible fields only
                                     garageViewModel.openAddDialogWithData(
                                         plate = vehicleData.plate,
                                         name = vehicleData.vehicleModel ?: "",
@@ -399,7 +385,6 @@ fun MainScreen(
                                         fuelType = vehicleData.fuelType ?: "",
                                         engineCapacity = vehicleData.engineCapacity ?: ""
                                     )
-                                    // Navigate back to Garage tab
                                     coroutineScope.launch {
                                         pagerState.animateScrollToPage(0)
                                     }
@@ -423,11 +408,9 @@ fun MainScreen(
                             onRemoveTemporaryPart = { partId ->
                                 serviceViewModel.removeTemporaryPart(partId)
                             },
-                            // ── Unified Dialog State ────────────────────
                             dialogMode = serviceDialogMode,
                             selectedLog = serviceSelectedLog,
                             selectedLogParts = serviceSelectedLogParts,
-                            // ── Form state & validation ─────────────────
                             formErrors = serviceFormErrors,
                             onFieldChanged = serviceViewModel::clearFieldError,
                             serviceDate = serviceDate,
@@ -438,18 +421,15 @@ fun MainScreen(
                             onDescriptionChanged = serviceViewModel::onDescriptionChanged,
                             onMileageChanged = serviceViewModel::onMileageChanged,
                             onTypeChanged = serviceViewModel::onTypeChanged,
-                            // ── Dialog Intents ──────────────────────────
                             onAddFabClicked = serviceViewModel::onAddFabClicked,
                             onLogClicked = serviceViewModel::onLogClicked,
                             onSave = serviceViewModel::onSaveServiceLog,
                             onDismissDialog = serviceViewModel::onDismissDialog,
-                            // ── Long-Press Options Menu ─────────────────
                             selectedLogForOptions = serviceSelectedLogForOptions,
                             onLogLongPressed = serviceViewModel::onLogLongPressed,
                             onDismissOptionsMenu = serviceViewModel::onDismissOptionsMenu,
                             onSelectEdit = serviceViewModel::onSelectEdit,
                             onSelectDelete = serviceViewModel::onSelectDelete,
-                            // ── Delete Confirmation Dialog ──────────────
                             logToDelete = serviceLogToDelete,
                             onDismissDeleteDialog = serviceViewModel::onDismissDeleteDialog,
                             onConfirmDeleteLog = serviceViewModel::onConfirmDeleteLog
@@ -459,7 +439,6 @@ fun MainScreen(
                 }
             }
 
-            // ── Vehicle Profile ──────────────────────────────────────────
             composable("vehicle_profile/{vehicleId}") { backStackEntry ->
                 val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: ""
                 val profileViewModel: VehicleProfileViewModel = viewModel(
@@ -594,7 +573,6 @@ fun MainScreen(
                 }
             }
 
-            // ── Profile Screen ───────────────────────────────────────────
             composable("profile") {
                 val profileViewModel: ProfileViewModel = viewModel()
                 ProfileScreen(
@@ -626,7 +604,7 @@ fun MainScreen(
                 )
             }
 
-            // ── About Screen ─────────────────────────────────────────────
+
             composable("about") {
                 AboutScreen(
                     onBackClick = {
@@ -638,7 +616,7 @@ fun MainScreen(
                 )
             }
 
-            // ── Terms & Conditions Screen ────────────────────────────────
+
             composable("terms") {
                 TermsScreen(
                     onBackClick = {

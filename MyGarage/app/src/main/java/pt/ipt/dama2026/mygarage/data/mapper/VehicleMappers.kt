@@ -4,7 +4,7 @@ import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
 import pt.ipt.dama2026.mygarage.domain.model.Vehicle
 
 /**
- * Maps a Room [VehicleEntity] to the domain-layer [Vehicle].
+ * Maps [VehicleEntity] ↔ [Vehicle].
  */
 fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     id = id,
@@ -29,7 +29,7 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
 )
 
 /**
- * Maps a domain [Vehicle] back to a Room [VehicleEntity].
+ * Maps [Vehicle] → [VehicleEntity].
  */
 fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     id = id,

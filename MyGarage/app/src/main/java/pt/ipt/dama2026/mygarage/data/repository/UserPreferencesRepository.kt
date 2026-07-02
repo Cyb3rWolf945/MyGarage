@@ -116,7 +116,6 @@ class UserPreferencesRepository(private val context: Context) {
             preferences.remove(KEY_AUTH_TOKEN)
             preferences.remove(KEY_USER_EMAIL)
             preferences[KEY_IS_GUEST_MODE] = true
-            // Note: hasCompletedOnboarding is NOT cleared - user should not see onboarding again
         }
     }
 

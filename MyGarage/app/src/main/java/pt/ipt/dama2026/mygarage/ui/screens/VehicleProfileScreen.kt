@@ -525,7 +525,6 @@ private fun LocationTabContent(
             .padding(24.dp)
     ) {
         if (hasCoordinates) {
-            // ── Google Map with Marker ───────────────────────────────────
             val cameraPositionState = rememberCameraPositionState(
                 key = "${lat}_${lng}"
             ) {
@@ -547,7 +546,6 @@ private fun LocationTabContent(
                 }
             }
         } else {
-            // ── Clickable Empty State Placeholder ────────────────────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
