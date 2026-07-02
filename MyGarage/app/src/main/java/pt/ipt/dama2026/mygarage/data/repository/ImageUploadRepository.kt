@@ -36,13 +36,11 @@ class ImageUploadRepository(private val context: Context) {
 
             val requestBody = imageBytes.toRequestBody("image/jpeg".toMediaType())
             val part = MultipartBody.Part.createFormData("image", "image.jpg", requestBody)
-            // Send imageType as plain text RequestBody to avoid Gson wrapping it in JSON quotes
             val imageTypeBody = imageType.toRequestBody("text/plain".toMediaType())
 
             val response = imageUploadService.uploadImage(part, imageTypeBody)
 
             if (response.ok && response.imageUrl != null) {
-                // Strip any stray quotes from the URL (defensive)
                 val cleanUrl = response.imageUrl.replace("\"", "")
                 Result.success(cleanUrl)
             } else {

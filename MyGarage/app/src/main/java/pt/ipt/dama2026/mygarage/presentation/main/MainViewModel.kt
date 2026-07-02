@@ -13,18 +13,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * ViewModel responsible for resolving the initial navigation destination
- * based on whether the user has completed the onboarding flow.
- *
- * Logic:
- * - If hasCompletedOnboarding = true → show GARAGE_GRAPH (user logged in OR guest mode)
- * - If hasCompletedOnboarding = false → show ONBOARDING_GRAPH (first time user)
- *
- * Note: When user logs out, hasCompletedOnboarding remains true, so they won't see
- * the onboarding screen again. They'll go directly to the app in guest mode.
- *
- * Controls the splash screen visibility via [isLoading] and exposes
- * the resolved [startDestination] route string for the NavHost.
+ * Resolves initial navigation destination based on onboarding state.
+ * Also applies stored language preference.
  */
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -46,14 +36,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             userPreferencesRepository.userPreferencesFlow.collect { preferences ->
                 _startDestination.value = when {
-                    // If user has completed onboarding (logged in OR guest mode) → show garage
-                    preferences.hasCompletedOnboarding -> ROUTE_GARAGE_GRAPH
-                    // Otherwise → show onboarding
+            preferences.hasCompletedOnboarding -> ROUTE_GARAGE_GRAPH
                     else -> ROUTE_ONBOARDING_GRAPH
                 }
                 _avatarFileName.value = preferences.avatarFileName
                 _avatarRemoteUrl.value = preferences.avatarRemoteUrl
-                // Apply the stored language preference to the app process on the Main thread
                 withContext(Dispatchers.Main) {
                     LocaleManager.applyLanguage(preferences.appLanguage)
                 }

@@ -14,8 +14,6 @@ class LicensePlateAnalyzer(
 ) : ImageAnalysis.Analyzer, Closeable {
 
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-    
-    // --- Stability Tracking Variables ---
     private var lastDetectedPlate: String? = null
     private var consecutiveMatches = 0
 
@@ -33,16 +31,12 @@ class LicensePlateAnalyzer(
                 val detectedPlate = extractLicensePlate(visionText.text)
                 
                 if (detectedPlate != null) {
-                    // Stability Check: Does it match the last frame?
                     if (detectedPlate == lastDetectedPlate) {
                         consecutiveMatches++
-                        
-                        // Only trigger if we've seen it exactly 3 times in a row
                         if (consecutiveMatches == REQUIRED_CONSECUTIVE_MATCHES) {
                             onPlateFound(detectedPlate)
                         }
                     } else {
-                        // New plate detected, reset the counter
                         lastDetectedPlate = detectedPlate
                         consecutiveMatches = 1
                     }
@@ -52,7 +46,6 @@ class LicensePlateAnalyzer(
                 Log.e(TAG, "License plate text recognition failed", throwable)
             }
             .addOnCompleteListener {
-                // ALWAYS close the proxy, otherwise CameraX freezes
                 imageProxy.close()
             }
     }
@@ -72,24 +65,16 @@ class LicensePlateAnalyzer(
     }
 
     private fun String.normalizePlate(): String {
-        // Replace spaces AND dots with hyphens, then clean up any double hyphens
         return replace(SEPARATOR_REGEX, "-")
             .replace("--", "-")
             .trim('-')
     }
-companion object {
+    companion object {
         private const val TAG = "LicensePlateAnalyzer"
-        
-        // Require 3 consecutive identical reads to prevent flickering
-        private const val REQUIRED_CONSECUTIVE_MATCHES = 3 
-
-        // Regex to catch spaces, dots, and middle bullets (•)
+        private const val REQUIRED_CONSECUTIVE_MATCHES = 3
         private val SEPARATOR_REGEX = """[\s\.\•]+""".toRegex()
-        
-        // Reusable separator block for our patterns
         private const val SEP = """[-\s\.\•]?"""
 
-        // Portuguese Plate Formats (All 4 Generations)
         private val PLATE_PATTERNS = listOf(
             Regex("""\b[A-Z]{2}$SEP\d{2}$SEP\d{2}\b"""), // AA-00-00
             Regex("""\b\d{2}$SEP[A-Z]{2}$SEP\d{2}\b"""), // 00-AA-00

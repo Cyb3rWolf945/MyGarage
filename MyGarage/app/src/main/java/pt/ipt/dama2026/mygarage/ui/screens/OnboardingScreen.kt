@@ -53,7 +53,7 @@ import pt.ipt.dama2026.mygarage.presentation.onboarding.OnboardingViewModel
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 import kotlinx.coroutines.launch
 
-// ── Page keys ────────────────────────────────────────────────────────────────
+
 private const val PAGE_WELCOME = 0
 private const val PAGE_AUTH_FORK = 1
 private const val PAGE_SETUP = 2
@@ -84,7 +84,6 @@ fun OnboardingScreen(
     val navigateToAuth by viewModel.navigateToAuth.collectAsStateWithLifecycle()
     val advanceToSetupPage by viewModel.advanceToSetupPage.collectAsStateWithLifecycle()
 
-    // ── Side-effect observers ────────────────────────────────────────────
 
     LaunchedEffect(onboardingCompleted) {
         if (onboardingCompleted) {
@@ -115,7 +114,6 @@ fun OnboardingScreen(
             .fillMaxSize()
             .background(MyGarageColors.background)
     ) {
-        // ── Pager ────────────────────────────────────────────────────────
         HorizontalPager(
             state = pagerState,
             userScrollEnabled = false,
@@ -155,7 +153,7 @@ fun OnboardingScreen(
             }
         }
 
-        // ── Dot indicator ────────────────────────────────────────────────
+
         PageIndicator(
             pageCount = PAGE_COUNT,
             currentPage = pagerState.currentPage,
@@ -165,7 +163,6 @@ fun OnboardingScreen(
         )
     }
 
-    // ── Auth overlay (shown on top of pager) ─────────────────────────
     if (showAuthOverlay) {
         Box(
             modifier = Modifier.fillMaxSize().background(MyGarageColors.background)
@@ -177,8 +174,6 @@ fun OnboardingScreen(
         }
     }
 }
-
-// ── PAGE 1: CINEMATIC WELCOME ────────────────────────────────────────────────
 
 @Composable
 private fun WelcomePage(
@@ -255,8 +250,6 @@ private fun WelcomePage(
     }
 }
 
-// ── PAGE 2: AUTH FORK ────────────────────────────────────────────────────────
-
 @Composable
 private fun AuthForkPage(
     onSignIn: () -> Unit,
@@ -270,7 +263,6 @@ private fun AuthForkPage(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // ═══ Headline ═══
         Text(
             text = stringResource(id = R.string.onboarding_authfork_title),
             style = MaterialTheme.typography.displayLarge,
@@ -280,7 +272,6 @@ private fun AuthForkPage(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ═══ Subtitle ═══
         Text(
             text = stringResource(id = R.string.onboarding_authfork_subtitle),
             style = MaterialTheme.typography.headlineLarge,
@@ -291,7 +282,6 @@ private fun AuthForkPage(
 
         Spacer(modifier = Modifier.height(48.dp))
 
-        // ═══ Primary: Sign In / Create Account ═══
         Button(
             onClick = onSignIn,
             modifier = Modifier.fillMaxWidth(),
@@ -309,7 +299,6 @@ private fun AuthForkPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ═══ Secondary: Continue as Guest ═══
         OutlinedButton(
             onClick = onContinueAsGuest,
             modifier = Modifier.fillMaxWidth(),
@@ -331,7 +320,6 @@ private fun AuthForkPage(
     }
 }
 
-// ── PAGE 3: GUEST SETUP FORM ─────────────────────────────────────────────────
 
 @Composable
 private fun SetupPage(
@@ -367,7 +355,6 @@ private fun SetupPage(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // ── User Name ────────────────────────────────────────────────────
         OutlinedTextField(
             value = uiState.userName,
             onValueChange = onUserNameChanged,
@@ -394,7 +381,6 @@ private fun SetupPage(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ── Garage Name ──────────────────────────────────────────────────
         OutlinedTextField(
             value = uiState.garageName,
             onValueChange = onGarageNameChanged,
@@ -447,8 +433,6 @@ private fun SetupPage(
         }
     }
 }
-
-// ── DOT PAGE INDICATOR ───────────────────────────────────────────────────────
 
 @Composable
 private fun PageIndicator(

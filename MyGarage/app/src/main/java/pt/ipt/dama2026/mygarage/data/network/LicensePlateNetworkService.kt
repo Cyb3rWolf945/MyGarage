@@ -24,7 +24,6 @@ class LicensePlateNetworkService(
         private const val SOAP_ACTION = "http://regcheck.org.uk/CheckPortugal"
         private const val SOAP_URL = "http://www.regcheck.org.uk/api/reg.asmx"
 
-        // Accept plates with letters and numbers (at least 2-3 of each, total 5-6 chars)
         private val VALID_PLATE_PATTERN = Regex("^[A-Z0-9]{5,7}$")
     }
 
@@ -72,14 +71,12 @@ class LicensePlateNetworkService(
     override suspend fun validatePlateFormat(plate: String): Boolean {
         return withContext(Dispatchers.Default) {
             val normalizedPlate = plate.replace("-", "").replace(".", "").replace("•", "").uppercase()
-            // Just check that it has letters and numbers and reasonable length
             normalizedPlate.length >= 5 && normalizedPlate.length <= 7 &&
             normalizedPlate.matches(VALID_PLATE_PATTERN)
         }
     }
 
     private fun normalizePlate(plate: String): String {
-        // Remove ALL non-alphanumeric characters and spaces, keep only letters and numbers
         return plate.filter { it.isLetterOrDigit() }.uppercase()
     }
 

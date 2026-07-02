@@ -127,8 +127,6 @@ private fun CameraScreenContent(
         LicensePlateAnalyzer(onPlateFound = onPlateDetected)
     }
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
-
-    // ── Permanent denial tracking ───────────────────────────────────────
     var isPermanentlyDenied by remember { mutableStateOf(false) }
     val activity = context as? android.app.Activity
 
@@ -207,7 +205,6 @@ private fun CameraScreenContent(
                 .padding(top = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // ── Scanner Box — tap to check permission & activate ────────
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -240,7 +237,6 @@ private fun CameraScreenContent(
                             factory = { previewView }
                         )
                     } else {
-                        // ── Inactive placeholder ────────────────────────
                         if (isPermanentlyDenied) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally

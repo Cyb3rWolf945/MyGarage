@@ -30,9 +30,6 @@ class SyncWorker(
             else -> syncRepo.fullSync()
         }
 
-        // Always pull user profile (including avatar) after any sync —
-        // independently of whether the vehicle sync succeeded or failed.
-        // Only for authenticated users — guest mode has no backend profile.
         if (!prefsData.authToken.isNullOrEmpty()) {
             syncRepo.pullAndSyncUserProfile()
         }

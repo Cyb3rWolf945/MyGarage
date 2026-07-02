@@ -73,12 +73,6 @@ private fun serviceTypeLabel(type: String): String = when (type.lowercase()) {
     else         -> stringResource(R.string.service_type_regular)
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  ServiceScreen — refactored with unified multi-mode dialog
-//  Follows RULES.md (UDF, formErrors, "N/A" alpha rule) and
-//  DESIGN.md (tonal layering, no 1px borders, surface_container_low dialogs)
-// ─────────────────────────────────────────────────────────────────────────────
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ServiceScreen(
@@ -89,11 +83,9 @@ fun ServiceScreen(
     onVehicleSelected: (String) -> Unit,
     onAddTemporaryPart: (String, Int, String?) -> Unit,
     onRemoveTemporaryPart: (String) -> Unit,
-    // ── Unified Dialog State ────────────────────────────────────────────
     dialogMode: ServiceDialogMode = ServiceDialogMode.HIDDEN,
     selectedLog: ServiceLogEntity? = null,
     selectedLogParts: List<PartEntity> = emptyList(),
-    // ── Form state driven by ViewModel (Add / Edit modes) ───────────────
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {},
     serviceDate: String = "",
@@ -104,18 +96,15 @@ fun ServiceScreen(
     onDescriptionChanged: (String) -> Unit = {},
     onMileageChanged: (String) -> Unit = {},
     onTypeChanged: (String) -> Unit = {},
-    // ── Dialog Intents ──────────────────────────────────────────────────
     onAddFabClicked: () -> Unit = {},
     onLogClicked: (ServiceLogEntity) -> Unit = {},
     onSave: () -> Unit = {},
     onDismissDialog: () -> Unit = {},
-    // ── Long-Press Options Menu (UDF) ───────────────────────────────────
     selectedLogForOptions: ServiceLogEntity? = null,
     onLogLongPressed: (ServiceLogEntity) -> Unit = {},
     onDismissOptionsMenu: () -> Unit = {},
     onSelectEdit: (ServiceLogEntity) -> Unit = {},
     onSelectDelete: (ServiceLogEntity) -> Unit = {},
-    // ── Delete Confirmation Dialog (UDF) ────────────────────────────────
     logToDelete: ServiceLogEntity? = null,
     onDismissDeleteDialog: () -> Unit = {},
     onConfirmDeleteLog: () -> Unit = {},
@@ -152,7 +141,6 @@ fun ServiceScreen(
                 .padding(top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // ── No-vehicle empty state ──────────────────────────────────
             if (vehicles.isEmpty()) {
                 item(key = "no_vehicle_empty") {
                     Crossfade(targetState = true, label = "no_vehicle_crossfade") {
@@ -163,7 +151,6 @@ fun ServiceScreen(
                 }
             }
 
-            // ── Vehicle Selector Chips ──────────────────────────────────
             if (vehicles.isNotEmpty()) {
                 item(key = "vehicle_chips") {
                     LazyRow(
@@ -194,7 +181,6 @@ fun ServiceScreen(
                 }
             }
 
-            // ── Timeline Items (or premium empty state) ─────────────────
             if (vehicles.isNotEmpty()) {
                 val services = selectedVehicleWithServices?.services ?: emptyList()
                 item(key = "timeline_content") {
@@ -231,14 +217,12 @@ fun ServiceScreen(
                 }
             }
 
-            // ── Bottom spacer so FAB does not obscure last item ─────────
             item(key = "bottom_spacer") {
                 Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }
 
-    // ── Options Bottom Sheet ───────────────────────────────────────────────
     if (selectedLogForOptions != null) {
         val sheetState = rememberModalBottomSheetState()
         ModalBottomSheet(
@@ -312,7 +296,6 @@ fun ServiceScreen(
         }
     }
 
-    // ── Unified Service Log Dialog ─────────────────────────────────────────
     ServiceLogActionDialog(
         dialogMode = dialogMode,
         selectedLog = selectedLog,
@@ -334,7 +317,6 @@ fun ServiceScreen(
         resolvedDistanceUnit = resolvedDistanceUnit
     )
 
-    // ── Delete Confirmation Dialog ─────────────────────────────────────────
     if (logToDelete != null) {
         DeleteServiceDialog(
             onDismiss = onDismissDeleteDialog,
@@ -342,10 +324,6 @@ fun ServiceScreen(
         )
     }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  TimelineItem — automotive vertical timeline per DESIGN.md
-// ─────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -371,7 +349,6 @@ fun TimelineItem(
                 }
             )
     ) {
-        // ── Timeline node & line ───────────────────────────────────────
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.width(32.dp)
@@ -402,7 +379,6 @@ fun TimelineItem(
             }
         }
 
-        // ── Text content ───────────────────────────────────────────────
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -422,10 +398,6 @@ fun TimelineItem(
         }
     }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  ServiceHistoryEmptyState — premium 'clean log' placeholder per DESIGN.md
-// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun ServiceHistoryEmptyState(modifier: Modifier = Modifier) {
@@ -471,10 +443,6 @@ private fun ServiceHistoryEmptyState(modifier: Modifier = Modifier) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  NoVehicleEmptyState — shown when the user has no registered vehicles
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Composable
 private fun NoVehicleEmptyState(modifier: Modifier = Modifier) {
     Column(
@@ -509,10 +477,6 @@ private fun NoVehicleEmptyState(modifier: Modifier = Modifier) {
         )
     }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  DeleteServiceDialog — "Mechanical Atelier" design per DESIGN.md
-// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun DeleteServiceDialog(
