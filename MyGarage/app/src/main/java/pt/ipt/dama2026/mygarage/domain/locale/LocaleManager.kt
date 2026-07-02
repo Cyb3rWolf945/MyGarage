@@ -6,23 +6,14 @@ import androidx.core.os.LocaleListCompat
 import java.util.Locale
 
 /**
- * Handles dynamic app-language switching exclusively via
- * [AppCompatDelegate.setApplicationLocales] — the only API
- * that Jetpack Compose honours for live language changes.
+ * Handles dynamic app-language switching via AppCompatDelegate.
  */
 object LocaleManager {
 
     /**
-     * Applies the requested BCP-47 language tag to the app process.
-     *
-     * Pass `null`, an empty string, or `"SYSTEM"` to revert to the
-     * device's OS default locale.
-     *
-     * @param languageTag A BCP-47 tag such as `"en"` or `"pt-PT"`,
-     *                    or `"SYSTEM"` to clear the override.
+     * Applies BCP-47 language tag. Pass "SYSTEM" or empty to revert to OS default.
      */
     fun applyLanguage(languageTag: String?) {
-        // Defensive mapping: accept raw enum-style values OR clean BCP-47 tags
         val tag = when (languageTag?.uppercase()) {
             "ENGLISH"    -> "en"
             "PORTUGUESE" -> "pt-PT"
@@ -31,7 +22,7 @@ object LocaleManager {
             "PT"         -> "pt-PT"
             "PT-PT"      -> "pt-PT"
             null         -> ""
-            else         -> "" // unknown → fallback to system default
+            else         -> ""
         }
         val localeList = if (tag.isEmpty()) {
             LocaleListCompat.getEmptyLocaleList()
@@ -42,20 +33,12 @@ object LocaleManager {
     }
 
     /**
-     * Resolves the effective distance unit from the stored preference
-     * and the device's current OS locale.
-     *
-     * Rules:
-     * - "KILOMETERS"   → Kilometers
-     * - "MILES"        → Miles
-     * - "SYSTEM"       → Kilometers if OS locale is pt-PT, else Miles
-     *
-     * @return "KILOMETERS" or "MILES".
+     * Resolves distance unit from preference + OS locale.
+     * Returns "KILOMETERS" or "MILES".
      */
     fun resolveDistanceUnit(distanceUnit: String, context: Context): String {
         if (distanceUnit == "KILOMETERS") return "KILOMETERS"
         if (distanceUnit == "MILES") return "MILES"
-        // "SYSTEM": use OS locale
         val osLocale = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
             context.resources.configuration.locales[0]
         } else {
@@ -66,7 +49,7 @@ object LocaleManager {
     }
 
     /**
-     * Returns a human-readable unit label for display (e.g. "km" or "mi").
+     * Returns unit label: "km" or "mi".
      */
     fun unitLabel(resolvedUnit: String): String {
         return if (resolvedUnit == "KILOMETERS") "km" else "mi"

@@ -1,7 +1,7 @@
 package pt.ipt.dama2026.mygarage.domain.location
 
 /**
- * Represents the result of a location-fetch operation.
+ * Result of a location fetch: Success(lat, lng) or Error(message).
  */
 sealed class LocationResult {
     data class Success(val lat: Double, val lng: Double) : LocationResult()

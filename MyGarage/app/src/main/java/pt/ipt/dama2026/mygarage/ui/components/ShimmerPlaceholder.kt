@@ -17,8 +17,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 /**
- * Shimmer loading placeholder that animates a gradient sweep.
- * Used while images are loading from network or disk.
+ * Loading placeholder that animates a gradient.
  */
 @Composable
 fun ShimmerPlaceholder(modifier: Modifier = Modifier) {

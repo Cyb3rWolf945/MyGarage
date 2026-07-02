@@ -15,11 +15,8 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Android-specific [LocationManager] implementation backed by
- * [FusedLocationProviderClient] (Google Play Services).
- *
- * Uses [PRIORITY_HIGH_ACCURACY] with a single-update request
- * suspended via [suspendCoroutine] for a clean coroutine API.
+ * Android implementation of [LocationManager] using FusedLocationProviderClient.
+ * Uses a single high-accuracy location request suspended via coroutine.
  */
 class AndroidLocationManager(context: Context) : LocationManager {
 
@@ -27,8 +24,6 @@ class AndroidLocationManager(context: Context) : LocationManager {
         LocationServices.getFusedLocationProviderClient(context)
 
     override fun hasLocationPermission(): Boolean {
-        // Permission checks are delegated to the Compose-level handler;
-        // this is a safety-net fallback only.
         return true
     }
 

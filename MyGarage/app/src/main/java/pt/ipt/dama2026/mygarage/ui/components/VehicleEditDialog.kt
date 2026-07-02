@@ -103,9 +103,6 @@ private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
 /**
  * Dialog for adding a new vehicle or editing properties of an existing one.
- * Follows the "Mechanical Atelier" design system: surface_container_lowest cards,
- * borderless aesthetic, tonal layering. Uses DatePickerDialog for dates,
- * ExposedDropdownMenuBox for enumerable fields, and numeric keyboard for year.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,6 +110,7 @@ fun VehicleEditDialog(
     vehicle: VehicleEntity?,
     onDismiss: () -> Unit,
     onConfirm: (VehicleEntity) -> Unit,
+    onDelete: () -> Unit = {},
     selectedImageUri: String? = null,
     existingImageFileName: String? = null,
     imageStorageManager: pt.ipt.dama2026.mygarage.domain.repository.ImageStorageManager? = null,
@@ -204,7 +202,6 @@ fun VehicleEditDialog(
 
     val scrollState = rememberScrollState()
 
-    // ── Photo Picker ─────────────────────────────────────────────────────
     val photoPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
@@ -279,7 +276,6 @@ fun VehicleEditDialog(
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // ── Image Placeholder ─────────────────────────────────────────
             val context = LocalContext.current
             val imageModel = remember(newlyAddedImageFileNames, keptImageFileNames, vehicle?.remoteImageUrl, hasDeletedImages) {
                 // Resolve the best available image to display, trying each source
@@ -352,7 +348,6 @@ fun VehicleEditDialog(
                     }
                 }
 
-                // ── Helpful hint text ────────────────────────────────────
                 if (newlyAddedImageFileNames.isNotEmpty() || keptImageFileNames.isNotEmpty()) {
                     Text(
                         text = stringResource(R.string.add_more_photos_hint),
@@ -376,10 +371,6 @@ fun VehicleEditDialog(
                 }
             }
 
-            // ── Image Thumbnails with Delete Buttons ─────────────────────
-            // Show thumbnails if we have newly added images, kept images,
-            // OR a remote URL (as fallback thumbnail when local files are stale
-            // AND the user hasn't just deleted those local images)
             val remoteThumbCount = if (!hasDeletedImages && !vehicle?.remoteImageUrl.isNullOrEmpty() && keptImageFileNames.isEmpty()) 1 else 0
             val thumbnailCount = newlyAddedImageFileNames.size + keptImageFileNames.size + remoteThumbCount
             if (thumbnailCount > 0) {
@@ -542,7 +533,7 @@ fun VehicleEditDialog(
                     name = it
                     clearFieldError("name")
                 },
-                placeholder = { Text(stringResource(R.string.dialog_vehicle_name_label)) },
+                label = { Text(stringResource(R.string.dialog_vehicle_name_label)) },
                 isError = allErrors.containsKey("name"),
                 supportingText = { allErrors["name"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
@@ -564,6 +555,7 @@ fun VehicleEditDialog(
                         clearFieldError("plate")
                     }
                 },
+                label = { Text(stringResource(R.string.dialog_vehicle_plate_label)) },
                 placeholder = { Text(stringResource(R.string.dialog_vehicle_plate_placeholder)) },
                 visualTransformation = LicensePlateVisualTransformation,
                 isError = allErrors.containsKey("plate"),
@@ -585,7 +577,7 @@ fun VehicleEditDialog(
                         clearFieldError("year")
                     }
                 },
-                placeholder = { Text(stringResource(R.string.dialog_vehicle_year_label)) },
+                label = { Text(stringResource(R.string.dialog_vehicle_year_label)) },
                 isError = allErrors.containsKey("year"),
                 supportingText = { allErrors["year"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
@@ -606,7 +598,7 @@ fun VehicleEditDialog(
                     autoCalcNextService(filtered)
                     clearFieldError("mileage")
                 },
-                placeholder = { Text(stringResource(R.string.dialog_vehicle_mileage_label, mileageUnitName)) },
+                label = { Text(stringResource(R.string.dialog_vehicle_mileage_label, mileageUnitName)) },
                 visualTransformation = MileageVisualTransformation,
                 isError = allErrors.containsKey("mileage"),
                 supportingText = { allErrors["mileage"]?.let { Text(stringResource(it)) } },
@@ -664,7 +656,7 @@ fun VehicleEditDialog(
             // Oil Type
             OutlinedTextField(
                 value = oilType,
-                placeholder = { Text(stringResource(R.string.dialog_vehicle_oil_type_label)) },
+                label = { Text(stringResource(R.string.dialog_vehicle_oil_type_label)) },
                 onValueChange = {
                     oilType = it
                     clearFieldError("oilType")
@@ -683,7 +675,7 @@ fun VehicleEditDialog(
                     owner = it
                     clearFieldError("owner")
                 },
-                placeholder = { Text(stringResource(R.string.dialog_vehicle_owner_label)) },
+                label = { Text(stringResource(R.string.dialog_vehicle_owner_label)) },
                 isError = allErrors.containsKey("owner"),
                 supportingText = { allErrors["owner"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
@@ -846,7 +838,7 @@ fun VehicleEditDialog(
                     iucValue = it
                     clearFieldError("iucValue")
                 },
-                placeholder = { Text(stringResource(R.string.dialog_vehicle_iuc_value_label)) },
+                label = { Text(stringResource(R.string.dialog_vehicle_iuc_value_label)) },
                 isError = allErrors.containsKey("iucValue"),
                 supportingText = { allErrors["iucValue"]?.let { Text(stringResource(it)) } },
                 colors = textFieldColors,
@@ -880,7 +872,6 @@ fun VehicleEditDialog(
                 }
             )
 
-            // ── Location Section (GPS-Only) ──────────────────────────────
             val scope = rememberCoroutineScope()
             val app = context.applicationContext as MyGarageApplication
             val locationPermission = rememberLocationPermissionHandler(
@@ -917,7 +908,6 @@ fun VehicleEditDialog(
             android.util.Log.d("MyGarage.Location", "VehicleEditDialog location section: lat=$latitude lng=$longitude hasCoordinates=$hasCoordinates")
 
             if (hasCoordinates) {
-                // ── Google Map with Marker + Re-update via GPS ────────────
                 val cameraPositionState = rememberCameraPositionState(
                     key = "${latitude}_${longitude}"
                 ) {
@@ -952,7 +942,6 @@ fun VehicleEditDialog(
                     }
                 }
             } else {
-                // ── Clickable Empty State Placeholder ─────────────────────
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -993,6 +982,24 @@ fun VehicleEditDialog(
             }
 
             Spacer(modifier = Modifier.height(4.dp))
+
+            if (vehicle != null) {
+                Button(
+                    onClick = {
+                        onDelete()
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MyGarageColors.surfaceContainerLow,
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.action_delete))
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

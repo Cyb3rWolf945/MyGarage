@@ -118,7 +118,6 @@ fun ProfileScreen(
         }
     }
 
-    // ── Delete Account Confirmation Dialog ───────────────────────────
     val showDeleteDialog by viewModel.showDeleteAccountDialog.collectAsStateWithLifecycle()
     val isDeletingAccount by viewModel.isDeletingAccount.collectAsStateWithLifecycle()
     val deleteAccountError by viewModel.deleteAccountError.collectAsStateWithLifecycle()
@@ -193,8 +192,6 @@ fun ProfileScreen(
     }
 }
 
-// ── VIEW MODE ─────────────────────────────────────────────────────────────────
-
 @Composable
 private fun ViewModeContent(
     state: ProfileUiState,
@@ -213,7 +210,6 @@ private fun ViewModeContent(
         stringResource(R.string.unit_kilometers)
     else stringResource(R.string.unit_miles)
 
-    // ═══ Hero Section ═══
     HeroSection(
         userName = state.userName,
         garageName = state.garageName,
@@ -223,7 +219,6 @@ private fun ViewModeContent(
 
     Spacer(modifier = Modifier.height(20.dp))
 
-    // Edit Profile + About buttons — horizontal row
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -280,7 +275,6 @@ private fun ViewModeContent(
 
     Spacer(modifier = Modifier.height(32.dp))
 
-    // ═══ Bento Stats Row ═══
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -337,7 +331,6 @@ private fun ViewModeContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ── Delete Account Button ──────────────────────────────────
         OutlinedButton(
             onClick = onDeleteAccountClicked,
             modifier = Modifier.fillMaxWidth(),
@@ -360,7 +353,6 @@ private fun ViewModeContent(
 
     Spacer(modifier = Modifier.height(32.dp))
 
-    // ═══ Settings Section ═══
     SettingsSection(
         appLanguage = state.appLanguage,
         distanceUnit = state.distanceUnit,
@@ -368,8 +360,6 @@ private fun ViewModeContent(
         onDistanceUnitChanged = onDistanceUnitChanged
     )
 }
-
-// ── HERO SECTION ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun HeroSection(
@@ -442,8 +432,6 @@ private fun HeroSection(
         )
     }
 }
-
-// ── BENTO STAT CARD ───────────────────────────────────────────────────────────
 
 @Composable
 private fun BentoStatCard(
@@ -581,8 +569,6 @@ private fun AuthActionCard(
     }
 }
 
-// ── SYNC ACTION CARD ──────────────────────────────────────────────────────────
-
 @Composable
 private fun SyncActionCard(
     isSyncing: Boolean,
@@ -655,8 +641,6 @@ private fun SyncActionCard(
         }
     }
 }
-
-// ── EDIT MODE ─────────────────────────────────────────────────────────────────
 
 @Composable
 private fun EditModeContent(
@@ -793,8 +777,6 @@ private fun EditModeContent(
     }
 }
 
-// ── SETTINGS SECTION ──────────────────────────────────────────────────────────
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsSection(
@@ -807,13 +789,12 @@ private fun SettingsSection(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // ── Language Selector ──────────────────────────────────────
         LanguageSelector(
             currentLanguage = appLanguage,
             onLanguageChanged = onLanguageChanged
         )
 
-        // ── Distance Unit Selector ──────────────────────────────────
+
         DistanceUnitSelector(
             currentUnit = distanceUnit,
             onUnitChanged = onDistanceUnitChanged
@@ -952,8 +933,6 @@ private fun DistanceUnitSelector(
         }
     }
 }
-
-// ── FORMATTING HELPERS ────────────────────────────────────────────────────────
 
 private fun formatMileage(value: Int): String {
     val formatter = NumberFormat.getNumberInstance(Locale.US)

@@ -27,7 +27,8 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
- * ViewModel for managing service logs and parts lists.
+ * ViewModel for the service screen. Manages service logs, parts,
+ * vehicle selection, and CRUD operations for service records.
  */
 class ServiceViewModel(
     private val repository: VehicleRepository,
@@ -35,7 +36,6 @@ class ServiceViewModel(
     private val application: Application
 ) : ViewModel() {
 
-    /** Resolved distance unit derived from DataStore preference + OS locale. */
     private val _resolvedDistanceUnit = MutableStateFlow("MILES")
     val resolvedDistanceUnit: StateFlow<String> = _resolvedDistanceUnit.asStateFlow()
 
@@ -49,7 +49,6 @@ class ServiceViewModel(
         }
     }
 
-    // Expose all vehicles for selection on the service page
     val vehicles: StateFlow<List<VehicleEntity>> = repository.getAllVehicles()
         .stateIn(
             scope = viewModelScope,
@@ -57,7 +56,6 @@ class ServiceViewModel(
             initialValue = emptyList()
         )
 
-    // Expose available piece items (parts catalog)
     val pieces: StateFlow<List<PieceEntity>> = repository.getAllPieces()
         .stateIn(
             scope = viewModelScope,
@@ -71,23 +69,18 @@ class ServiceViewModel(
     private val _selectedVehicleWithServices = MutableStateFlow<VehicleWithServices?>(null)
     val selectedVehicleWithServices: StateFlow<VehicleWithServices?> = _selectedVehicleWithServices.asStateFlow()
 
-    // Temporary parts list while composing a new service log (revision type)
     private val _temporaryParts = MutableStateFlow<List<PartEntity>>(emptyList())
     val temporaryParts: StateFlow<List<PartEntity>> = _temporaryParts.asStateFlow()
 
-    // Form validation errors for the service log form
     private val _formErrors = MutableStateFlow<Map<String, Int>>(emptyMap())
     val formErrors: StateFlow<Map<String, Int>> = _formErrors.asStateFlow()
 
-    // ── Long-Press Options Menu State ──────────────────────────────────────
     private val _selectedLogForOptions = MutableStateFlow<ServiceLogEntity?>(null)
     val selectedLogForOptions: StateFlow<ServiceLogEntity?> = _selectedLogForOptions.asStateFlow()
 
-    // ── Edit Mode State ────────────────────────────────────────────────────
     private val _editingLogId = MutableStateFlow<String?>(null)
     val editingLogId: StateFlow<String?> = _editingLogId.asStateFlow()
 
-    // ── Form Field State (driven by ViewModel for Add/Edit modes) ──────────
     private val _serviceDate = MutableStateFlow("")
     val serviceDate: StateFlow<String> = _serviceDate.asStateFlow()
 
@@ -100,11 +93,9 @@ class ServiceViewModel(
     private val _selectedType = MutableStateFlow("regular")
     val selectedType: StateFlow<String> = _selectedType.asStateFlow()
 
-    // ── Delete Confirmation State ──────────────────────────────────────────
     private val _logToDelete = MutableStateFlow<ServiceLogEntity?>(null)
     val logToDelete: StateFlow<ServiceLogEntity?> = _logToDelete.asStateFlow()
 
-    // ── Unified Dialog Mode State ──────────────────────────────────────────
     private val _dialogMode = MutableStateFlow(ServiceDialogMode.HIDDEN)
     val dialogMode: StateFlow<ServiceDialogMode> = _dialogMode.asStateFlow()
 
@@ -114,14 +105,11 @@ class ServiceViewModel(
     private val _selectedLogParts = MutableStateFlow<List<PartEntity>>(emptyList())
     val selectedLogParts: StateFlow<List<PartEntity>> = _selectedLogParts.asStateFlow()
 
-    /** Removes the error for the given field so it disappears as the user types. */
     fun clearFieldError(fieldName: String) {
         if (_formErrors.value.containsKey(fieldName)) {
             _formErrors.update { it - fieldName }
         }
     }
-
-    // ── Form Field Change Intents ──────────────────────────────────────────
 
     fun onDateChanged(date: String) {
         _serviceDate.value = date
@@ -140,15 +128,13 @@ class ServiceViewModel(
 
     fun onTypeChanged(type: String) {
         _selectedType.value = type
-        // Auto-fill mileage for Inspection type only when field is empty
         if (type == "Inspection" && _mileage.value.isBlank()) {
             prefillCurrentMileage()
         }
     }
 
     /**
-     * Validates mandatory service log fields.
-     * Returns true if all required fields are present, false otherwise.
+     * Validates service log fields. Returns true if valid.
      */
     private fun validateServiceLogFields(
         description: String,
@@ -164,7 +150,7 @@ class ServiceViewModel(
     }
 
     /**
-     * Changes the current selected vehicle and retrieves its complete service history.
+     * Selects a vehicle and fetches its service history.
      */
     fun selectVehicle(vehicleId: String) {
         _selectedVehicleId.value = vehicleId
@@ -190,7 +176,7 @@ class ServiceViewModel(
     }
 
     /**
-     * Inserts a service log along with pieces used (for revision type services).
+     * Inserts service log with pieces (for revision type).
      */
     fun insertServiceLogWithPieces(
         serviceLog: ServiceLogEntity,
@@ -221,8 +207,7 @@ class ServiceViewModel(
     }
 
     /**
-     * Inserts a service log and then persists all temporary parts,
-     * assigning them the newly created service log ID.
+     * Inserts service log and its temporary parts.
      */
     fun insertServiceLogWithParts(serviceLog: ServiceLogEntity) {
         if (!validateServiceLogFields(
@@ -241,13 +226,8 @@ class ServiceViewModel(
     }
 
     /**
-     * Unified save intent for both Add and Edit flows.
-     * Validates mandatory fields first; if valid, either inserts a new
-     * service log or updates an existing one.
-     * Only executes when [dialogMode] is ADD or EDIT.
-     *
-     * Mileage is stored canonically as Kilometers in [ServiceLogEntity.mileageKm].
-     * The display string [ServiceLogEntity.mileage] reflects the user's preferred unit.
+     * Saves service log (add or edit). Validates fields, converts units,
+     * enforces mileage not lower than vehicle, updates vehicle mileage.
      */
     fun onSaveServiceLog() {
         val mode = _dialogMode.value
@@ -267,12 +247,10 @@ class ServiceViewModel(
                 selectedVehicleId = vehicleId
             )) return
 
-        // Parse user input → canonical km
         val inputKm = DistanceFormatter.forStorage(
             DistanceFormatter.parseUserInput(mileage), resolvedUnit
         )
 
-        // ── Business Rule: service mileage (canonical km) must not be lower than the vehicle's current mileage ──
         var vehicleCurrentMileageKm = _selectedVehicleWithServices.value?.vehicle?.mileageKm ?: 0.0
         if (vehicleCurrentMileageKm <= 0.0 && _selectedVehicleWithServices.value?.vehicle != null) {
             val currentVehicle = _selectedVehicleWithServices.value!!.vehicle
@@ -295,11 +273,9 @@ class ServiceViewModel(
         }
 
         viewModelScope.launch {
-            // Build display string for the legacy mileage field
             val displayMileage = DistanceFormatter.formatDisplay(inputKm, resolvedUnit)
 
             if (mode == ServiceDialogMode.EDIT) {
-                // ── EDIT MODE: update existing log with current parts ──────
                 val editingId = _selectedLog.value?.id ?: return@launch
                 val updatedLog = ServiceLogEntity(
                     id = editingId,
@@ -315,7 +291,6 @@ class ServiceViewModel(
                 }
                 repository.updateServiceLogWithParts(updatedLog, partsToSave)
             } else {
-                // ── ADD MODE: insert new log with current parts ────────────
                 val newLog = ServiceLogEntity(
                     id = UUID.randomUUID(),
                     vehicleId = vehicleId!!,
@@ -335,16 +310,13 @@ class ServiceViewModel(
                     repository.insertServiceLog(newLog)
                 }
 
-                // ── Update vehicle's current mileage and track user-driven delta ──
                 val currentVehicle = _selectedVehicleWithServices.value?.vehicle
                 if (currentVehicle != null) {
-                    // Calculate how many km the user actually drove (delta)
                     val delta = (inputKm - vehicleCurrentMileageKm).toInt()
                     if (delta > 0) {
                         userPreferencesRepository.incrementUserMileage(delta)
                     }
 
-                    // Always update the vehicle entity so its mileage reflects the latest service
                     repository.updateVehicle(
                         currentVehicle.copy(
                             mileage = displayMileage,
@@ -354,12 +326,10 @@ class ServiceViewModel(
                 }
             }
 
-            // Clear state and close the form upon success
             clearFormState()
         }
     }
 
-    /** Resets form and dialog state back to defaults after a successful save or dismiss. */
     private fun clearFormState() {
         _dialogMode.value = ServiceDialogMode.HIDDEN
         _selectedLog.value = null
@@ -372,8 +342,6 @@ class ServiceViewModel(
         _temporaryParts.value = emptyList()
         _formErrors.value = emptyMap()
     }
-
-    // ── Long-Press Options Menu Intents ────────────────────────────────────
 
     fun onLogLongPressed(serviceLog: ServiceLogEntity) {
         _selectedLogForOptions.value = serviceLog
@@ -389,14 +357,12 @@ class ServiceViewModel(
         _editingLogId.value = serviceLog.id.toString()
         _dialogMode.value = ServiceDialogMode.EDIT
 
-        // Populate form fields with the selected log's existing data
         _serviceDate.value = serviceLog.date
         _description.value = serviceLog.description
         _mileage.value = serviceLog.mileage
         _selectedType.value = serviceLog.type
         _formErrors.value = emptyMap()
 
-        // Load existing parts for this service log
         viewModelScope.launch {
             repository.getServiceLogWithParts(serviceLog.id.toString())
                 .catch { e -> e.printStackTrace() }
@@ -408,7 +374,7 @@ class ServiceViewModel(
     }
 
     /**
-     * FAB tapped — opens the dialog in ADD mode with a clean form slate.
+     * Opens dialog in ADD mode with pre-filled mileage.
      */
     fun onAddFabClicked() {
         clearFormState()
@@ -416,7 +382,6 @@ class ServiceViewModel(
         _dialogMode.value = ServiceDialogMode.ADD
     }
 
-    /** Pre-fills the mileage field with the current vehicle's mileage. */
     private fun prefillCurrentMileage() {
         val vehicle = _selectedVehicleWithServices.value?.vehicle ?: return
         var canonicalKm = vehicle.mileageKm
@@ -440,8 +405,7 @@ class ServiceViewModel(
     }
 
     /**
-     * A service log card was tapped in the timeline — opens the dialog
-     * in VIEW (read-only) mode, loading the log and its parts.
+     * Opens dialog in VIEW (read-only) mode for a service log.
      */
     fun onLogClicked(serviceLog: ServiceLogEntity) {
         _selectedLog.value = serviceLog
@@ -457,9 +421,6 @@ class ServiceViewModel(
         }
     }
 
-    /**
-     * User dismissed the unified dialog — reset everything to HIDDEN.
-     */
     fun onDismissDialog() {
         clearFormState()
     }
@@ -474,12 +435,8 @@ class ServiceViewModel(
     }
 
     /**
-     * Confirms deletion of the currently selected service log.
-     *
-     * Dismisses all dialogs and clears every state reference that could
-     * point to the soon-to-be-deleted entity BEFORE performing the database
-     * operation. This prevents the UI from attempting to render a deleted
-     * entity during the Room Flow re-emission.
+     * Deletes the selected service log. Clears UI state references before DB
+     * operation to prevent rendering deleted entity during Flow re-emission.
      */
     fun onConfirmDeleteLog() {
         val log = _logToDelete.value ?: return
@@ -488,11 +445,9 @@ class ServiceViewModel(
             try {
                 repository.deleteServiceLog(log)
             } catch (_: Exception) {
-                // If delete fails, keep the log so user can retry
                 return@launch
             }
 
-            // Only clear state AFTER successful delete
             _logToDelete.value = null
             _selectedLogForOptions.value = null
             if (_selectedLog.value?.id == log.id) {

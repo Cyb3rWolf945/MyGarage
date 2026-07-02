@@ -78,14 +78,12 @@ fun ServiceLogActionDialog(
     dialogMode: ServiceDialogMode,
     selectedLog: ServiceLogEntity?,
     selectedLogParts: List<PartEntity>,
-    // ── Form state (driven by ViewModel) ──────────────────────────────────
     serviceDate: String,
     description: String,
     mileage: String,
     selectedType: String,
     temporaryParts: List<PartEntity>,
     formErrors: Map<String, Int>,
-    // ── Intents (ViewModel callbacks) ──────────────────────────────────────
     onDateChanged: (String) -> Unit,
     onDescriptionChanged: (String) -> Unit,
     onMileageChanged: (String) -> Unit,
@@ -103,7 +101,6 @@ fun ServiceLogActionDialog(
         dateFormat.format(java.util.Date())
     }
 
-    // ── Local UI state (date picker, parts search, add-part mini-dialog) ──
     var showDatePicker by remember { mutableStateOf(false) }
     var partsSearchQuery by remember { mutableStateOf("") }
     var showAddPartDialog by remember { mutableStateOf(false) }
@@ -123,7 +120,6 @@ fun ServiceLogActionDialog(
         unfocusedContainerColor = MyGarageColors.background
     )
 
-    // ── Date Picker sub-dialog ────────────────────────────────────────────
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = runCatching {
@@ -152,7 +148,6 @@ fun ServiceLogActionDialog(
         }
     }
 
-    // ── Add-Part mini-dialog (revision type, editable modes only) ──────────
     if (showAddPartDialog) {
         AddPartDialogInline(
             onDismiss = { showAddPartDialog = false },
@@ -163,7 +158,6 @@ fun ServiceLogActionDialog(
         )
     }
 
-    // ── Main Dialog ───────────────────────────────────────────────────────
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -178,7 +172,6 @@ fun ServiceLogActionDialog(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             when {
-                // ── VIEW mode: read-only layout ──────────────────────────
                 isViewOnly -> {
                     val log = selectedLog
                     if (log != null) {
@@ -242,7 +235,6 @@ fun ServiceLogActionDialog(
                     }
                 }
 
-                // ── ADD / EDIT mode: editable form layout ──────────────────
                 isEditable -> {
                     // Service Date — tap to open DatePickerDialog
                     Box(modifier = Modifier.fillMaxWidth().clickable(
@@ -293,7 +285,7 @@ fun ServiceLogActionDialog(
                     OutlinedTextField(
                         value = description,
                         onValueChange = onDescriptionChanged,
-                        placeholder = { Text(stringResource(R.string.dialog_service_description_label)) },
+                        label = { Text(stringResource(R.string.dialog_service_description_label)) },
                         isError = formErrors.containsKey("description"),
                         supportingText = {
                             formErrors["description"]?.let { Text(stringResource(it)) }
@@ -305,7 +297,7 @@ fun ServiceLogActionDialog(
                     OutlinedTextField(
                         value = mileage,
                         onValueChange = onMileageChanged,
-                        placeholder = {
+                        label = {
                             val unitName = if (resolvedDistanceUnit == "KILOMETERS")
                                 stringResource(R.string.unit_kilometers)
                             else stringResource(R.string.unit_miles)
@@ -510,7 +502,6 @@ fun ServiceLogActionDialog(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // ── Save Button ───────────────────────────────────────
                     Button(
                         onClick = onSave,
                         colors = ButtonDefaults.buttonColors(
@@ -532,7 +523,6 @@ fun ServiceLogActionDialog(
                         )
                     }
 
-                    // ── Cancel Button ─────────────────────────────────────
                     TextButton(
                         onClick = onDismiss,
                         modifier = Modifier.fillMaxWidth()
@@ -545,7 +535,6 @@ fun ServiceLogActionDialog(
                 }
             }
 
-            // ── Close button (VIEW mode only) ─────────────────────────────
             if (isViewOnly) {
                 Button(
                     onClick = onDismiss,
@@ -568,11 +557,8 @@ fun ServiceLogActionDialog(
     }
 }
 
-// ─── View-Mode Helper ────────────────────────────────────────────────────────
-
 /**
- * Renders a label-value pair for the read-only VIEW dialog.
- * Applies the "N/A" alpha rule from DESIGN.md when [value] is blank.
+ * Renders a label-value pair for read-only view. Shows "N/A" if value blank.
  */
 @Composable
 private fun ViewField(label: String, value: String) {
@@ -595,11 +581,8 @@ private fun ViewField(label: String, value: String) {
     }
 }
 
-// ─── Inline Add-Part Mini-Dialog ─────────────────────────────────────────────
-
 /**
- * Small dialog for adding a part while inside the main service-log dialog.
- * Follows the same "Mechanical Atelier" design system.
+ * Small inline dialog for adding a part while inside the service-log dialog.
  */
 @Composable
 private fun AddPartDialogInline(

@@ -66,18 +66,15 @@ fun GarageScreen(
     onConfirmDelete: () -> Unit = {},
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {},
-    // ── Long-Press Options Menu (UDF) ──────────────────────────────────────
     selectedVehicleForOptions: VehicleEntity? = null,
     onVehicleLongPressed: (VehicleEntity) -> Unit = {},
     onDismissOptionsMenu: () -> Unit = {},
     onSelectEdit: (VehicleEntity) -> Unit = {},
     onSelectDelete: (VehicleEntity) -> Unit = {},
-    // ── Edit Dialog State (UDF) ────────────────────────────────────────────
     vehicleToEdit: VehicleEntity? = null,
     onDismissEditDialog: () -> Unit = {},
     onConfirmEdit: (VehicleEntity) -> Unit = {},
     resolvedDistanceUnit: String = "MILES",
-    // ── Image State (UDF) ──────────────────────────────────────────────────
     selectedImageUri: String? = null,
     existingImageFileName: String? = null,
     onImageSelected: (String) -> Unit = {},
@@ -86,7 +83,6 @@ fun GarageScreen(
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
 
-    // ── Add / Edit Dialog ──────────────────────────────────────────────────
     val isEditDialogVisible = vehicleToEdit != null || showAddDialog
 
     if (isEditDialogVisible) {
@@ -106,6 +102,9 @@ fun GarageScreen(
                 onDismissEditDialog()
                 showAddDialog = false
             },
+            onDelete = {
+                vehicleToEdit?.let { onDeleteVehicle(it) }
+            },
             selectedImageUri = selectedImageUri,
             existingImageFileName = existingImageFileName,
             imageStorageManager = imageStorageManager,
@@ -117,7 +116,6 @@ fun GarageScreen(
         )
     }
 
-    // ── Delete Confirmation Dialog ─────────────────────────────────────────
     if (showDeleteConfirmation && vehicleToDelete != null) {
         DeleteConfirmationDialog(
             onDismiss = onDismissDeleteDialog,
@@ -167,8 +165,7 @@ fun GarageScreen(
             }
         }
 
-    // ── Long-Press Options Modal Bottom Sheet ──────────────────────────
-    if (selectedVehicleForOptions != null) {
+        if (selectedVehicleForOptions != null) {
         val sheetState = rememberModalBottomSheetState()
         val vehicle = selectedVehicleForOptions!!
 
@@ -255,9 +252,9 @@ fun GarageScreen(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  GarageEmptyState — premium placeholder per DESIGN.md
-// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Empty-state composable shown when garage has no vehicles.
+ */
 
 @Composable
 private fun GarageEmptyState(modifier: Modifier = Modifier) {

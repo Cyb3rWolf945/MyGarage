@@ -12,11 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * UI state for the onboarding flow.
- *
- * @param userName The current value of the user name text field.
- * @param garageName The current value of the garage name text field.
- * @param formErrors Map of field key to string resource ID for validation errors.
+ * UI state for onboarding.
  */
 data class OnboardingUiState(
     val userName: String = "",
@@ -25,11 +21,8 @@ data class OnboardingUiState(
 )
 
 /**
- * ViewModel for the 3-step onboarding flow.
- *
- * Manages form state, validates inputs, persists user preferences
- * via DataStore, and emits navigation events for auth routing
- * and pager advancement.
+ * ViewModel for the 3-step onboarding flow. Validates inputs, persists
+ * preferences, emits navigation events.
  */
 class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -37,8 +30,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
-
-    // ── Navigation / side-effect signals ─────────────────────────────────
 
     private val _onboardingCompleted = MutableStateFlow(false)
     val onboardingCompleted: StateFlow<Boolean> = _onboardingCompleted.asStateFlow()
@@ -48,8 +39,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
 
     private val _advanceToSetupPage = MutableStateFlow(false)
     val advanceToSetupPage: StateFlow<Boolean> = _advanceToSetupPage.asStateFlow()
-
-    // ── User Intents ─────────────────────────────────────────────────────
 
     fun onUserNameChanged(name: String) {
         _uiState.update { state ->

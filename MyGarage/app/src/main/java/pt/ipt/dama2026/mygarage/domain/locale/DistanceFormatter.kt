@@ -4,44 +4,31 @@ import java.text.NumberFormat
 import java.util.Locale
 
 /**
- * Stateless utility for converting between canonical storage units (Kilometers)
- * and display/input units based on the resolved user preference.
- *
- * **Canonical Rule:** The Room database and Domain entities store all mileage
- * values as [Double] representing **Kilometers**.
+ * Converts between canonical km and display/input units based on user preference.
+ * Room stores all values in km. Display converts to miles if preference is MILES.
  */
 object DistanceFormatter {
 
-    /** 1 Kilometer = 0.621371 Miles */
     private const val KM_TO_MILES = 0.621371
 
     /**
-     * Converts a canonical Kilometer value to the display value
-     * according to [resolvedUnit].
-     *
-     * - "KILOMETERS" → returned as-is.
-     * - "MILES"      → multiplied by [KM_TO_MILES].
+     * Converts km to display value for given unit.
+     * MILES: km * KM_TO_MILES. KILOMETERS: as-is.
      */
     fun forDisplay(kilometers: Double, resolvedUnit: String): Double {
         return if (resolvedUnit == "MILES") kilometers * KM_TO_MILES else kilometers
     }
 
     /**
-     * Converts a user-input value (which may be in Miles) back to
-     * canonical Kilometers for Room storage.
-     *
-     * - "KILOMETERS" → returned as-is.
-     * - "MILES"      → divided by [KM_TO_MILES].
+     * Converts user-input value back to canonical km.
+     * MILES: value / KM_TO_MILES. KILOMETERS: as-is.
      */
     fun forStorage(userValue: Double, resolvedUnit: String): Double {
         return if (resolvedUnit == "MILES") userValue / KM_TO_MILES else userValue
     }
 
     /**
-     * Formats a display distance value as a human-readable string
-     * with thousands separators, rounded to 0 decimals for readability.
-     *
-     * Example output: "12,450 km" or "7,735 mi".
+     * Formats a distance as human-readable with unit label, e.g. "12,450 km".
      */
     fun formatDisplay(kilometers: Double, resolvedUnit: String): String {
         val converted = forDisplay(kilometers, resolvedUnit)

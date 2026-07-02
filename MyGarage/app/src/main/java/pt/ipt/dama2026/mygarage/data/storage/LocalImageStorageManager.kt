@@ -12,12 +12,7 @@ import java.net.URL
 import java.util.UUID
 
 /**
- * Concrete implementation of [ImageStorageManager] that stores
- * images inside the application's internal storage under a
- * dedicated "vehicle_images" subdirectory.
- *
- * @param context Android [Context] (the Application context is
- *   preferred to avoid accidental activity leaks).
+ * Stores images in app internal storage under "vehicle_images".
  */
 class LocalImageStorageManager(
     private val context: Context

@@ -5,7 +5,7 @@ import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
 
-interface MatriculaApiService {
+interface LicenseApiService {
     @GET("/data/consulta/DataConsultaMatricula")
     suspend fun lookupPlate(
         @Query("matricula") plate: String,

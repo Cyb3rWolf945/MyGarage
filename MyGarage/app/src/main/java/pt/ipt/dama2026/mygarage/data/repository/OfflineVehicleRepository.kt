@@ -17,8 +17,9 @@ import java.util.Locale
 import java.util.UUID
 
 /**
- * Data layer implementation of [VehicleRepository] delegating to [VehicleDao].
- * Applies business rules for database updates upon registering new service logs.
+ * Data-layer implementation of [VehicleRepository] using Room [VehicleDao].
+ * Handles business rules for service log side effects (revision mileage bump,
+ * inspection date update).
  */
 class OfflineVehicleRepository(
     private val vehicleDao: VehicleDao,
@@ -94,27 +95,25 @@ class OfflineVehicleRepository(
     }
 
     /**
-     * Executes business rules based on the type of registered service.
+     * Applies business rules based on service log type:
+     * - revision: bumps mileageToNextService by 4349.59835 mi
+     * - Inspection: advances inspectionDate by 1 year
      */
     private suspend fun handleServiceLogSideEffects(serviceLog: ServiceLogEntity) {
         if (serviceLog.type.equals("revision", ignoreCase = true)) {
-            // Rule: Increase 4 349.59835 miles to mileageToNextService
             val vehicle = vehicleDao.getVehicleById(serviceLog.vehicleId) ?: return
             
             val currentMileageStr = vehicle.mileageToNextService ?: return
-            // Clean non-numeric characters (except decimals/periods)
             val cleanStr = currentMileageStr.replace(",", "").replace(Regex("[^0-9.]"), "")
             val currentMileage = cleanStr.toDoubleOrNull() ?: 0.0
             
             val newMileage = currentMileage + 4349.59835
-            // Format back retaining comma formatting (e.g. "12,549.59835 mi")
             val formattedMileage = String.format(Locale.US, "%,.5f mi", newMileage)
             
             val updatedVehicle = vehicle.copy(mileageToNextService = formattedMileage)
             vehicleDao.updateVehicle(updatedVehicle)
             
         } else if (serviceLog.type.equals("Inspection", ignoreCase = true)) {
-            // Rule: Update inspectionDate to a year after the register service date
             val vehicle = vehicleDao.getVehicleById(serviceLog.vehicleId) ?: return
             
             val serviceDateStr = serviceLog.date

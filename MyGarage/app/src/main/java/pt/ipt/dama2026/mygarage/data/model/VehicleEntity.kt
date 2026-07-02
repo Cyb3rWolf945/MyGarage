@@ -1,8 +1,7 @@
 package pt.ipt.dama2026.mygarage.data.model
 
 /**
- * Represents a vehicle in the garage. Currently backed by hardcoded data;
- * will be migrated to Room (@Entity) in a future iteration.
+ * Room entity representing a vehicle in the garage.
  */
 data class VehicleEntity(
     val id: String,

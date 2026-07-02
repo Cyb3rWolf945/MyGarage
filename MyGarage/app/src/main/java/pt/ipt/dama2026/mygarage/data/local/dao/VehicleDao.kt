@@ -76,8 +76,6 @@ interface VehicleDao {
     @Delete
     suspend fun deleteServiceLog(serviceLog: ServiceLogEntity)
 
-    // ── Bulk / sync operations ───────────────────────────────────────────
-
     @Query("SELECT * FROM vehicles")
     suspend fun getAllVehiclesList(): List<VehicleEntity>
 

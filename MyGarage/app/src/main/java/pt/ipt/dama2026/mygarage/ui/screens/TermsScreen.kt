@@ -52,7 +52,6 @@ fun TermsScreen(
                 .padding(horizontal = 24.dp)
                 .padding(top = 8.dp, bottom = 48.dp)
         ) {
-            // ── Back Row ───────────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -76,7 +75,7 @@ fun TermsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Title ──────────────────────────────────────────────────
+
             Text(
                 text = stringResource(R.string.terms_title),
                 style = MaterialTheme.typography.headlineLarge,
@@ -97,7 +96,6 @@ fun TermsScreen(
             HorizontalDivider(color = MyGarageColors.outlineVariant)
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Sections ───────────────────────────────────────────────
 
             // 1. Acceptance
             TermsSection(

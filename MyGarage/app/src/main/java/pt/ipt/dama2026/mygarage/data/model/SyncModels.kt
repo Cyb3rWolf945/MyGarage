@@ -42,7 +42,7 @@ data class ServiceLogPayload(
     @SerializedName("mileageKm") val mileageKm: Double,
     @SerializedName("type") val type: String,
     @SerializedName("isDeleted") val isDeleted: Boolean = false,
-    @SerializedName("updatedAt") val updatedAt: String // ISO-8601
+    @SerializedName("updatedAt") val updatedAt: String
 )
 
 data class PartPayload(
@@ -52,7 +52,7 @@ data class PartPayload(
     @SerializedName("quantity") val quantity: Int,
     @SerializedName("reference") val reference: String? = null,
     @SerializedName("isDeleted") val isDeleted: Boolean = false,
-    @SerializedName("updatedAt") val updatedAt: String // ISO-8601
+    @SerializedName("updatedAt") val updatedAt: String
 )
 
 data class PiecePayload(
@@ -60,7 +60,7 @@ data class PiecePayload(
     @SerializedName("name") val name: String,
     @SerializedName("price") val price: Double,
     @SerializedName("isDeleted") val isDeleted: Boolean = false,
-    @SerializedName("updatedAt") val updatedAt: String // ISO-8601
+    @SerializedName("updatedAt") val updatedAt: String
 )
 
 data class ServiceLogPieceCrossRefPayload(
@@ -68,7 +68,7 @@ data class ServiceLogPieceCrossRefPayload(
     @SerializedName("pieceId") val pieceId: String,
     @SerializedName("quantity") val quantity: Int,
     @SerializedName("isDeleted") val isDeleted: Boolean = false,
-    @SerializedName("updatedAt") val updatedAt: String // ISO-8601
+    @SerializedName("updatedAt") val updatedAt: String
 )
 
 data class SyncPushBody(

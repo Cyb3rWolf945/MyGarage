@@ -80,10 +80,7 @@ class SyncRepository(private val context: Context) {
         val pullResult = pullAll()
         if (pullResult.isFailure) return pullResult
 
-        // Download remote images for offline access
         downloadMissingImages()
-
-        // Pull & download user profile avatar
         pullAndSyncUserProfile()
 
         prefs.setLastSyncTimestamp(System.currentTimeMillis())
@@ -107,8 +104,7 @@ class SyncRepository(private val context: Context) {
     }
 
     /**
-     * Pulls the user profile from the backend and downloads the avatar
-     * if a remote URL exists but no local copy is present.
+     * Pulls user profile from backend and downloads avatar if missing locally.
      */
     suspend fun pullAndSyncUserProfile(): Unit = withContext(Dispatchers.IO) {
         try {
@@ -119,10 +115,7 @@ class SyncRepository(private val context: Context) {
             val remoteUrl = profile.avatarUrl
 
             if (!remoteUrl.isNullOrBlank()) {
-                // Store the remote URL locally
                 prefs.updateAvatarRemoteUrl(remoteUrl)
-
-                // Download avatar if we don't have a local copy yet
                 val currentPrefs = runBlocking { prefs.userPreferencesFlow.firstOrNull() }
                 val hasLocalAvatar = currentPrefs?.avatarFileName?.let { fileName ->
                     imageStorage.getImagePath(fileName) != null
@@ -139,7 +132,6 @@ class SyncRepository(private val context: Context) {
                 }
             }
         } catch (_: Exception) {
-            // Non-critical — avatar will be pulled on next sync
         }
     }
 
@@ -173,11 +165,7 @@ class SyncRepository(private val context: Context) {
             if (mergedCrossRefs.isNotEmpty()) dao.upsertCrossRefs(mergedCrossRefs)
 
             pushUserProfile()
-
-            // Download remote images for offline access
             downloadMissingImages()
-
-            // Pull & download user profile avatar
             pullAndSyncUserProfile()
 
             prefs.setRequiresGuestMerge(false)
@@ -217,11 +205,7 @@ class SyncRepository(private val context: Context) {
                 if (mergedCrossRefs.isNotEmpty()) dao.upsertCrossRefs(mergedCrossRefs)
 
                 pushUserProfile()
-
-                // Download remote images for offline access
                 downloadMissingImages()
-
-                // Pull & download user profile avatar
                 pullAndSyncUserProfile()
 
                 prefs.setLastSyncTimestamp(System.currentTimeMillis())
@@ -239,19 +223,13 @@ class SyncRepository(private val context: Context) {
     }
 
     /**
-     * Downloads remote images for vehicles that have a remoteImageUrl
-     * but no local copies yet. This enables offline-first: after a sync
-     * pull fetches vehicle data, we cache the images locally so they
-     * work without internet.
+     * Downloads remote vehicle images that have no local cache yet.
      */
     suspend fun downloadMissingImages(): Unit = withContext(Dispatchers.IO) {
         try {
-            // Filter vehicles that have a remote URL but whose local files
-            // are either missing or don't exist on disk (e.g., after reinstall).
             val allVehicles = dao.getAllVehiclesList()
                 .filter { vehicle ->
                     if (vehicle.remoteImageUrl.isNullOrBlank()) return@filter false
-                    // Check if ANY local file actually exists on disk
                     val hasLocalFile = vehicle.localImageFileNames.any { fileName ->
                         imageStorage.getImagePath(fileName) != null
                     }
@@ -264,14 +242,12 @@ class SyncRepository(private val context: Context) {
 
                 val fileName = imageStorage.downloadImage(proxyUrl) ?: continue
 
-                // Add the downloaded file name to the vehicle's local images
                 val updated = vehicle.copy(
                     localImageFileNames = listOf(fileName)
                 )
                 dao.updateVehicle(updated)
             }
         } catch (_: Exception) {
-            // Non-critical — images will be downloaded on next sync attempt
         }
     }
 

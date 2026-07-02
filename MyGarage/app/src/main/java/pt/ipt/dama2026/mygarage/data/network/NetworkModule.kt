@@ -30,8 +30,8 @@ object NetworkModule {
             .build()
     }
 
-    fun createMatriculaApiService(): MatriculaApiService {
-        return createMatriculaRetrofit().create(MatriculaApiService::class.java)
+    fun createMatriculaApiService(): LicenseApiService {
+        return createMatriculaRetrofit().create(LicenseApiService::class.java)
     }
 
     private fun readMyGarageApiUrl(context: Context): String {
@@ -48,8 +48,7 @@ object NetworkModule {
     }
 
     /**
-     * Wraps a raw S3 URL into a backend proxy URL so the client never needs
-     * direct S3 access. Returns null if the input is null/blank.
+     * Builds a backend proxy URL for a raw S3 URL so the client doesn't need direct S3 access.
      */
     fun buildImageProxyUrl(context: Context, remoteUrl: String?): String? {
         if (remoteUrl.isNullOrBlank()) return null
