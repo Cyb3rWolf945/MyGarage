@@ -276,7 +276,11 @@ class ServiceViewModel @Inject constructor(
             return
         }
 
+        // Snapshot temporary parts BEFORE launching coroutine to avoid any race
+        val capturedParts = _temporaryParts.value.toList()
+
         viewModelScope.launch {
+            try {
             val displayMileage = DistanceFormatter.formatDisplay(inputKm, resolvedUnit)
 
             if (mode == ServiceDialogMode.EDIT) {
@@ -290,7 +294,7 @@ class ServiceViewModel @Inject constructor(
                     mileageKm = inputKm,
                     type = type
                 )
-                val partsToSave = _temporaryParts.value.map { part ->
+                val partsToSave = capturedParts.map { part ->
                     part.copy(serviceLogId = editingId.toString())
                 }
                 repository.updateServiceLogWithParts(updatedLog, partsToSave)
@@ -306,7 +310,7 @@ class ServiceViewModel @Inject constructor(
                 )
                 if (type == "revision") {
                     repository.insertServiceLog(newLog)
-                    val partsToInsert = _temporaryParts.value.map { part ->
+                    val partsToInsert = capturedParts.map { part ->
                         part.copy(serviceLogId = newLog.id.toString())
                     }
                     partsToInsert.forEach { repository.insertPart(it) }
@@ -336,6 +340,9 @@ class ServiceViewModel @Inject constructor(
 
             clearFormState()
             SyncWorker.enqueueOneTimeSync(application)
+            } catch (e: Exception) {
+                android.util.Log.e("ServiceViewModel", "Failed to save service log", e)
+            }
         }
     }
 

@@ -475,11 +475,12 @@ fun MainScreen(
                                 } catch (e: Exception) {
                                     log.date
                                 }
+                                val historyMileage = DistanceFormatter.formatDisplay(log.mileageKm, profileResolvedUnit)
                                 ServiceHistoryItem(
                                     title = log.description,
                                     subtitle = context.getString(
                                         R.string.timeline_subtitle,
-                                        log.mileage,
+                                        historyMileage,
                                         serviceDate,
                                         log.type
                                     )
@@ -555,6 +556,9 @@ fun MainScreen(
                             MainViewModel.ROUTE_GARAGE_GRAPH,
                             inclusive = false
                         )
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(0)
+                        }
                     },
                     onNavigateToAbout = {
                         navController.navigate("about") {

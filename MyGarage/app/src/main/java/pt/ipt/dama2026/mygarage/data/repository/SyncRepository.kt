@@ -61,8 +61,8 @@ class SyncRepository @Inject constructor(
                 val filtered = data.vehicles.filter { it.id !in deletedIds }
                 if (filtered.isNotEmpty()) dao.upsertVehicles(filtered.map { it.toEntity() })
             }
-            if (data.services.isNotEmpty()) dao.upsertServiceLogs(data.services.filter { !it.isDeleted }.map { it.toEntity() })
-            if (data.parts.isNotEmpty()) dao.upsertParts(data.parts.filter { !it.isDeleted }.map { it.toEntity() })
+            if (data.services.isNotEmpty()) dao.upsertServiceLogs(data.services.map { it.toEntity() })
+            if (data.parts.isNotEmpty()) dao.upsertParts(data.parts.map { it.toEntity() })
             if (data.pieces.isNotEmpty()) dao.upsertPieces(data.pieces.map { it.toEntity() })
             if (data.servicePieceCrossRefs.isNotEmpty()) dao.upsertCrossRefs(data.servicePieceCrossRefs.map { it.toEntity() })
 

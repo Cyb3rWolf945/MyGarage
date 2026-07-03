@@ -142,7 +142,7 @@ fun EntityVehicleWithServices.toDomain(): VehicleWithServices = VehicleWithServi
 
 fun EntityServiceLogWithParts.toDomain(): ServiceLogWithParts = ServiceLogWithParts(
     serviceLog = serviceLog.toDomain(),
-    parts = parts.map { it.toDomain() }
+    parts = parts.filter { !it.isDeleted }.map { it.toDomain() }
 )
 
 fun EntityServiceLogWithPieces.toDomain(): ServiceLogWithPieces = ServiceLogWithPieces(
