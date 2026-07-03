@@ -76,6 +76,9 @@ interface VehicleDao {
     @Query("DELETE FROM service_parts WHERE serviceLogId = :serviceId")
     suspend fun deletePartsByServiceId(serviceId: String)
 
+    @Query("UPDATE service_parts SET isDeleted = 1, updatedAt = :now WHERE serviceLogId = :serviceId AND isDeleted = 0")
+    suspend fun softDeletePartsByServiceId(serviceId: String, now: Long = System.currentTimeMillis())
+
     @Delete
     suspend fun deleteServiceLog(serviceLog: ServiceLogEntity)
 

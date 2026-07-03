@@ -210,6 +210,14 @@ class ProfileViewModel @Inject constructor(
     fun onLanguageChanged(language: String) {
         viewModelScope.launch(Dispatchers.IO) {
             userPreferencesRepository.updateAppLanguage(language)
+            val distanceUnit = when (language.uppercase()) {
+                "EN", "ENGLISH" -> "MILES"
+                "PT", "PT-PT", "PORTUGUESE" -> "KILOMETERS"
+                else -> null
+            }
+            if (distanceUnit != null) {
+                userPreferencesRepository.updateDistanceUnit(distanceUnit)
+            }
             withContext(Dispatchers.Main) {
                 LocaleManager.applyLanguage(language)
             }

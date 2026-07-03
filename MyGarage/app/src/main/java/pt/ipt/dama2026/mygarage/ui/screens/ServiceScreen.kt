@@ -58,6 +58,7 @@ import pt.ipt.dama2026.mygarage.domain.model.Part
 import pt.ipt.dama2026.mygarage.domain.model.ServiceLog
 import pt.ipt.dama2026.mygarage.domain.model.Vehicle
 import pt.ipt.dama2026.mygarage.domain.model.VehicleWithServices
+import pt.ipt.dama2026.mygarage.domain.locale.DistanceFormatter
 import pt.ipt.dama2026.mygarage.ui.components.ServiceLogActionDialog
 import pt.ipt.dama2026.mygarage.ui.screens.servicelog.ServiceDialogMode
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
@@ -198,11 +199,12 @@ fun ServiceScreen(
                         Column {
                             for ((index, log) in services.withIndex()) {
                                 val typeLabel = serviceTypeLabel(log.type)
+                                val timelineMileage = DistanceFormatter.formatDisplay(log.mileageKm, resolvedDistanceUnit)
                                 TimelineItem(
                                     title = log.description,
                                     subtitle = stringResource(
                                         R.string.timeline_subtitle,
-                                        log.mileage,
+                                        timelineMileage,
                                         log.date,
                                         typeLabel
                                     ),
