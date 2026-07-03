@@ -15,8 +15,8 @@ android {
         applicationId = "pt.ipt.dama2026.mygarage"
         minSdk = 28
         targetSdk = 36
-        versionCode = 5
-        versionName = "5.0.0"
+        versionCode = 6
+        versionName = "6.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
