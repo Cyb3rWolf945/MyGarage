@@ -28,6 +28,7 @@
     <string name="stat_mileage">%1$s</string>
     <string name="stat_inspection_date">Inspeção</string>
     <string name="stat_mileage_to_next_service">%1$s até Próximo Serviço</string>
+    <string name="stat_year">Ano</string>
     <string name="stat_iuc_value">IUC</string>
     <string name="currency_euro_prefix">€ %1$s</string>
     <string name="tab_specs">Especificações</string>
@@ -90,7 +91,7 @@
 
     <string name="onboarding_action_next">Seguinte</string>
     <string name="onboarding_action_finish">Concluir e Entrar na Garagem</string>
-    <string name="onboarding_sign_in_instead">Iniciar sessão</string>
+    <string name="onboarding_sign_in_instead">Cancelar</string>
     <string name="onboarding_action_get_started">Começar</string>
 
     <string name="onboarding_page_indicator_description">Página %1$d de %2$d</string>
@@ -234,7 +235,7 @@
     <string name="about_course_label">Curso</string>
     <string name="about_curricular_unit_label">Unidade Curricular</string>
     <string name="about_author_label">Autor</string>
-    <string name="about_course_value">Engenharia Informática-Internet das Coisas</string>
+    <string name="about_course_value">Mestrado: Engenharia Informática-Internet das Coisas</string>
     <string name="about_unit_value">Desenvolvimento de Aplicações Móveis Avançadas</string>
     <string name="about_architecture_header">ARQUITETURA</string>
     <string name="about_architecture_body">Fundação Offline-First — Construída sobre Room Database e DataStore para uma persistência local robusta e imediata. A arquitetura separa claramente as responsabilidades utilizando Unidirectional Data Flow (UDF) com Jetpack Compose e Android ViewModels, garantindo uma transição perfeita para sincronização na nuvem através de uma camada de abstração do repositório.</string>
@@ -284,6 +285,8 @@
     <string name="auth_error_password_short">A palavra-passe deve ter pelo menos 6 caracteres</string>
     <string name="auth_error_password_weak">A palavra-passe deve conter pelo menos uma letra maiúscula e um símbolo</string>
     <string name="auth_error_password_match">As palavras-passe não coincidem</string>
+    <string name="auth_error_invalid_credentials">Email ou palavra-passe inválidos</string>
+    <string name="auth_error_network">Erro de rede. Verifique a sua ligação.</string>
 
     <!-- Sync (Profile Screen) -->
     <string name="profile_sync_title">Sincronização na Nuvem</string>

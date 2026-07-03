@@ -1,23 +1,24 @@
 package pt.ipt.dama2026.mygarage.presentation.profile
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import pt.ipt.dama2026.mygarage.R
-import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
-import pt.ipt.dama2026.mygarage.data.local.relation.VehicleWithServices
 import android.app.Application
-import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
-import pt.ipt.dama2026.mygarage.domain.locale.LocaleManager
-import pt.ipt.dama2026.mygarage.domain.location.LocationManager
-import android.net.Uri
-import android.util.Log
-import pt.ipt.dama2026.mygarage.MyGarageApplication
+import dagger.hilt.android.lifecycle.HiltViewModel
+import pt.ipt.dama2026.mygarage.data.mapper.toDomain
+import pt.ipt.dama2026.mygarage.data.mapper.toEntity
 import pt.ipt.dama2026.mygarage.data.repository.ImageUploadRepository
+import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
 import pt.ipt.dama2026.mygarage.data.sync.SyncWorker
+import pt.ipt.dama2026.mygarage.presentation.locale.LocaleManager
+import pt.ipt.dama2026.mygarage.domain.location.LocationManager
 import pt.ipt.dama2026.mygarage.domain.location.LocationResult
+import pt.ipt.dama2026.mygarage.domain.model.Vehicle
+import pt.ipt.dama2026.mygarage.domain.model.VehicleWithServices
 import pt.ipt.dama2026.mygarage.domain.repository.ImageStorageManager
 import pt.ipt.dama2026.mygarage.domain.repository.VehicleRepository
+import pt.ipt.dama2026.mygarage.presentation.validation.VehicleValidator
+import android.net.Uri
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,19 +27,25 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 /**
  * ViewModel for a single vehicle's profile. Manages vehicle details,
  * image upload, location fetch, and delete.
  */
-class VehicleProfileViewModel(
+@HiltViewModel
+class VehicleProfileViewModel @Inject constructor(
     private val repository: VehicleRepository,
-    private val locationManager: LocationManager,
+    val locationManager: LocationManager,
     private val userPreferencesRepository: UserPreferencesRepository,
+    val imageStorageManager: ImageStorageManager,
+    private val imageUploadRepository: ImageUploadRepository,
     private val application: Application
 ) : ViewModel() {
 
-    private val _resolvedDistanceUnit = MutableStateFlow("MILES")
+    fun resolveImagePath(fileName: String): String? = imageStorageManager.getImagePath(fileName)
+
+    private val _resolvedDistanceUnit = MutableStateFlow("KILOMETERS")
     val resolvedDistanceUnit: StateFlow<String> = _resolvedDistanceUnit.asStateFlow()
 
     init {
@@ -128,41 +135,25 @@ class VehicleProfileViewModel(
     /**
      * Validates mandatory vehicle fields. Returns true if valid.
      */
-    private fun validateVehicle(vehicle: VehicleEntity): Boolean {
-        val errors = mutableMapOf<String, Int>()
-        if (vehicle.name.isBlank()) errors["name"] = R.string.error_field_required
-        if (vehicle.plate.isBlank()) errors["plate"] = R.string.error_field_required
-        if (vehicle.year.isBlank()) errors["year"] = R.string.error_field_required
-        if (vehicle.mileage.isBlank()) errors["mileage"] = R.string.error_field_required
-        if (vehicle.owner.isBlank()) errors["owner"] = R.string.error_field_required
-        if (vehicle.fuelType.isBlank()) errors["fuelType"] = R.string.error_field_required
-        if (vehicle.engineCapacity.isBlank()) errors["engineCapacity"] = R.string.error_field_required
+    private fun validateVehicle(vehicle: Vehicle): Boolean {
+        val errors = VehicleValidator.validate(vehicle.toEntity())
         _formErrors.value = errors
         return errors.isEmpty()
     }
 
-    fun updateVehicle(vehicle: VehicleEntity) {
+    private suspend fun uploadFirstImage(vehicle: Vehicle): Vehicle {
+        val imageFileName = vehicle.localImageFileNames.firstOrNull() ?: return vehicle
+        val imagePath = imageStorageManager.getImagePath(imageFileName) ?: return vehicle
+        val uri = Uri.fromFile(java.io.File(imagePath))
+        val uploadResult = imageUploadRepository.uploadImage(uri, "vehicle")
+        return if (uploadResult.isSuccess) vehicle.copy(remoteImageUrl = uploadResult.getOrNull()) else vehicle
+    }
+
+    fun updateVehicle(vehicle: Vehicle) {
         if (!validateVehicle(vehicle)) return
         viewModelScope.launch {
-            var updated = vehicle
-            val app = application as MyGarageApplication
-            val imageStorageManager: ImageStorageManager = app.imageStorageManager
-            val imageUploadRepo = ImageUploadRepository(application)
-
-            // Upload the first local image if present (dialog already saved it to storage)
-            val imageFileName = vehicle.localImageFileNames.firstOrNull()
-            if (imageFileName != null) {
-                val imagePath = imageStorageManager.getImagePath(imageFileName)
-                if (imagePath != null) {
-                    val uri = Uri.fromFile(java.io.File(imagePath))
-                    val uploadResult = imageUploadRepo.uploadImage(uri, "vehicle")
-                    if (uploadResult.isSuccess) {
-                        updated = updated.copy(remoteImageUrl = uploadResult.getOrNull())
-                    }
-                }
-            }
-
-            repository.updateVehicle(updated)
+            repository.updateVehicle(uploadFirstImage(vehicle))
+            SyncWorker.enqueueOneTimeSync(application)
         }
     }
 
@@ -189,6 +180,7 @@ class VehicleProfileViewModel(
                     )
                     Log.d("MyGarage.Location", "Updating vehicle in Room: lat=${updated.latitude}, lng=${updated.longitude}")
                     repository.updateVehicle(updated)
+                    SyncWorker.enqueueOneTimeSync(application)
                     Log.d("MyGarage.Location", "Vehicle updated in Room — Flow should emit new state")
                 }
                 is LocationResult.Error -> {
@@ -196,23 +188,5 @@ class VehicleProfileViewModel(
                 }
             }
         }
-    }
-
-    companion object {
-        fun factory(
-            repository: VehicleRepository,
-            locationManager: LocationManager,
-            userPreferencesRepository: UserPreferencesRepository,
-            application: Application
-        ): ViewModelProvider.Factory =
-            object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return VehicleProfileViewModel(
-                        repository, locationManager,
-                        userPreferencesRepository, application
-                    ) as T
-                }
-            }
     }
 }

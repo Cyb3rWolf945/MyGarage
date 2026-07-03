@@ -40,15 +40,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import dagger.hilt.android.AndroidEntryPoint
+import androidx.hilt.navigation.compose.hiltViewModel
 import pt.ipt.dama2026.mygarage.presentation.garage.GarageViewModel
 import pt.ipt.dama2026.mygarage.presentation.main.MainViewModel
 import pt.ipt.dama2026.mygarage.presentation.onboarding.OnboardingViewModel
-import pt.ipt.dama2026.mygarage.presentation.auth.AuthViewModel
 import pt.ipt.dama2026.mygarage.presentation.profile.ProfileViewModel
 import pt.ipt.dama2026.mygarage.presentation.profile.VehicleProfileViewModel
 import pt.ipt.dama2026.mygarage.presentation.service.ServiceViewModel
-import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
-import pt.ipt.dama2026.mygarage.data.repository.SyncRepository
 import pt.ipt.dama2026.mygarage.data.sync.SyncWorker
 import pt.ipt.dama2026.mygarage.domain.locale.DistanceFormatter
 import kotlinx.coroutines.flow.firstOrNull
@@ -78,6 +77,7 @@ sealed class Screen(val route: String, val labelResId: Int, val iconResId: Int) 
 
 private val bottomNavItems = listOf(Screen.Garage, Screen.Camera, Screen.Service)
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,7 +86,7 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContent {
             MyGarageTheme {
-                val mainViewModel = remember { MainViewModel(application) }
+                val mainViewModel: MainViewModel = hiltViewModel()
                 val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
 
                 Crossfade(targetState = isLoading, label = "splash_crossfade") { loading ->
@@ -103,25 +103,21 @@ class MainActivity : AppCompatActivity() {
 
 @Composable
 fun MainScreen(
-    mainViewModel: MainViewModel = viewModel()
+    mainViewModel: MainViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as MyGarageApplication
-    val repository = app.repository
-    val prefsRepo = remember { UserPreferencesRepository(context) }
 
     LaunchedEffect(Unit) {
-        val token = prefsRepo.userAuthTokenFlow.firstOrNull()
+        val token = mainViewModel.authToken.firstOrNull()
         if (!token.isNullOrBlank()) {
             SyncWorker.enqueuePeriodicSync(context)
         }
     }
 
-    val authToken by prefsRepo.userAuthTokenFlow.collectAsStateWithLifecycle(initialValue = null)
+    val authToken by mainViewModel.authToken.collectAsStateWithLifecycle(initialValue = null)
     LaunchedEffect(authToken) {
         if (!authToken.isNullOrBlank()) {
-            val syncRepo = SyncRepository(context)
-            syncRepo.pullAndSyncUserProfile()
+            mainViewModel.pullUserProfile()
         }
     }
 
@@ -129,26 +125,19 @@ fun MainScreen(
     val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
     val topBarAvatarFileName by mainViewModel.avatarFileName.collectAsStateWithLifecycle()
     val topBarAvatarRemoteUrl by mainViewModel.avatarRemoteUrl.collectAsStateWithLifecycle()
+    val topBarAvatarLocalFile by mainViewModel.avatarLocalFile.collectAsStateWithLifecycle()
 
-    val garageViewModel: GarageViewModel = viewModel()
-    val serviceViewModel: ServiceViewModel = viewModel(
-        factory = ServiceViewModel.factory(
-            repository,
-            UserPreferencesRepository(context),
-            app
-        )
-    )
+    val garageViewModel: GarageViewModel = hiltViewModel()
+    val serviceViewModel: ServiceViewModel = hiltViewModel()
 
     val garageState by garageViewModel.uiState.collectAsStateWithLifecycle()
-    val imageStorageManager = app.imageStorageManager
     val vehicles by garageViewModel.vehiclesState.collectAsState()
     val garageFormErrors by garageViewModel.formErrors.collectAsState()
     val garageShowDelete by garageViewModel.showDeleteConfirmation.collectAsState()
     val garageVehicleToDelete by garageViewModel.vehicleToDelete.collectAsState()
     val garageSelectedForOptions by garageViewModel.selectedVehicleForOptions.collectAsState()
     val garageVehicleToEdit by garageViewModel.vehicleToEdit.collectAsState()
-    val topBarAvatarFile = topBarAvatarFileName?.let { imageStorageManager.getImagePath(it) }?.let { java.io.File(it) }
-    val topBarAvatarModel: Any? = topBarAvatarFile ?: topBarAvatarRemoteUrl
+    val topBarAvatarModel: Any? = topBarAvatarLocalFile ?: topBarAvatarRemoteUrl
         ?.replace("\"", "")
         ?.let { pt.ipt.dama2026.mygarage.data.network.NetworkModule.buildImageProxyUrl(context, it) }
 
@@ -257,7 +246,7 @@ fun MainScreen(
                 .padding(innerPadding)
         ) {
             composable(MainViewModel.ROUTE_ONBOARDING_GRAPH) {
-                val onboardingViewModel: OnboardingViewModel = viewModel()
+                val onboardingViewModel: OnboardingViewModel = hiltViewModel()
                 OnboardingScreen(
                     viewModel = onboardingViewModel,
                     onOnboardingComplete = {
@@ -285,7 +274,6 @@ fun MainScreen(
                 )
             ) { backStackEntry ->
                 val noBack = backStackEntry.arguments?.getBoolean("noBack") ?: false
-                val authViewModel: AuthViewModel = viewModel()
                 AuthScreen(
                     onAuthSuccess = {
                         navController.navigate(MainViewModel.ROUTE_GARAGE_GRAPH) {
@@ -300,7 +288,7 @@ fun MainScreen(
 
 
             composable(MainViewModel.ROUTE_GARAGE_GRAPH) {
-                var duplicateVehicleFound by remember { mutableStateOf<pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity?>(null) }
+                var duplicateVehicleFound by remember { mutableStateOf<pt.ipt.dama2026.mygarage.domain.model.Vehicle?>(null) }
 
                 if (duplicateVehicleFound != null) {
                     val vehicleToView = duplicateVehicleFound
@@ -356,7 +344,7 @@ fun MainScreen(
                                 selectedImageUri = garageState.selectedImageUri,
                                 existingImageFileName = garageState.existingImageFileName,
                                 onImageSelected = garageViewModel::onImageSelected,
-                                imageStorageManager = imageStorageManager,
+                                imageStorageManager = garageViewModel.imageStorageManager,
 
                                 selectedVehicleForOptions = garageSelectedForOptions,
                                 onVehicleLongPressed = garageViewModel::onVehicleLongPressed,
@@ -441,14 +429,7 @@ fun MainScreen(
 
             composable("vehicle_profile/{vehicleId}") { backStackEntry ->
                 val vehicleId = backStackEntry.arguments?.getString("vehicleId") ?: ""
-                val profileViewModel: VehicleProfileViewModel = viewModel(
-                    factory = VehicleProfileViewModel.factory(
-                        repository,
-                        app.locationManager,
-                        UserPreferencesRepository(context),
-                        app
-                    )
-                )
+                val profileViewModel: VehicleProfileViewModel = hiltViewModel()
 
                 LaunchedEffect(vehicleId) {
                     profileViewModel.loadVehicle(vehicleId)
@@ -460,26 +441,13 @@ fun MainScreen(
                 val profileDeleteCompleted by profileViewModel.deleteCompleted.collectAsState()
                 val isCarouselVisible by profileViewModel.isCarouselVisible.collectAsState()
                 val carouselStartIndex by profileViewModel.carouselStartIndex.collectAsState()
+                val profileResolvedUnit by profileViewModel.resolvedDistanceUnit.collectAsState()
 
                 vehicleWithServices?.let { ws ->
-                    val profileResolvedUnit by profileViewModel.resolvedDistanceUnit.collectAsState()
-
                     val uiState = remember(ws, profileFormErrors, profileResolvedUnit) {
                         val displayMileage = if (ws.vehicle.mileageKm > 0.0) {
-                            String.format(java.util.Locale.US, "%,d",
-                                DistanceFormatter.forDisplay(ws.vehicle.mileageKm, profileResolvedUnit).toLong()
-                            )
-                        } else ws.vehicle.mileage
-
-                        val displayMileageToNextService = if (ws.vehicle.mileageToNextService != null) {
-                            val nextServiceStr = ws.vehicle.mileageToNextService ?: ""
-                            val parsed = DistanceFormatter.parseUserInput(nextServiceStr)
-                            if (parsed > 0.0) {
-                                String.format(java.util.Locale.US, "%,d",
-                                    DistanceFormatter.forDisplay(parsed, profileResolvedUnit).toLong()
-                                )
-                            } else nextServiceStr
-                        } else null
+                            DistanceFormatter.formatDisplay(ws.vehicle.mileageKm, profileResolvedUnit)
+                        } else ""
 
                         val dateFormatter = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
 
@@ -495,7 +463,7 @@ fun MainScreen(
                             fuelType = ws.vehicle.fuelType,
                             engineCapacity = ws.vehicle.engineCapacity,
                             iucValue = ws.vehicle.iucValue,
-                            mileageToNextService = displayMileageToNextService,
+
                             locationAddress = ws.vehicle.locationAddress,
                             latitude = ws.vehicle.latitude,
                             longitude = ws.vehicle.longitude,
@@ -507,11 +475,12 @@ fun MainScreen(
                                 } catch (e: Exception) {
                                     log.date
                                 }
+                                val historyMileage = DistanceFormatter.formatDisplay(log.mileageKm, profileResolvedUnit)
                                 ServiceHistoryItem(
                                     title = log.description,
                                     subtitle = context.getString(
                                         R.string.timeline_subtitle,
-                                        log.mileage,
+                                        historyMileage,
                                         serviceDate,
                                         log.type
                                     )
@@ -568,13 +537,15 @@ fun MainScreen(
                         onDismissDeleteDialog = profileViewModel::dismissDeleteDialog,
                         onConfirmDelete = profileViewModel::confirmDelete,
                         onFieldChanged = profileViewModel::clearFieldError,
-                        onFetchLocationClicked = profileViewModel::onFetchLocationClicked
+                        onFetchLocationClicked = profileViewModel::onFetchLocationClicked,
+                        imageStorageManager = profileViewModel.imageStorageManager,
+                        locationManager = profileViewModel.locationManager
                     )
                 }
             }
 
             composable("profile") {
-                val profileViewModel: ProfileViewModel = viewModel()
+                val profileViewModel: ProfileViewModel = hiltViewModel()
                 ProfileScreen(
                     viewModel = profileViewModel,
                     onBackClick = {
@@ -585,6 +556,9 @@ fun MainScreen(
                             MainViewModel.ROUTE_GARAGE_GRAPH,
                             inclusive = false
                         )
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(0)
+                        }
                     },
                     onNavigateToAbout = {
                         navController.navigate("about") {

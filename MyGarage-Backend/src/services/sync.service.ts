@@ -106,7 +106,6 @@ async function upsertVehicle(userId: string, v: VehiclePayload) {
       fuelType: v.fuelType,
       engineCapacity: v.engineCapacity,
       iucValue: v.iucValue ?? null,
-      mileageToNextService: v.mileageToNextService ?? null,
       locationAddress: v.locationAddress ?? null,
       latitude: v.latitude ?? null,
       longitude: v.longitude ?? null,
@@ -129,7 +128,6 @@ async function upsertVehicle(userId: string, v: VehiclePayload) {
       fuelType: v.fuelType,
       engineCapacity: v.engineCapacity,
       iucValue: v.iucValue ?? null,
-      mileageToNextService: v.mileageToNextService ?? null,
       locationAddress: v.locationAddress ?? null,
       latitude: v.latitude ?? null,
       longitude: v.longitude ?? null,
@@ -153,6 +151,7 @@ async function upsertServiceLog(userId: string, s: ServiceLogPayload) {
       mileage: s.mileage,
       mileageKm: s.mileageKm,
       type: s.type,
+      isDeleted: s.isDeleted ?? false,
       userId, // ⬅ FORCED
     },
     update: {
@@ -162,6 +161,7 @@ async function upsertServiceLog(userId: string, s: ServiceLogPayload) {
       mileage: s.mileage,
       mileageKm: s.mileageKm,
       type: s.type,
+      isDeleted: s.isDeleted ?? false,
     },
   });
 }
@@ -175,6 +175,7 @@ async function upsertPart(userId: string, p: PartPayload) {
       name: p.name,
       quantity: p.quantity,
       reference: p.reference ?? null,
+      isDeleted: p.isDeleted ?? false,
       userId, // ⬅ FORCED
     },
     update: {
@@ -182,6 +183,7 @@ async function upsertPart(userId: string, p: PartPayload) {
       name: p.name,
       quantity: p.quantity,
       reference: p.reference ?? null,
+      isDeleted: p.isDeleted ?? false,
     },
   });
 }
@@ -193,11 +195,13 @@ async function upsertPiece(userId: string, pc: PiecePayload) {
       id: pc.id,
       name: pc.name,
       price: pc.price,
+      isDeleted: pc.isDeleted ?? false,
       userId, // ⬅ FORCED
     },
     update: {
       name: pc.name,
       price: pc.price,
+      isDeleted: pc.isDeleted ?? false,
     },
   });
 }
@@ -214,10 +218,12 @@ async function upsertCrossRef(userId: string, x: ServiceLogPieceCrossRefPayload)
       serviceLogId: x.serviceLogId,
       pieceId: x.pieceId,
       quantity: x.quantity,
+      isDeleted: x.isDeleted ?? false,
       userId, // ⬅ FORCED
     },
     update: {
       quantity: x.quantity,
+      isDeleted: x.isDeleted ?? false,
     },
   });
 }
@@ -258,12 +264,7 @@ export async function mergeGuestData(userId: string, body: SyncPushBody): Promis
   await Promise.all(operations);
 }
 
-// ── PULL INITIAL ─────────────────────────────────────────────────
-// Returns all user data (no timestamp filter) for first-login.
 
-export async function pullInitial(userId: string): Promise<SyncPullResult> {
-  return pull(userId, undefined);
-}
 
 // ── LWW Upsert Helpers ──────────────────────────────────────────
 

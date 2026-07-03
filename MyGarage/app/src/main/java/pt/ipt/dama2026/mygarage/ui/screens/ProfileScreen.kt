@@ -62,7 +62,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
-import pt.ipt.dama2026.mygarage.MyGarageApplication
 import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.data.network.NetworkModule
 import pt.ipt.dama2026.mygarage.presentation.profile.ProfileUiState
@@ -70,6 +69,7 @@ import pt.ipt.dama2026.mygarage.presentation.profile.ProfileViewModel
 import pt.ipt.dama2026.mygarage.ui.components.ShimmerPlaceholder
 import pt.ipt.dama2026.mygarage.ui.components.GradientPlaceholder
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
+import pt.ipt.dama2026.mygarage.domain.locale.DateFormats
 import java.io.File
 import java.text.NumberFormat
 import java.util.Locale
@@ -88,11 +88,8 @@ fun ProfileScreen(
     val navigateToAuth by viewModel.navigateToAuth.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     val context = LocalContext.current
-    val app = context.applicationContext as MyGarageApplication
-    val imageStorageManager = app.imageStorageManager
 
-    // Resolve avatar file path from stored filename, fall back to proxy URL
-    val avatarPath = state.avatarFileName?.let { imageStorageManager.getImagePath(it) }
+    val avatarPath = state.avatarFileName?.let { viewModel.getAvatarPath(it) }
     val avatarProxyUrl = if (avatarPath == null && !state.avatarRemoteUrl.isNullOrBlank()) {
         NetworkModule.buildImageProxyUrl(context, state.avatarRemoteUrl?.replace("\"", ""))
     } else null
@@ -300,7 +297,7 @@ private fun ViewModeContent(
         BentoStatCard(
             modifier = Modifier.weight(1f),
             label = stringResource(id = R.string.profile_stat_total_mileage, unitName),
-            value = formatMileage(state.totalMileage),
+            value = formatMileage(state.totalMileage, state.resolvedDistanceUnit),
             icon = {
                 Text(
                     text = if (state.resolvedDistanceUnit == "KILOMETERS") stringResource(id = R.string.unit_label_km)
@@ -576,12 +573,8 @@ private fun SyncActionCard(
     onClick: () -> Unit
 ) {
     val lastSyncText = if (lastSyncTimestamp != null) {
-        val minutes = (System.currentTimeMillis() - lastSyncTimestamp) / 60_000
-        when {
-            minutes < 1 -> stringResource(R.string.profile_sync_last_synced, "just now")
-            minutes < 60 -> stringResource(R.string.profile_sync_last_synced, "${minutes}m ago")
-            else -> stringResource(R.string.profile_sync_last_synced, "${minutes / 60}h ago")
-        }
+        val formatted = DateFormats.DATE_TIME_DISPLAY.format(java.util.Date(lastSyncTimestamp))
+        stringResource(R.string.profile_sync_last_synced, formatted)
     } else {
         stringResource(R.string.profile_sync_never)
     }
@@ -810,12 +803,11 @@ private fun LanguageSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val options = listOf(
-        "SYSTEM" to stringResource(id = R.string.language_system_default),
         "en" to stringResource(id = R.string.language_english),
         "pt-PT" to stringResource(id = R.string.language_portuguese)
     )
     val selectedLabel = options.firstOrNull { it.first == currentLanguage }?.second
-        ?: stringResource(id = R.string.language_system_default)
+        ?: stringResource(id = R.string.language_english)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -876,12 +868,11 @@ private fun DistanceUnitSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val options = listOf(
-        "SYSTEM" to stringResource(id = R.string.distance_unit_system_default),
         "KILOMETERS" to stringResource(id = R.string.distance_unit_kilometers),
         "MILES" to stringResource(id = R.string.distance_unit_miles)
     )
     val selectedLabel = options.firstOrNull { it.first == currentUnit }?.second
-        ?: stringResource(id = R.string.distance_unit_system_default)
+        ?: stringResource(id = R.string.distance_unit_kilometers)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -934,7 +925,7 @@ private fun DistanceUnitSelector(
     }
 }
 
-private fun formatMileage(value: Int): String {
-    val formatter = NumberFormat.getNumberInstance(Locale.US)
-    return formatter.format(value)
+private fun formatMileage(value: Int, resolvedUnit: String): String {
+    val converted = pt.ipt.dama2026.mygarage.domain.locale.DistanceFormatter.forDisplay(value.toDouble(), resolvedUnit)
+    return NumberFormat.getNumberInstance(Locale.US).format(converted.toLong())
 }

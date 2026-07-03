@@ -27,6 +27,7 @@
     <string name="stat_mileage">%1$s</string>
     <string name="stat_inspection_date">Inspection</string>
     <string name="stat_mileage_to_next_service">%1$s to Next Service</string>
+    <string name="stat_year">Year</string>
     <string name="stat_iuc_value">IUC</string>
     <string name="currency_euro_prefix">€ %1$s</string>
     <string name="tab_specs">Specs</string>
@@ -233,8 +234,8 @@
     <string name="about_course_label">Course</string>
     <string name="about_curricular_unit_label">Curricular Unit</string>
     <string name="about_author_label">Author</string>
-    <string name="about_course_value">Mestrado: Engenharia Informática-Internet das Coisas</string>
-    <string name="about_unit_value">Desenvolvimento de Aplicações Móveis Avançadas</string>
+    <string name="about_course_value">Master\'s: Computer Engineering-Internet of Things</string>
+    <string name="about_unit_value">Advanced Mobile Application Development</string>
     <string name="about_architecture_header">ARCHITECTURE</string>
     <string name="about_architecture_body">Offline-First Foundation — Built on Room Database and DataStore for robust, immediate local persistence. The architecture cleanly separates concerns using Unidirectional Data Flow (UDF) with Jetpack Compose and Android ViewModels, ensuring a seamless transition to cloud synchronisation via a repository abstraction layer.</string>
     <string name="about_libraries_header">OPEN SOURCE LIBRARIES</string>
@@ -283,6 +284,8 @@
     <string name="auth_error_password_short">Password must be at least 6 characters</string>
     <string name="auth_error_password_weak">Password must contain at least one capital letter and one symbol</string>
     <string name="auth_error_password_match">Passwords do not match</string>
+    <string name="auth_error_invalid_credentials">Invalid email or password</string>
+    <string name="auth_error_network">Network error. Please check your connection.</string>
 
     <!-- Sync (Profile Screen) -->
     <string name="profile_sync_title">Cloud Sync</string>

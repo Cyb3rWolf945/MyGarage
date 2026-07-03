@@ -31,7 +31,6 @@ export interface VehiclePayload {
   fuelType: string;
   engineCapacity: string;
   iucValue?: string | null;
-  mileageToNextService?: string | null;
   locationAddress?: string | null;
   latitude?: number | null;
   longitude?: number | null;

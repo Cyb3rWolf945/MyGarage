@@ -55,10 +55,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import pt.ipt.dama2026.mygarage.domain.camera.LicensePlateAnalyzer
+import androidx.hilt.navigation.compose.hiltViewModel
+import pt.ipt.dama2026.mygarage.data.camera.LicensePlateAnalyzer
 import pt.ipt.dama2026.mygarage.domain.licenseplates.LicensePlateApiResult
 import pt.ipt.dama2026.mygarage.presentation.camera.CameraUiState
 import pt.ipt.dama2026.mygarage.presentation.camera.CameraViewModel
@@ -73,15 +71,7 @@ fun CameraScreen(
     onVehicleDataReady: (pt.ipt.dama2026.mygarage.domain.licenseplates.LicensePlateVehicleData) -> Unit = {}
 ) {
     val context = LocalContext.current
-    val app = context.applicationContext as? pt.ipt.dama2026.mygarage.MyGarageApplication
-    val licensePlateApiService = app?.licensePlateApiService
-    val viewModel: CameraViewModel = viewModel(
-        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                return CameraViewModel(licensePlateApiService) as T
-            }
-        }
-    )
+    val viewModel: CameraViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsState()
 
     CameraScreenContent(
@@ -281,14 +271,14 @@ private fun CameraScreenContent(
             DetectedPlateBanner(
                 detectedPlate = uiState.detectedPlate,
                 isConfirmed = uiState.isPlateConfirmed,
-                apiResult = uiState.licensePlateApiResult,
+                isLoading = uiState.isLoading,
                 onConfirmTapped = onConfirmPlate,
                 onCancelTapped = onCancelPlate
             )
 
-            if (uiState.showLookupResultDialog) {
+            if (uiState.showLookupResultDialog && uiState.licensePlateApiResult != null) {
                 LicensePlateLookupResultDialog(
-                    result = uiState.licensePlateApiResult,
+                    result = uiState.licensePlateApiResult!!,
                     onDismiss = onResultDialogDismissed,
                     onUseData = { vehicleData ->
                         onResultDialogDismissed()
@@ -304,7 +294,7 @@ private fun CameraScreenContent(
 private fun DetectedPlateBanner(
     detectedPlate: String?,
     isConfirmed: Boolean,
-    apiResult: LicensePlateApiResult,
+    isLoading: Boolean = false,
     onConfirmTapped: () -> Unit,
     onCancelTapped: () -> Unit
 ) {
@@ -358,9 +348,9 @@ private fun DetectedPlateBanner(
                     Button(
                         onClick = onConfirmTapped,
                         modifier = Modifier.weight(1f),
-                        enabled = apiResult !is LicensePlateApiResult.Loading
+                        enabled = !isLoading
                     ) {
-                        if (apiResult is LicensePlateApiResult.Loading) {
+                        if (isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp

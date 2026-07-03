@@ -11,7 +11,7 @@ data class ProfileUiState(
     val avatarFileName: String? = null,
     val appLanguage: String = "SYSTEM",
     val distanceUnit: String = "SYSTEM",
-    val resolvedDistanceUnit: String = "MILES",
+    val resolvedDistanceUnit: String = "KILOMETERS",
     val userEmail: String? = null,
     val isSyncing: Boolean = false,
     val lastSyncTimestamp: Long? = null,
