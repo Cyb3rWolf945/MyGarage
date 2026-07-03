@@ -60,17 +60,8 @@ private const val PAGE_SETUP = 2
 private const val PAGE_COUNT = 3
 
 /**
- * 3-step onboarding flow with authentication decision gate.
- *
- * Page 1 — Cinematic welcome with bold typography.
- * Page 2 — Auth fork: sign in to sync, or continue as guest.
- * Page 3 — Guest workspace setup (user + garage name).
- *
- * Manual swiping is disabled — users must use the provided buttons.
- *
- * @param viewModel The [OnboardingViewModel] managing form state and navigation events.
- * @param onOnboardingComplete Callback invoked after successful guest setup.
- * @param onNavigateToAuth Callback invoked when the user chooses to sign in.
+ * HorizontalPager com 3 páginas (WelcomePage, AuthForkPage, SetupPage).
+ * Navegação apenas por botões — swipe desativado.
  */
 @Composable
 fun OnboardingScreen(

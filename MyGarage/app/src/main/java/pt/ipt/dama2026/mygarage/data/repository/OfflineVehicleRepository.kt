@@ -2,21 +2,15 @@ package pt.ipt.dama2026.mygarage.data.repository
 
 import pt.ipt.dama2026.mygarage.data.local.dao.VehicleDao
 import pt.ipt.dama2026.mygarage.data.local.entity.PartEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.PieceEntity
 import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogPieceCrossRef
 import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
 import pt.ipt.dama2026.mygarage.data.local.relation.ServiceLogWithParts as EntityServiceLogWithParts
-import pt.ipt.dama2026.mygarage.data.local.relation.ServiceLogWithPieces as EntityServiceLogWithPieces
 import pt.ipt.dama2026.mygarage.data.local.relation.VehicleWithServices as EntityVehicleWithServices
 import pt.ipt.dama2026.mygarage.data.mapper.toDomain
 import pt.ipt.dama2026.mygarage.data.mapper.toEntity
 import pt.ipt.dama2026.mygarage.domain.model.Part
-import pt.ipt.dama2026.mygarage.domain.model.Piece
 import pt.ipt.dama2026.mygarage.domain.model.ServiceLog
-import pt.ipt.dama2026.mygarage.domain.model.ServiceLogCrossRef
 import pt.ipt.dama2026.mygarage.domain.model.ServiceLogWithParts
-import pt.ipt.dama2026.mygarage.domain.model.ServiceLogWithPieces
 import pt.ipt.dama2026.mygarage.domain.model.Vehicle
 import pt.ipt.dama2026.mygarage.domain.model.VehicleWithServices
 import pt.ipt.dama2026.mygarage.domain.repository.VehicleRepository
@@ -25,7 +19,6 @@ import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -91,28 +84,10 @@ class OfflineVehicleRepository @Inject constructor(
         return vehicleDao.getVehicleWithServices(vehicleId).map { it.toDomain() }
     }
 
-    override fun getAllPieces(): Flow<List<Piece>> {
-        return vehicleDao.getAllPieces().map { list -> list.map { it.toDomain() } }
-    }
-
     override suspend fun insertServiceLog(serviceLog: ServiceLog) {
         val entity = serviceLog.toEntity()
         vehicleDao.insertServiceLog(entity)
         handleServiceLogSideEffects(entity)
-    }
-
-    override suspend fun insertServiceLogWithPieces(
-        serviceLog: ServiceLog,
-        pieces: List<ServiceLogCrossRef>
-    ) {
-        val entity = serviceLog.toEntity()
-        vehicleDao.insertServiceLog(entity)
-        pieces.forEach { vehicleDao.insertServiceLogPieceCrossRef(it.toEntity()) }
-        handleServiceLogSideEffects(entity)
-    }
-
-    override fun getServiceLogWithPieces(serviceLogId: UUID): Flow<ServiceLogWithPieces> {
-        return vehicleDao.getServiceLogWithPieces(serviceLogId).map { it.toDomain() }
     }
 
     override suspend fun insertPart(part: Part) {

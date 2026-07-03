@@ -11,9 +11,7 @@ import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
 import pt.ipt.dama2026.mygarage.data.sync.SyncWorker
 import pt.ipt.dama2026.mygarage.domain.locale.DistanceFormatter
 import pt.ipt.dama2026.mygarage.domain.model.Part
-import pt.ipt.dama2026.mygarage.domain.model.Piece
 import pt.ipt.dama2026.mygarage.domain.model.ServiceLog
-import pt.ipt.dama2026.mygarage.domain.model.ServiceLogCrossRef
 import pt.ipt.dama2026.mygarage.domain.model.Vehicle
 import pt.ipt.dama2026.mygarage.domain.model.VehicleWithServices
 import pt.ipt.dama2026.mygarage.domain.repository.VehicleRepository
@@ -55,13 +53,6 @@ class ServiceViewModel @Inject constructor(
     }
 
     val vehicles: StateFlow<List<Vehicle>> = repository.getAllVehicles()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-
-    val pieces: StateFlow<List<Piece>> = repository.getAllPieces()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -177,18 +168,6 @@ class ServiceViewModel @Inject constructor(
             )) return
         viewModelScope.launch {
             repository.insertServiceLog(serviceLog)
-        }
-    }
-
-    /**
-     * Inserts service log with pieces (for revision type).
-     */
-    fun insertServiceLogWithPieces(
-        serviceLog: ServiceLog,
-        piecesUsed: List<ServiceLogCrossRef>
-    ) {
-        viewModelScope.launch {
-            repository.insertServiceLogWithPieces(serviceLog, piecesUsed)
         }
     }
 

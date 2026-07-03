@@ -2,9 +2,7 @@ package pt.ipt.dama2026.mygarage.data.model
 
 import com.google.gson.annotations.SerializedName
 import pt.ipt.dama2026.mygarage.data.local.entity.PartEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.PieceEntity
 import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogPieceCrossRef
 import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
 import pt.ipt.dama2026.mygarage.domain.locale.DateFormats
 import java.util.UUID
@@ -55,28 +53,10 @@ data class PartPayload(
     @SerializedName("updatedAt") val updatedAt: String
 )
 
-data class PiecePayload(
-    @SerializedName("id") val id: String,
-    @SerializedName("name") val name: String,
-    @SerializedName("price") val price: Double,
-    @SerializedName("isDeleted") val isDeleted: Boolean = false,
-    @SerializedName("updatedAt") val updatedAt: String
-)
-
-data class ServiceLogPieceCrossRefPayload(
-    @SerializedName("serviceLogId") val serviceLogId: String,
-    @SerializedName("pieceId") val pieceId: String,
-    @SerializedName("quantity") val quantity: Int,
-    @SerializedName("isDeleted") val isDeleted: Boolean = false,
-    @SerializedName("updatedAt") val updatedAt: String
-)
-
 data class SyncPushBody(
     @SerializedName("vehicles") val vehicles: List<VehiclePayload>? = null,
     @SerializedName("services") val services: List<ServiceLogPayload>? = null,
-    @SerializedName("parts") val parts: List<PartPayload>? = null,
-    @SerializedName("pieces") val pieces: List<PiecePayload>? = null,
-    @SerializedName("servicePieceCrossRefs") val servicePieceCrossRefs: List<ServiceLogPieceCrossRefPayload>? = null
+    @SerializedName("parts") val parts: List<PartPayload>? = null
 )
 
 data class SyncResponse(
@@ -86,9 +66,7 @@ data class SyncResponse(
 data class SyncPullResponse(
     @SerializedName("vehicles") val vehicles: List<VehiclePayload> = emptyList(),
     @SerializedName("services") val services: List<ServiceLogPayload> = emptyList(),
-    @SerializedName("parts") val parts: List<PartPayload> = emptyList(),
-    @SerializedName("pieces") val pieces: List<PiecePayload> = emptyList(),
-    @SerializedName("servicePieceCrossRefs") val servicePieceCrossRefs: List<ServiceLogPieceCrossRefPayload> = emptyList()
+    @SerializedName("parts") val parts: List<PartPayload> = emptyList()
 )
 
 fun VehicleEntity.toPayload(): VehiclePayload = VehiclePayload(
@@ -137,23 +115,6 @@ fun PartEntity.toPayload(): PartPayload = PartPayload(
     updatedAt = iso8601(updatedAt)
 )
 
-fun PieceEntity.toPayload(): PiecePayload = PiecePayload(
-    id = id,
-    name = name,
-    price = price,
-    isDeleted = isDeleted,
-    updatedAt = iso8601(updatedAt)
-)
-
-fun ServiceLogPieceCrossRef.toPayload(): ServiceLogPieceCrossRefPayload =
-    ServiceLogPieceCrossRefPayload(
-        serviceLogId = serviceLogId.toString(),
-        pieceId = pieceId,
-        quantity = quantity,
-        isDeleted = isDeleted,
-        updatedAt = iso8601(updatedAt)
-    )
-
 fun VehiclePayload.toEntity(): VehicleEntity = VehicleEntity(
     id = id,
     plate = plate,
@@ -199,23 +160,6 @@ fun PartPayload.toEntity(): PartEntity = PartEntity(
     updatedAt = parseIso8601(updatedAt),
     isDeleted = isDeleted
 )
-
-fun PiecePayload.toEntity(): PieceEntity = PieceEntity(
-    id = id,
-    name = name,
-    price = price,
-    updatedAt = parseIso8601(updatedAt),
-    isDeleted = isDeleted
-)
-
-fun ServiceLogPieceCrossRefPayload.toEntity(): ServiceLogPieceCrossRef =
-    ServiceLogPieceCrossRef(
-        serviceLogId = UUID.fromString(serviceLogId),
-        pieceId = pieceId,
-        quantity = quantity,
-        updatedAt = parseIso8601(updatedAt),
-        isDeleted = isDeleted
-    )
 
 private fun iso8601(epochMillis: Long): String = DateFormats.ISO_8601.format(java.util.Date(epochMillis))
 

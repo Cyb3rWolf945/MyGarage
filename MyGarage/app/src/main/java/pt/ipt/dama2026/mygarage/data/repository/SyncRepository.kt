@@ -32,9 +32,7 @@ class SyncRepository @Inject constructor(
             val body = SyncPushBody(
                 vehicles = dao.getAllVehiclesList().map { it.toPayload() }.ifEmpty { null },
                 services = dao.getAllServiceLogsList().map { it.toPayload() }.ifEmpty { null },
-                parts = dao.getAllPartsList().map { it.toPayload() }.ifEmpty { null },
-                pieces = dao.getAllPiecesList().map { it.toPayload() }.ifEmpty { null },
-                servicePieceCrossRefs = dao.getAllCrossRefsList().map { it.toPayload() }.ifEmpty { null }
+                parts = dao.getAllPartsList().map { it.toPayload() }.ifEmpty { null }
             )
             val response = api.push(body)
             if (response.isSuccessful) Result.success(Unit)
@@ -63,8 +61,6 @@ class SyncRepository @Inject constructor(
             }
             if (data.services.isNotEmpty()) dao.upsertServiceLogs(data.services.map { it.toEntity() })
             if (data.parts.isNotEmpty()) dao.upsertParts(data.parts.map { it.toEntity() })
-            if (data.pieces.isNotEmpty()) dao.upsertPieces(data.pieces.map { it.toEntity() })
-            if (data.servicePieceCrossRefs.isNotEmpty()) dao.upsertCrossRefs(data.servicePieceCrossRefs.map { it.toEntity() })
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -151,20 +147,14 @@ class SyncRepository @Inject constructor(
             val local = dao.getAllVehiclesList()
             val localLogs = dao.getAllServiceLogsList()
             val localParts = dao.getAllPartsList()
-            val localPieces = dao.getAllPiecesList()
-            val localCrossRefs = dao.getAllCrossRefsList()
 
             val mergedVehicles = ConflictResolver.mergeVehicles(local, remote.vehicles)
             val mergedLogs = ConflictResolver.mergeServiceLogs(localLogs, remote.services)
             val mergedParts = ConflictResolver.mergeParts(localParts, remote.parts)
-            val mergedPieces = ConflictResolver.mergePieces(localPieces, remote.pieces)
-            val mergedCrossRefs = ConflictResolver.mergeCrossRefs(localCrossRefs, remote.servicePieceCrossRefs)
 
             if (mergedVehicles.isNotEmpty()) dao.upsertVehicles(mergedVehicles)
             if (mergedLogs.isNotEmpty()) dao.upsertServiceLogs(mergedLogs)
             if (mergedParts.isNotEmpty()) dao.upsertParts(mergedParts)
-            if (mergedPieces.isNotEmpty()) dao.upsertPieces(mergedPieces)
-            if (mergedCrossRefs.isNotEmpty()) dao.upsertCrossRefs(mergedCrossRefs)
 
             pushUserProfile()
             downloadMissingImages()
@@ -191,20 +181,14 @@ class SyncRepository @Inject constructor(
                 val local = dao.getAllVehiclesList()
                 val localLogs = dao.getAllServiceLogsList()
                 val localParts = dao.getAllPartsList()
-                val localPieces = dao.getAllPiecesList()
-                val localCrossRefs = dao.getAllCrossRefsList()
 
                 val mergedVehicles = ConflictResolver.mergeVehicles(local, remote.vehicles)
                 val mergedLogs = ConflictResolver.mergeServiceLogs(localLogs, remote.services)
                 val mergedParts = ConflictResolver.mergeParts(localParts, remote.parts)
-                val mergedPieces = ConflictResolver.mergePieces(localPieces, remote.pieces)
-                val mergedCrossRefs = ConflictResolver.mergeCrossRefs(localCrossRefs, remote.servicePieceCrossRefs)
 
                 if (mergedVehicles.isNotEmpty()) dao.upsertVehicles(mergedVehicles)
                 if (mergedLogs.isNotEmpty()) dao.upsertServiceLogs(mergedLogs)
                 if (mergedParts.isNotEmpty()) dao.upsertParts(mergedParts)
-                if (mergedPieces.isNotEmpty()) dao.upsertPieces(mergedPieces)
-                if (mergedCrossRefs.isNotEmpty()) dao.upsertCrossRefs(mergedCrossRefs)
 
                 pushUserProfile()
                 downloadMissingImages()

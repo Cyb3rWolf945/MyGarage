@@ -9,23 +9,19 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import pt.ipt.dama2026.mygarage.data.local.converter.Converters
 import pt.ipt.dama2026.mygarage.data.local.dao.VehicleDao
 import pt.ipt.dama2026.mygarage.data.local.entity.PartEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.PieceEntity
 import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogPieceCrossRef
 import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
 
 /**
- * Room database for the app. Holds vehicles, service logs, parts, and pieces.
+ * Room database for the app. Holds vehicles, service logs, and parts.
  */
 @Database(
     entities = [
         VehicleEntity::class,
         ServiceLogEntity::class,
-        PartEntity::class,
-        PieceEntity::class,
-        ServiceLogPieceCrossRef::class
+        PartEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -95,6 +91,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // v9→v10: drop unused pieces and service_log_pieces tables
+        private val MIGRATION_9_10 = object : androidx.room.migration.Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS pieces")
+                db.execSQL("DROP TABLE IF EXISTS service_log_pieces")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return Instance ?: synchronized(this) {
                 Room.databaseBuilder(
@@ -102,7 +106,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "my_garage_database"
                 )
-                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                 .build()
                 .also { Instance = it }
             }
