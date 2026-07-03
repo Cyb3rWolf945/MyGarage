@@ -39,11 +39,6 @@ interface SyncApiService {
     @POST("api/sync/merge-guest-data")
     suspend fun mergeGuestData(@Body body: SyncPushBody): Response<SyncResponse>
 
-    @GET("api/sync/pull-initial")
-    suspend fun pullInitial(
-        @Query("lastSyncTimestamp") lastSyncTimestamp: String? = null
-    ): Response<SyncPullResponse>
-
     @PATCH("api/user/profile")
     suspend fun updateProfile(@Body profile: UserProfileUpdate): Response<SyncResponse>
 
