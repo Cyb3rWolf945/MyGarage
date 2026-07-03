@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import pt.ipt.dama2026.mygarage.R
+import pt.ipt.dama2026.mygarage.domain.locale.DistanceFormatter
 import pt.ipt.dama2026.mygarage.domain.model.Part
 import pt.ipt.dama2026.mygarage.domain.model.ServiceLog
 import pt.ipt.dama2026.mygarage.presentation.locale.LocaleManager
@@ -179,9 +180,10 @@ fun ServiceLogActionDialog(
                         val unitName = if (resolvedDistanceUnit == "KILOMETERS")
                             stringResource(R.string.unit_kilometers)
                         else stringResource(R.string.unit_miles)
+                        val viewMileage = DistanceFormatter.formatDisplay(log.mileageKm, resolvedDistanceUnit)
                         ViewField(label = stringResource(R.string.view_field_date), value = log.date)
                         ViewField(label = stringResource(R.string.view_field_description), value = log.description)
-                        ViewField(label = stringResource(R.string.view_field_mileage, unitName), value = log.mileage)
+                        ViewField(label = stringResource(R.string.view_field_mileage, unitName), value = viewMileage)
                         val typeLocalized = stringResource(ServiceTypeLabels.labelFor(log.type, R.string.service_type_revision, R.string.service_type_inspection, R.string.service_type_regular))
                         ViewField(label = stringResource(R.string.view_field_service_type), value = typeLocalized)
 

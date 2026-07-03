@@ -803,12 +803,11 @@ private fun LanguageSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val options = listOf(
-        "SYSTEM" to stringResource(id = R.string.language_system_default),
         "en" to stringResource(id = R.string.language_english),
         "pt-PT" to stringResource(id = R.string.language_portuguese)
     )
     val selectedLabel = options.firstOrNull { it.first == currentLanguage }?.second
-        ?: stringResource(id = R.string.language_system_default)
+        ?: stringResource(id = R.string.language_english)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -869,12 +868,11 @@ private fun DistanceUnitSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val options = listOf(
-        "SYSTEM" to stringResource(id = R.string.distance_unit_system_default),
         "KILOMETERS" to stringResource(id = R.string.distance_unit_kilometers),
         "MILES" to stringResource(id = R.string.distance_unit_miles)
     )
     val selectedLabel = options.firstOrNull { it.first == currentUnit }?.second
-        ?: stringResource(id = R.string.distance_unit_system_default)
+        ?: stringResource(id = R.string.distance_unit_kilometers)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(

@@ -134,6 +134,7 @@ class OfflineVehicleRepository @Inject constructor(
                 date = serviceLog.date,
                 description = serviceLog.description,
                 mileage = serviceLog.mileage,
+                mileageKm = serviceLog.mileageKm,
                 type = serviceLog.type,
                 updatedAt = System.currentTimeMillis()
             )
@@ -141,7 +142,8 @@ class OfflineVehicleRepository @Inject constructor(
             serviceLog.toEntity().copy(updatedAt = System.currentTimeMillis())
         }
         vehicleDao.updateServiceLog(entity)
-        vehicleDao.deletePartsByServiceId(serviceLog.id.toString())
+        // Soft-delete all existing parts, then upsert the current ones
+        vehicleDao.softDeletePartsByServiceId(serviceLog.id.toString())
         parts.forEach { vehicleDao.insertPart(it.toEntity()) }
         handleServiceLogSideEffects(entity)
     }
@@ -149,6 +151,7 @@ class OfflineVehicleRepository @Inject constructor(
     override suspend fun deleteServiceLog(serviceLog: ServiceLog) {
         val existing = vehicleDao.getServiceLogById(serviceLog.id) ?: return
         vehicleDao.updateServiceLog(existing.copy(isDeleted = true, updatedAt = System.currentTimeMillis()))
+        vehicleDao.softDeletePartsByServiceId(serviceLog.id.toString())
     }
 
     /**
