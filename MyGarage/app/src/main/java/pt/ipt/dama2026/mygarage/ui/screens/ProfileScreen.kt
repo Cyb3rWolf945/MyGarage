@@ -69,6 +69,7 @@ import pt.ipt.dama2026.mygarage.presentation.profile.ProfileViewModel
 import pt.ipt.dama2026.mygarage.ui.components.ShimmerPlaceholder
 import pt.ipt.dama2026.mygarage.ui.components.GradientPlaceholder
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
+import pt.ipt.dama2026.mygarage.domain.locale.DateFormats
 import java.io.File
 import java.text.NumberFormat
 import java.util.Locale
@@ -572,12 +573,8 @@ private fun SyncActionCard(
     onClick: () -> Unit
 ) {
     val lastSyncText = if (lastSyncTimestamp != null) {
-        val minutes = (System.currentTimeMillis() - lastSyncTimestamp) / 60_000
-        when {
-            minutes < 1 -> stringResource(R.string.profile_sync_last_synced, "just now")
-            minutes < 60 -> stringResource(R.string.profile_sync_last_synced, "${minutes}m ago")
-            else -> stringResource(R.string.profile_sync_last_synced, "${minutes / 60}h ago")
-        }
+        val formatted = DateFormats.DATE_TIME_DISPLAY.format(java.util.Date(lastSyncTimestamp))
+        stringResource(R.string.profile_sync_last_synced, formatted)
     } else {
         stringResource(R.string.profile_sync_never)
     }

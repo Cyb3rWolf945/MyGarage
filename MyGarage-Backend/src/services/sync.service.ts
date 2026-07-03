@@ -264,12 +264,7 @@ export async function mergeGuestData(userId: string, body: SyncPushBody): Promis
   await Promise.all(operations);
 }
 
-// ── PULL INITIAL ─────────────────────────────────────────────────
-// Returns all user data (no timestamp filter) for first-login.
 
-export async function pullInitial(userId: string): Promise<SyncPullResult> {
-  return pull(userId, undefined);
-}
 
 // ── LWW Upsert Helpers ──────────────────────────────────────────
 
