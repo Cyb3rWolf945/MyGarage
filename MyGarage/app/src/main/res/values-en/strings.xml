@@ -27,6 +27,7 @@
     <string name="stat_mileage">%1$s</string>
     <string name="stat_inspection_date">Inspection</string>
     <string name="stat_mileage_to_next_service">%1$s to Next Service</string>
+    <string name="stat_year">Year</string>
     <string name="stat_iuc_value">IUC</string>
     <string name="currency_euro_prefix">€ %1$s</string>
     <string name="tab_specs">Specs</string>

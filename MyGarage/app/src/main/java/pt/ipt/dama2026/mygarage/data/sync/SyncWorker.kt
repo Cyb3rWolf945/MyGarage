@@ -8,18 +8,35 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import pt.ipt.dama2026.mygarage.data.repository.SyncRepository
 import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.firstOrNull
 import java.util.concurrent.TimeUnit
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface SyncWorkerEntryPoint {
+    fun syncRepo(): SyncRepository
+    fun prefsRepo(): UserPreferencesRepository
+}
 
 class SyncWorker(
     context: Context,
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
 
-    private val syncRepo = SyncRepository(context)
-    private val prefs = UserPreferencesRepository(context)
+    private val syncRepo: SyncRepository
+    private val prefs: UserPreferencesRepository
+
+    init {
+        val entryPoint = EntryPointAccessors.fromApplication(context.applicationContext, SyncWorkerEntryPoint::class.java)
+        syncRepo = entryPoint.syncRepo()
+        prefs = entryPoint.prefsRepo()
+    }
 
     override suspend fun doWork(): Result {
         val prefsData = prefs.userPreferencesFlow.firstOrNull() ?: return if (runAttemptCount < 3) Result.retry() else Result.failure()
@@ -50,7 +67,7 @@ class SyncWorker(
             WorkManager.getInstance(context)
                 .enqueueUniqueWork(
                     UNIQUE_WORK_NAME + "_onetime",
-                    ExistingWorkPolicy.KEEP,
+                    ExistingWorkPolicy.REPLACE,
                     request
                 )
         }

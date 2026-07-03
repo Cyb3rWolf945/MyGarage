@@ -1,6 +1,7 @@
 package pt.ipt.dama2026.mygarage.data.repository
 
 import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -9,11 +10,16 @@ import kotlinx.coroutines.withContext
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
-import pt.ipt.dama2026.mygarage.data.network.NetworkModule
+import pt.ipt.dama2026.mygarage.data.network.ImageUploadService
 import java.io.ByteArrayOutputStream
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class ImageUploadRepository(private val context: Context) {
-    private val imageUploadService = NetworkModule.createImageUploadService(context)
+@Singleton
+class ImageUploadRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val imageUploadService: ImageUploadService
+) {
 
     suspend fun uploadImage(
         uri: Uri,

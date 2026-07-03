@@ -1,30 +1,32 @@
 package pt.ipt.dama2026.mygarage.data.repository
 
 import android.content.Context
-import pt.ipt.dama2026.mygarage.data.local.db.AppDatabase
-import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
+import dagger.hilt.android.qualifiers.ApplicationContext
+import pt.ipt.dama2026.mygarage.data.local.dao.VehicleDao
 import pt.ipt.dama2026.mygarage.data.model.SyncPushBody
 import pt.ipt.dama2026.mygarage.data.model.toEntity
 import pt.ipt.dama2026.mygarage.data.model.toPayload
 import pt.ipt.dama2026.mygarage.data.network.NetworkModule
-import pt.ipt.dama2026.mygarage.data.storage.LocalImageStorageManager
+import pt.ipt.dama2026.mygarage.data.network.SyncApiService
+import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
 import pt.ipt.dama2026.mygarage.data.sync.ConflictResolver
+import pt.ipt.dama2026.mygarage.domain.locale.DateFormats
 import pt.ipt.dama2026.mygarage.domain.repository.ImageStorageManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.TimeZone
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class SyncRepository(private val context: Context) {
-
-    private val api = NetworkModule.createSyncApiService(context)
-    private val dao = AppDatabase.getDatabase(context).vehicleDao()
-    private val prefs = UserPreferencesRepository(context)
-    private val imageStorage: ImageStorageManager = LocalImageStorageManager(context)
-
+@Singleton
+class SyncRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val api: SyncApiService,
+    private val dao: VehicleDao,
+    private val prefs: UserPreferencesRepository,
+    private val imageStorage: ImageStorageManager
+) {
     suspend fun pushAll(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val body = SyncPushBody(
@@ -59,8 +61,8 @@ class SyncRepository(private val context: Context) {
                 val filtered = data.vehicles.filter { it.id !in deletedIds }
                 if (filtered.isNotEmpty()) dao.upsertVehicles(filtered.map { it.toEntity() })
             }
-            if (data.services.isNotEmpty()) dao.upsertServiceLogs(data.services.map { it.toEntity() })
-            if (data.parts.isNotEmpty()) dao.upsertParts(data.parts.map { it.toEntity() })
+            if (data.services.isNotEmpty()) dao.upsertServiceLogs(data.services.filter { !it.isDeleted }.map { it.toEntity() })
+            if (data.parts.isNotEmpty()) dao.upsertParts(data.parts.filter { !it.isDeleted }.map { it.toEntity() })
             if (data.pieces.isNotEmpty()) dao.upsertPieces(data.pieces.map { it.toEntity() })
             if (data.servicePieceCrossRefs.isNotEmpty()) dao.upsertCrossRefs(data.servicePieceCrossRefs.map { it.toEntity() })
 
@@ -216,11 +218,7 @@ class SyncRepository(private val context: Context) {
         }
     }
 
-    private fun iso8601(epochMillis: Long): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-        sdf.timeZone = TimeZone.getTimeZone("UTC")
-        return sdf.format(java.util.Date(epochMillis))
-    }
+    private fun iso8601(epochMillis: Long): String = DateFormats.ISO_8601.format(java.util.Date(epochMillis))
 
     /**
      * Downloads remote vehicle images that have no local cache yet.

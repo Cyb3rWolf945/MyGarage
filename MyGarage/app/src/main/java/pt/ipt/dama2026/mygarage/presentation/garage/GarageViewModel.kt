@@ -2,17 +2,20 @@ package pt.ipt.dama2026.mygarage.presentation.garage
 
 import android.app.Application
 import android.net.Uri
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import pt.ipt.dama2026.mygarage.MyGarageApplication
-import pt.ipt.dama2026.mygarage.R
-import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
+import dagger.hilt.android.lifecycle.HiltViewModel
+import pt.ipt.dama2026.mygarage.data.mapper.toDomain
+import pt.ipt.dama2026.mygarage.data.mapper.toEntity
 import pt.ipt.dama2026.mygarage.data.repository.ImageUploadRepository
 import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
 import pt.ipt.dama2026.mygarage.data.sync.SyncWorker
 import pt.ipt.dama2026.mygarage.domain.engine.EngineCapacityHelper
+import pt.ipt.dama2026.mygarage.domain.location.LocationManager
+import pt.ipt.dama2026.mygarage.domain.model.Vehicle
 import pt.ipt.dama2026.mygarage.domain.repository.ImageStorageManager
 import pt.ipt.dama2026.mygarage.domain.repository.VehicleRepository
+import pt.ipt.dama2026.mygarage.presentation.validation.VehicleValidator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,23 +25,26 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 /**
  * ViewModel for the garage screen. Manages vehicle CRUD, image upload,
  * form validation, and long-press options.
  */
-class GarageViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val userPreferencesRepository = UserPreferencesRepository(application)
-    private val repository: VehicleRepository = (application as MyGarageApplication).repository
-    private val imageStorageManager: ImageStorageManager =
-        (application as MyGarageApplication).imageStorageManager
-    private val imageUploadRepository = ImageUploadRepository(application)
+@HiltViewModel
+class GarageViewModel @Inject constructor(
+    private val application: Application,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val repository: VehicleRepository,
+    val imageStorageManager: ImageStorageManager,
+    val locationManager: LocationManager,
+    private val imageUploadRepository: ImageUploadRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GarageUiState())
     val uiState: StateFlow<GarageUiState> = _uiState.asStateFlow()
 
-    val vehiclesState: StateFlow<List<VehicleEntity>> = repository.getAllVehicles()
+    val vehiclesState: StateFlow<List<Vehicle>> = repository.getAllVehicles()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -48,14 +54,14 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     private val _formErrors = MutableStateFlow<Map<String, Int>>(emptyMap())
     val formErrors: StateFlow<Map<String, Int>> = _formErrors.asStateFlow()
 
-    private val _selectedVehicleForOptions = MutableStateFlow<VehicleEntity?>(null)
-    val selectedVehicleForOptions: StateFlow<VehicleEntity?> = _selectedVehicleForOptions.asStateFlow()
+    private val _selectedVehicleForOptions = MutableStateFlow<Vehicle?>(null)
+    val selectedVehicleForOptions: StateFlow<Vehicle?> = _selectedVehicleForOptions.asStateFlow()
 
-    private val _vehicleToEdit = MutableStateFlow<VehicleEntity?>(null)
-    val vehicleToEdit: StateFlow<VehicleEntity?> = _vehicleToEdit.asStateFlow()
+    private val _vehicleToEdit = MutableStateFlow<Vehicle?>(null)
+    val vehicleToEdit: StateFlow<Vehicle?> = _vehicleToEdit.asStateFlow()
 
-    private val _vehicleToDelete = MutableStateFlow<VehicleEntity?>(null)
-    val vehicleToDelete: StateFlow<VehicleEntity?> = _vehicleToDelete.asStateFlow()
+    private val _vehicleToDelete = MutableStateFlow<Vehicle?>(null)
+    val vehicleToDelete: StateFlow<Vehicle?> = _vehicleToDelete.asStateFlow()
 
     private val _showDeleteConfirmation = MutableStateFlow(false)
     val showDeleteConfirmation: StateFlow<Boolean> = _showDeleteConfirmation.asStateFlow()
@@ -70,7 +76,7 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun onVehicleLongPressed(vehicle: VehicleEntity) {
+    fun onVehicleLongPressed(vehicle: Vehicle) {
         _selectedVehicleForOptions.value = vehicle
     }
 
@@ -78,15 +84,40 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
         _selectedVehicleForOptions.value = null
     }
 
-    fun onSelectEdit(vehicle: VehicleEntity) {
+    fun onSelectEdit(vehicle: Vehicle) {
         _selectedVehicleForOptions.value = null
         _vehicleToEdit.value = vehicle
         _uiState.update { it.copy(existingImageFileName = vehicle.localImageFileNames.firstOrNull()) }
     }
 
-    fun onSelectDelete(vehicle: VehicleEntity) {
+    fun onSelectDelete(vehicle: Vehicle) {
         _selectedVehicleForOptions.value = null
         showDeleteDialog(vehicle)
+    }
+
+    fun showDeleteDialog(vehicle: Vehicle) {
+        _vehicleToDelete.value = vehicle
+        _showDeleteConfirmation.value = true
+    }
+
+    fun dismissDeleteDialog() {
+        _showDeleteConfirmation.value = false
+        _vehicleToDelete.value = null
+    }
+
+    fun confirmDelete() {
+        val vehicle = _vehicleToDelete.value ?: return
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    repository.deleteVehicle(vehicle)
+                }
+            } finally {
+                _showDeleteConfirmation.value = false
+                _vehicleToDelete.value = null
+            }
+            SyncWorker.enqueueOneTimeSync(application)
+        }
     }
 
     fun onDismissEditDialog() {
@@ -111,53 +142,22 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Confirms edit: uploads image to S3, updates vehicle in Room, triggers sync.
+     * Uploads the first local image of a vehicle. Returns updated vehicle with remoteUrl.
      */
-    fun confirmEdit(vehicle: VehicleEntity) {
-        viewModelScope.launch {
-            var updated = vehicle
-
-            val imageFileName = vehicle.localImageFileNames.firstOrNull()
-            if (imageFileName != null) {
-                val imagePath = imageStorageManager.getImagePath(imageFileName)
-                if (imagePath != null) {
-                    val uri = Uri.fromFile(java.io.File(imagePath))
-                    val uploadResult = imageUploadRepository.uploadImage(uri, "vehicle")
-                    if (uploadResult.isSuccess) {
-                        updated = updated.copy(remoteImageUrl = uploadResult.getOrNull())
-                    }
-                }
-            }
-
-            repository.updateVehicle(updated)
-            clearImageSelection()
-            SyncWorker.enqueueOneTimeSync(getApplication())
-        }
+    private suspend fun uploadFirstImage(vehicle: Vehicle): Vehicle {
+        val imageFileName = vehicle.localImageFileNames.firstOrNull() ?: return vehicle
+        val imagePath = imageStorageManager.getImagePath(imageFileName) ?: return vehicle
+        val uri = Uri.fromFile(java.io.File(imagePath))
+        val uploadResult = imageUploadRepository.uploadImage(uri, "vehicle")
+        return if (uploadResult.isSuccess) vehicle.copy(remoteImageUrl = uploadResult.getOrNull()) else vehicle
     }
 
-    fun showDeleteDialog(vehicle: VehicleEntity) {
-        _vehicleToDelete.value = vehicle
-        _showDeleteConfirmation.value = true
-    }
-
-    fun dismissDeleteDialog() {
-        _showDeleteConfirmation.value = false
-        _vehicleToDelete.value = null
-    }
-
-    fun confirmDelete() {
-        val vehicle = _vehicleToDelete.value ?: return
-        viewModelScope.launch {
-            try {
-                withContext(Dispatchers.IO) {
-                    repository.deleteVehicle(vehicle)
-                }
-            } finally {
-                _showDeleteConfirmation.value = false
-                _vehicleToDelete.value = null
-            }
-            SyncWorker.enqueueOneTimeSync(getApplication())
-        }
+    /** Persists vehicle (insert or update), uploads image, clears form, enqueues sync. */
+    private suspend fun saveVehicle(vehicle: Vehicle, isNew: Boolean) {
+        val updated = uploadFirstImage(vehicle)
+        if (isNew) repository.insertVehicle(updated) else repository.updateVehicle(updated)
+        clearImageSelection()
+        SyncWorker.enqueueOneTimeSync(application)
     }
 
     fun clearFieldError(fieldName: String) {
@@ -166,43 +166,19 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /**
-     * Validates mandatory vehicle fields. Returns true if all valid.
-     */
-    private fun validateVehicle(vehicle: VehicleEntity): Boolean {
-        val errors = mutableMapOf<String, Int>()
-        if (vehicle.name.isBlank()) errors["name"] = R.string.error_field_required
-        if (vehicle.plate.isBlank()) errors["plate"] = R.string.error_field_required
-        if (vehicle.year.isBlank()) errors["year"] = R.string.error_field_required
-        if (vehicle.mileage.isBlank()) errors["mileage"] = R.string.error_field_required
-        if (vehicle.owner.isBlank()) errors["owner"] = R.string.error_field_required
-        if (vehicle.fuelType.isBlank()) errors["fuelType"] = R.string.error_field_required
-        if (vehicle.engineCapacity.isBlank()) errors["engineCapacity"] = R.string.error_field_required
+    private fun validateVehicle(vehicle: Vehicle): Boolean {
+        val errors = VehicleValidator.validate(vehicle.toEntity())
         _formErrors.value = errors
         return errors.isEmpty()
     }
 
-    fun insertVehicle(vehicle: VehicleEntity) {
+    fun confirmEdit(vehicle: Vehicle) {
+        viewModelScope.launch { saveVehicle(vehicle, isNew = false) }
+    }
+
+    fun insertVehicle(vehicle: Vehicle) {
         if (!validateVehicle(vehicle)) return
-        viewModelScope.launch {
-            var vehicleToInsert = vehicle
-
-            val imageFileName = vehicle.localImageFileNames.firstOrNull()
-            if (imageFileName != null) {
-                val imagePath = imageStorageManager.getImagePath(imageFileName)
-                if (imagePath != null) {
-                    val uri = Uri.fromFile(java.io.File(imagePath))
-                    val uploadResult = imageUploadRepository.uploadImage(uri, "vehicle")
-                    if (uploadResult.isSuccess) {
-                        vehicleToInsert = vehicleToInsert.copy(remoteImageUrl = uploadResult.getOrNull())
-                    }
-                }
-            }
-
-            repository.insertVehicle(vehicleToInsert)
-            clearImageSelection()
-            SyncWorker.enqueueOneTimeSync(getApplication())
-        }
+        viewModelScope.launch { saveVehicle(vehicle, isNew = true) }
     }
 
     fun openAddDialogWithData(
@@ -213,7 +189,7 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
         engineCapacity: String
     ) {
         val roundedEngineCapacity = EngineCapacityHelper.roundToNearestOption(engineCapacity)
-        val newVehicle = VehicleEntity(
+        val newVehicle = Vehicle(
             id = java.util.UUID.randomUUID().toString(),
             plate = plate,
             name = name,
@@ -227,7 +203,6 @@ class GarageViewModel(application: Application) : AndroidViewModel(application) 
             fuelType = fuelType,
             engineCapacity = roundedEngineCapacity,
             iucValue = "",
-            mileageToNextService = "",
             locationAddress = "",
             latitude = null,
             longitude = null,

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.devtools.ksp)
     alias(libs.plugins.google.secrets.gradle.plugin)
+    alias(libs.plugins.hilt.android)
 }
 
 android {
@@ -14,8 +15,8 @@ android {
         applicationId = "pt.ipt.dama2026.mygarage"
         minSdk = 28
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "4.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -26,6 +27,9 @@ android {
         val mygarageApiUrl = project.findProperty("MYGARAGE_API_URL")?.toString()
             ?: "https://mygaragebackend-production.up.railway.app"
         manifestPlaceholders["MYGARAGE_API_URL"] = mygarageApiUrl
+
+        val mapsApiKey = project.findProperty("MAPS_API_KEY")?.toString() ?: ""
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {
@@ -94,6 +98,11 @@ dependencies {
 
     // WorkManager (background sync)
     implementation(libs.androidx.work.runtime.ktx)
+
+    // Hilt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

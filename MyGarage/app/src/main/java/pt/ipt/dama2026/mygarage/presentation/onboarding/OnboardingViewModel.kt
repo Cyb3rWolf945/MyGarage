@@ -1,8 +1,8 @@
 package pt.ipt.dama2026.mygarage.presentation.onboarding
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * UI state for onboarding.
@@ -24,9 +25,10 @@ data class OnboardingUiState(
  * ViewModel for the 3-step onboarding flow. Validates inputs, persists
  * preferences, emits navigation events.
  */
-class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val userPreferencesRepository = UserPreferencesRepository(application)
+@HiltViewModel
+class OnboardingViewModel @Inject constructor(
+    private val userPreferencesRepository: UserPreferencesRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()

@@ -45,7 +45,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.presentation.auth.AuthViewModel
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
@@ -54,9 +54,9 @@ import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 fun AuthScreen(
     onAuthSuccess: () -> Unit,
     onBackClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
-    viewModel: AuthViewModel = viewModel()
+    modifier: Modifier = Modifier
 ) {
+    val viewModel: AuthViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val authSuccess by viewModel.authSuccess.collectAsStateWithLifecycle()
 

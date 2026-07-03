@@ -1,24 +1,34 @@
 package pt.ipt.dama2026.mygarage.presentation.main
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import pt.ipt.dama2026.mygarage.data.repository.SyncRepository
 import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
-import pt.ipt.dama2026.mygarage.domain.locale.LocaleManager
+import pt.ipt.dama2026.mygarage.data.sync.SyncWorker
+import pt.ipt.dama2026.mygarage.presentation.locale.LocaleManager
+import pt.ipt.dama2026.mygarage.domain.repository.ImageStorageManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 /**
  * Resolves initial navigation destination based on onboarding state.
- * Also applies stored language preference.
+ * Also applies stored language preference and provides avatar info.
  */
-class MainViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val userPreferencesRepository = UserPreferencesRepository(application)
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val imageStorageManager: ImageStorageManager,
+    private val syncRepository: SyncRepository
+) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -32,6 +42,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _avatarRemoteUrl = MutableStateFlow<String?>(null)
     val avatarRemoteUrl: StateFlow<String?> = _avatarRemoteUrl.asStateFlow()
 
+    private val _avatarLocalFile = MutableStateFlow<java.io.File?>(null)
+    val avatarLocalFile: StateFlow<java.io.File?> = _avatarLocalFile.asStateFlow()
+
+    /** Exposed for MainScreen to observe auth state without creating its own UserPreferencesRepository. */
+    val authToken: StateFlow<String?> = userPreferencesRepository.userAuthTokenFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     init {
         viewModelScope.launch {
             userPreferencesRepository.userPreferencesFlow.collect { preferences ->
@@ -41,11 +58,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _avatarFileName.value = preferences.avatarFileName
                 _avatarRemoteUrl.value = preferences.avatarRemoteUrl
+                _avatarLocalFile.value = preferences.avatarFileName?.let { fileName ->
+                    imageStorageManager.getImagePath(fileName)?.let { java.io.File(it) }
+                }
                 withContext(Dispatchers.Main) {
                     LocaleManager.applyLanguage(preferences.appLanguage)
                 }
                 _isLoading.value = false
             }
+        }
+    }
+
+    fun pullUserProfile() {
+        viewModelScope.launch(Dispatchers.IO) {
+            syncRepository.pullAndSyncUserProfile()
         }
     }
 

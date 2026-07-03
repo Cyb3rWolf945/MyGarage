@@ -6,6 +6,7 @@ import pt.ipt.dama2026.mygarage.data.local.entity.PieceEntity
 import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogEntity
 import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogPieceCrossRef
 import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
+import pt.ipt.dama2026.mygarage.domain.locale.DateFormats
 import java.util.UUID
 
 data class VehiclePayload(
@@ -23,7 +24,6 @@ data class VehiclePayload(
     @SerializedName("fuelType") val fuelType: String,
     @SerializedName("engineCapacity") val engineCapacity: String,
     @SerializedName("iucValue") val iucValue: String? = null,
-    @SerializedName("mileageToNextService") val mileageToNextService: String? = null,
     @SerializedName("locationAddress") val locationAddress: String? = null,
     @SerializedName("latitude") val latitude: Double? = null,
     @SerializedName("longitude") val longitude: Double? = null,
@@ -106,7 +106,6 @@ fun VehicleEntity.toPayload(): VehiclePayload = VehiclePayload(
     fuelType = fuelType,
     engineCapacity = engineCapacity,
     iucValue = iucValue,
-    mileageToNextService = mileageToNextService,
     locationAddress = locationAddress,
     latitude = latitude,
     longitude = longitude,
@@ -170,7 +169,6 @@ fun VehiclePayload.toEntity(): VehicleEntity = VehicleEntity(
     fuelType = fuelType,
     engineCapacity = engineCapacity,
     iucValue = iucValue,
-    mileageToNextService = mileageToNextService,
     locationAddress = locationAddress,
     latitude = latitude,
     longitude = longitude,
@@ -219,14 +217,6 @@ fun ServiceLogPieceCrossRefPayload.toEntity(): ServiceLogPieceCrossRef =
         isDeleted = isDeleted
     )
 
-private fun iso8601(epochMillis: Long): String {
-    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
-    sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
-    return sdf.format(java.util.Date(epochMillis))
-}
+private fun iso8601(epochMillis: Long): String = DateFormats.ISO_8601.format(java.util.Date(epochMillis))
 
-fun parseIso8601(isoString: String): Long {
-    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
-    sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
-    return sdf.parse(isoString)?.time ?: System.currentTimeMillis()
-}
+fun parseIso8601(isoString: String): Long = DateFormats.ISO_8601.parse(isoString)?.time ?: 0L

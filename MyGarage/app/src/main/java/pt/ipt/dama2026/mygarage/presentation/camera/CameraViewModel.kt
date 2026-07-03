@@ -3,15 +3,18 @@ package pt.ipt.dama2026.mygarage.presentation.camera
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import pt.ipt.dama2026.mygarage.domain.licenseplates.LicensePlateApiResult
 import pt.ipt.dama2026.mygarage.domain.licenseplates.LicensePlateApiService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class CameraViewModel(
-    private val licensePlateApiService: LicensePlateApiService? = null
+@HiltViewModel
+class CameraViewModel @Inject constructor(
+    private val licensePlateApiService: LicensePlateApiService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CameraUiState())
@@ -33,23 +36,20 @@ class CameraViewModel(
     }
 
     fun onPlateDetected(plate: String) {
+        if (_uiState.value.isPlateConfirmed) return
         _uiState.value = _uiState.value.copy(
             detectedPlate = plate,
             isPlateConfirmed = false,
-            licensePlateApiResult = LicensePlateApiResult.Idle
+            licensePlateApiResult = null
         )
     }
 
     fun onConfirmPlate() {
         val plate = _uiState.value.detectedPlate ?: return
-        if (licensePlateApiService == null) {
-            Log.w(TAG, "License plate API service not initialized")
-            return
-        }
 
         _uiState.value = _uiState.value.copy(
             isPlateConfirmed = true,
-            licensePlateApiResult = LicensePlateApiResult.Loading
+            isLoading = true
         )
         fetchCarInfo(plate)
     }
@@ -58,7 +58,7 @@ class CameraViewModel(
         _uiState.value = _uiState.value.copy(
             detectedPlate = null,
             isPlateConfirmed = false,
-            licensePlateApiResult = LicensePlateApiResult.Idle,
+            licensePlateApiResult = null,
             showLookupResultDialog = false
         )
     }
@@ -68,20 +68,18 @@ class CameraViewModel(
     }
 
     private fun fetchCarInfo(plate: String) {
-        if (licensePlateApiService == null) {
-            return
-        }
-
         viewModelScope.launch {
             try {
                 val result = licensePlateApiService.lookupVehicle(plate)
                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
                     licensePlateApiResult = result,
                     showLookupResultDialog = true
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Error fetching vehicle info", e)
                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
                     licensePlateApiResult = LicensePlateApiResult.Error(
                         e.message ?: "Unknown error",
                         pt.ipt.dama2026.mygarage.domain.licenseplates.ErrorType.UNKNOWN

@@ -27,6 +27,7 @@
     <string name="stat_mileage">%1$s</string>
     <string name="stat_inspection_date">Inspection</string>
     <string name="stat_mileage_to_next_service">%1$s to Next Service</string>
+    <string name="stat_year">Year</string>
     <string name="stat_iuc_value">IUC</string>
     <string name="currency_euro_prefix">€ %1$s</string>
     <string name="tab_specs">Specs</string>
@@ -283,6 +284,8 @@
     <string name="auth_error_password_short">Password must be at least 6 characters</string>
     <string name="auth_error_password_weak">Password must contain at least one capital letter and one symbol</string>
     <string name="auth_error_password_match">Passwords do not match</string>
+    <string name="auth_error_invalid_credentials">Invalid email or password</string>
+    <string name="auth_error_network">Network error. Please check your connection.</string>
 
     <!-- Sync (Profile Screen) -->
     <string name="profile_sync_title">Cloud Sync</string>

@@ -51,12 +51,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import pt.ipt.dama2026.mygarage.R
-import pt.ipt.dama2026.mygarage.data.local.entity.PartEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogEntity
-import pt.ipt.dama2026.mygarage.domain.locale.LocaleManager
+import pt.ipt.dama2026.mygarage.domain.model.Part
+import pt.ipt.dama2026.mygarage.domain.model.ServiceLog
+import pt.ipt.dama2026.mygarage.presentation.locale.LocaleManager
 import pt.ipt.dama2026.mygarage.ui.screens.servicelog.ServiceDialogMode
 import pt.ipt.dama2026.mygarage.ui.components.MileageVisualTransformation
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
+import pt.ipt.dama2026.mygarage.presentation.service.ServiceTypeLabels
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -76,13 +77,13 @@ import java.util.Locale
 @Composable
 fun ServiceLogActionDialog(
     dialogMode: ServiceDialogMode,
-    selectedLog: ServiceLogEntity?,
-    selectedLogParts: List<PartEntity>,
+    selectedLog: ServiceLog?,
+    selectedLogParts: List<Part>,
     serviceDate: String,
     description: String,
     mileage: String,
     selectedType: String,
-    temporaryParts: List<PartEntity>,
+    temporaryParts: List<Part>,
     formErrors: Map<String, Int>,
     onDateChanged: (String) -> Unit,
     onDescriptionChanged: (String) -> Unit,
@@ -92,7 +93,7 @@ fun ServiceLogActionDialog(
     onDismiss: () -> Unit,
     onAddTemporaryPart: (String, Int, String?) -> Unit,
     onRemoveTemporaryPart: (String) -> Unit,
-    resolvedDistanceUnit: String = "MILES"
+    resolvedDistanceUnit: String = "KILOMETERS"
 ) {
     if (dialogMode == ServiceDialogMode.HIDDEN) return
 
@@ -181,11 +182,7 @@ fun ServiceLogActionDialog(
                         ViewField(label = stringResource(R.string.view_field_date), value = log.date)
                         ViewField(label = stringResource(R.string.view_field_description), value = log.description)
                         ViewField(label = stringResource(R.string.view_field_mileage, unitName), value = log.mileage)
-                        val typeLocalized = when (log.type.lowercase()) {
-                            "revision"   -> stringResource(R.string.service_type_revision)
-                            "inspection" -> stringResource(R.string.service_type_inspection)
-                            else         -> stringResource(R.string.service_type_regular)
-                        }
+                        val typeLocalized = stringResource(ServiceTypeLabels.labelFor(log.type, R.string.service_type_revision, R.string.service_type_inspection, R.string.service_type_regular))
                         ViewField(label = stringResource(R.string.view_field_service_type), value = typeLocalized)
 
                         // Parts used (if any)
@@ -346,11 +343,7 @@ fun ServiceLogActionDialog(
                                     .padding(vertical = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val typeLabel = when (type.lowercase()) {
-                                    "revision"   -> stringResource(R.string.service_type_revision)
-                                    "inspection" -> stringResource(R.string.service_type_inspection)
-                                    else         -> stringResource(R.string.service_type_regular)
-                                }
+                                val typeLabel = stringResource(ServiceTypeLabels.labelFor(type, R.string.service_type_revision, R.string.service_type_inspection, R.string.service_type_regular))
                                 Text(
                                     text = typeLabel,
                                     style = MaterialTheme.typography.labelSmall,

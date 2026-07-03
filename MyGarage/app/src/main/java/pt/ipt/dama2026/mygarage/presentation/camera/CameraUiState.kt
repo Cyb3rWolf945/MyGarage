@@ -7,6 +7,7 @@ data class CameraUiState(
     val isCameraActive: Boolean = false,
     val detectedPlate: String? = null,
     val isPlateConfirmed: Boolean = false,
-    val licensePlateApiResult: LicensePlateApiResult = LicensePlateApiResult.Idle,
+    val isLoading: Boolean = false,
+    val licensePlateApiResult: LicensePlateApiResult? = null,
     val showLookupResultDialog: Boolean = false
 )
