@@ -28,6 +28,7 @@
     <string name="stat_mileage">%1$s</string>
     <string name="stat_inspection_date">Inspeção</string>
     <string name="stat_mileage_to_next_service">%1$s até Próximo Serviço</string>
+    <string name="stat_year">Ano</string>
     <string name="stat_iuc_value">IUC</string>
     <string name="currency_euro_prefix">€ %1$s</string>
     <string name="tab_specs">Especificações</string>
@@ -284,6 +285,8 @@
     <string name="auth_error_password_short">A palavra-passe deve ter pelo menos 6 caracteres</string>
     <string name="auth_error_password_weak">A palavra-passe deve conter pelo menos uma letra maiúscula e um símbolo</string>
     <string name="auth_error_password_match">As palavras-passe não coincidem</string>
+    <string name="auth_error_invalid_credentials">Email ou palavra-passe inválidos</string>
+    <string name="auth_error_network">Erro de rede. Verifique a sua ligação.</string>
 
     <!-- Sync (Profile Screen) -->
     <string name="profile_sync_title">Sincronização na Nuvem</string>

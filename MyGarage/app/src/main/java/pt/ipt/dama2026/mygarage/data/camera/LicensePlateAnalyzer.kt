@@ -1,4 +1,4 @@
-package pt.ipt.dama2026.mygarage.domain.camera
+package pt.ipt.dama2026.mygarage.data.camera
 
 import android.util.Log
 import androidx.camera.core.ImageAnalysis
@@ -29,7 +29,7 @@ class LicensePlateAnalyzer(
         textRecognizer.process(inputImage)
             .addOnSuccessListener { visionText ->
                 val detectedPlate = extractLicensePlate(visionText.text)
-                
+
                 if (detectedPlate != null) {
                     if (detectedPlate == lastDetectedPlate) {
                         consecutiveMatches++

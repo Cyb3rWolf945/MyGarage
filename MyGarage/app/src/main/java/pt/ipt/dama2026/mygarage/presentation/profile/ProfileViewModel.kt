@@ -2,10 +2,12 @@ package pt.ipt.dama2026.mygarage.presentation.profile
 
 import android.app.Application
 import android.net.Uri
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import pt.ipt.dama2026.mygarage.MyGarageApplication
+import dagger.hilt.android.lifecycle.HiltViewModel
 import pt.ipt.dama2026.mygarage.R
+import pt.ipt.dama2026.mygarage.data.local.db.AppDatabase
+import pt.ipt.dama2026.mygarage.data.network.SyncApiService
 import pt.ipt.dama2026.mygarage.data.repository.AuthRepository
 import pt.ipt.dama2026.mygarage.data.repository.ImageUploadRepository
 import pt.ipt.dama2026.mygarage.data.repository.SyncRepository
@@ -13,30 +15,34 @@ import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
 import pt.ipt.dama2026.mygarage.data.sync.SyncWorker
 import pt.ipt.dama2026.mygarage.domain.repository.ImageStorageManager
 import pt.ipt.dama2026.mygarage.domain.repository.VehicleRepository
-import pt.ipt.dama2026.mygarage.domain.locale.LocaleManager
+import pt.ipt.dama2026.mygarage.presentation.locale.LocaleManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-    /**
-     * ViewModel for the user profile screen. Manages preferences, avatar,
-     * sync, auth, and account deletion.
-     */
-    class ProfileViewModel(application: Application) : AndroidViewModel(application) {
+/**
+ * ViewModel for the user profile screen. Manages preferences, avatar,
+ * sync, auth, and account deletion.
+ */
+@HiltViewModel
+class ProfileViewModel @Inject constructor(
+    private val application: Application,
+    private val database: AppDatabase,
+    private val syncApiService: SyncApiService,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val vehicleRepository: VehicleRepository,
+    val imageStorageManager: ImageStorageManager,
+    private val authRepository: AuthRepository,
+    private val syncRepository: SyncRepository,
+    private val imageUploadRepository: ImageUploadRepository
+) : ViewModel() {
 
-    private val userPreferencesRepository = UserPreferencesRepository(application)
-    private val vehicleRepository: VehicleRepository =
-        (application as MyGarageApplication).repository
-    private val imageStorageManager: ImageStorageManager =
-        (application as MyGarageApplication).imageStorageManager
-    private val authRepository = AuthRepository(application)
-    private val syncRepository = SyncRepository(application)
-    private val imageUploadRepository = ImageUploadRepository(application)
+    fun getAvatarPath(fileName: String): String? = imageStorageManager.getImagePath(fileName)
 
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
@@ -65,7 +71,7 @@ import kotlinx.coroutines.withContext
                 userPreferencesRepository.lastSyncTimestampFlow
             ) { prefs, vehicles, drivenMileage, lastSync ->
                 val resolvedUnit = LocaleManager.resolveDistanceUnit(
-                    prefs.distanceUnit, getApplication()
+                    prefs.distanceUnit, application
                 )
                 ProfileUiState(
                     userName = prefs.userName,
@@ -156,7 +162,7 @@ import kotlinx.coroutines.withContext
     fun onSyncClicked() {
         _uiState.value = _uiState.value.copy(isSyncing = true)
         viewModelScope.launch(Dispatchers.IO) {
-            val result = syncRepository.fullSync()
+            syncRepository.fullSync()
             _uiState.value = _uiState.value.copy(isSyncing = false)
         }
     }
@@ -184,7 +190,7 @@ import kotlinx.coroutines.withContext
                             avatarUploadError = null
                         )
                         // Push avatar URL to backend immediately so it survives reinstalls
-                        SyncWorker.enqueueOneTimeSync(getApplication())
+                        SyncWorker.enqueueOneTimeSync(application)
                     }.onFailure { error ->
                         _uiState.value = _uiState.value.copy(
                             isUploadingAvatar = false,
@@ -232,25 +238,23 @@ import kotlinx.coroutines.withContext
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val app = getApplication<android.app.Application>()
-                val api = pt.ipt.dama2026.mygarage.data.network.NetworkModule
-                    .createSyncApiService(app)
-                val response = api.deleteAccount()
+                val response = syncApiService.deleteAccount()
 
                 if (response.isSuccessful) {
-                    val db = (app as MyGarageApplication).database
-                    db.clearAllTables()
-
+                    database.clearAllTables()
                     userPreferencesRepository.clearAllUserData()
 
                     _navigateToOnboarding.value = true
                     _navigateToAuth.value = true
                 } else {
-                    _deleteAccountError.value = app.getString(R.string.delete_account_error)
+                    _deleteAccountError.value = application.getString(
+                        R.string.delete_account_error
+                    ) + " (${response.code()})"
                 }
-            } catch (_: Exception) {
-                _deleteAccountError.value = getApplication<android.app.Application>()
-                    .getString(R.string.delete_account_error)
+            } catch (e: Exception) {
+                _deleteAccountError.value = application.getString(
+                    R.string.delete_account_error
+                ) + ": ${e.message}"
             } finally {
                 _isDeletingAccount.value = false
             }

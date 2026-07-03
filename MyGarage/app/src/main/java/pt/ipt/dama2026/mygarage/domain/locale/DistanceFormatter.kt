@@ -28,13 +28,11 @@ object DistanceFormatter {
     }
 
     /**
-     * Formats a distance as human-readable with unit label, e.g. "12,450 km".
+     * Formats a distance as a human-readable number without unit, e.g. "12,450".
      */
     fun formatDisplay(kilometers: Double, resolvedUnit: String): String {
         val converted = forDisplay(kilometers, resolvedUnit)
-        val unitLabel = LocaleManager.unitLabel(resolvedUnit)
-        val formatted = NumberFormat.getNumberInstance(Locale.US).format(converted.toLong())
-        return "$formatted $unitLabel"
+        return NumberFormat.getNumberInstance(Locale.US).format(converted.toLong())
     }
 
     /**

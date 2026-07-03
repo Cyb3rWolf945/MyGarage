@@ -42,7 +42,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import pt.ipt.dama2026.mygarage.R
-import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
+import pt.ipt.dama2026.mygarage.domain.model.Vehicle
 import pt.ipt.dama2026.mygarage.domain.repository.ImageStorageManager
 import pt.ipt.dama2026.mygarage.ui.components.DeleteConfirmationDialog
 import pt.ipt.dama2026.mygarage.ui.components.VehicleCard
@@ -56,25 +56,25 @@ import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GarageScreen(
-    vehicles: List<VehicleEntity>,
+    vehicles: List<Vehicle>,
     onVehicleClick: (String) -> Unit,
-    onAddVehicleClick: (VehicleEntity) -> Unit,
-    onDeleteVehicle: (VehicleEntity) -> Unit = {},
+    onAddVehicleClick: (Vehicle) -> Unit,
+    onDeleteVehicle: (Vehicle) -> Unit = {},
     showDeleteConfirmation: Boolean = false,
-    vehicleToDelete: VehicleEntity? = null,
+    vehicleToDelete: Vehicle? = null,
     onDismissDeleteDialog: () -> Unit = {},
     onConfirmDelete: () -> Unit = {},
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {},
-    selectedVehicleForOptions: VehicleEntity? = null,
-    onVehicleLongPressed: (VehicleEntity) -> Unit = {},
+    selectedVehicleForOptions: Vehicle? = null,
+    onVehicleLongPressed: (Vehicle) -> Unit = {},
     onDismissOptionsMenu: () -> Unit = {},
-    onSelectEdit: (VehicleEntity) -> Unit = {},
-    onSelectDelete: (VehicleEntity) -> Unit = {},
-    vehicleToEdit: VehicleEntity? = null,
+    onSelectEdit: (Vehicle) -> Unit = {},
+    onSelectDelete: (Vehicle) -> Unit = {},
+    vehicleToEdit: Vehicle? = null,
     onDismissEditDialog: () -> Unit = {},
-    onConfirmEdit: (VehicleEntity) -> Unit = {},
-    resolvedDistanceUnit: String = "MILES",
+    onConfirmEdit: (Vehicle) -> Unit = {},
+    resolvedDistanceUnit: String = "KILOMETERS",
     selectedImageUri: String? = null,
     existingImageFileName: String? = null,
     onImageSelected: (String) -> Unit = {},

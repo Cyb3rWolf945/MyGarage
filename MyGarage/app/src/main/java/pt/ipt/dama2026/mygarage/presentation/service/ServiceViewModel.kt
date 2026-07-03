@@ -2,19 +2,22 @@ package pt.ipt.dama2026.mygarage.presentation.service
 
 import android.app.Application
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import pt.ipt.dama2026.mygarage.R
-import pt.ipt.dama2026.mygarage.data.local.entity.PartEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.PieceEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogPieceCrossRef
-import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
-import pt.ipt.dama2026.mygarage.data.local.relation.VehicleWithServices
+import pt.ipt.dama2026.mygarage.data.mapper.toDomain
+import pt.ipt.dama2026.mygarage.data.mapper.toEntity
 import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
+import pt.ipt.dama2026.mygarage.data.sync.SyncWorker
 import pt.ipt.dama2026.mygarage.domain.locale.DistanceFormatter
-import pt.ipt.dama2026.mygarage.domain.locale.LocaleManager
+import pt.ipt.dama2026.mygarage.domain.model.Part
+import pt.ipt.dama2026.mygarage.domain.model.Piece
+import pt.ipt.dama2026.mygarage.domain.model.ServiceLog
+import pt.ipt.dama2026.mygarage.domain.model.ServiceLogCrossRef
+import pt.ipt.dama2026.mygarage.domain.model.Vehicle
+import pt.ipt.dama2026.mygarage.domain.model.VehicleWithServices
 import pt.ipt.dama2026.mygarage.domain.repository.VehicleRepository
+import pt.ipt.dama2026.mygarage.presentation.locale.LocaleManager
 import pt.ipt.dama2026.mygarage.ui.screens.servicelog.ServiceDialogMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,18 +28,20 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
+import javax.inject.Inject
 
 /**
  * ViewModel for the service screen. Manages service logs, parts,
  * vehicle selection, and CRUD operations for service records.
  */
-class ServiceViewModel(
+@HiltViewModel
+class ServiceViewModel @Inject constructor(
     private val repository: VehicleRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val application: Application
 ) : ViewModel() {
 
-    private val _resolvedDistanceUnit = MutableStateFlow("MILES")
+    private val _resolvedDistanceUnit = MutableStateFlow("KILOMETERS")
     val resolvedDistanceUnit: StateFlow<String> = _resolvedDistanceUnit.asStateFlow()
 
     init {
@@ -49,14 +54,14 @@ class ServiceViewModel(
         }
     }
 
-    val vehicles: StateFlow<List<VehicleEntity>> = repository.getAllVehicles()
+    val vehicles: StateFlow<List<Vehicle>> = repository.getAllVehicles()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
 
-    val pieces: StateFlow<List<PieceEntity>> = repository.getAllPieces()
+    val pieces: StateFlow<List<Piece>> = repository.getAllPieces()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -69,14 +74,14 @@ class ServiceViewModel(
     private val _selectedVehicleWithServices = MutableStateFlow<VehicleWithServices?>(null)
     val selectedVehicleWithServices: StateFlow<VehicleWithServices?> = _selectedVehicleWithServices.asStateFlow()
 
-    private val _temporaryParts = MutableStateFlow<List<PartEntity>>(emptyList())
-    val temporaryParts: StateFlow<List<PartEntity>> = _temporaryParts.asStateFlow()
+    private val _temporaryParts = MutableStateFlow<List<Part>>(emptyList())
+    val temporaryParts: StateFlow<List<Part>> = _temporaryParts.asStateFlow()
 
     private val _formErrors = MutableStateFlow<Map<String, Int>>(emptyMap())
     val formErrors: StateFlow<Map<String, Int>> = _formErrors.asStateFlow()
 
-    private val _selectedLogForOptions = MutableStateFlow<ServiceLogEntity?>(null)
-    val selectedLogForOptions: StateFlow<ServiceLogEntity?> = _selectedLogForOptions.asStateFlow()
+    private val _selectedLogForOptions = MutableStateFlow<ServiceLog?>(null)
+    val selectedLogForOptions: StateFlow<ServiceLog?> = _selectedLogForOptions.asStateFlow()
 
     private val _editingLogId = MutableStateFlow<String?>(null)
     val editingLogId: StateFlow<String?> = _editingLogId.asStateFlow()
@@ -93,17 +98,17 @@ class ServiceViewModel(
     private val _selectedType = MutableStateFlow("regular")
     val selectedType: StateFlow<String> = _selectedType.asStateFlow()
 
-    private val _logToDelete = MutableStateFlow<ServiceLogEntity?>(null)
-    val logToDelete: StateFlow<ServiceLogEntity?> = _logToDelete.asStateFlow()
+    private val _logToDelete = MutableStateFlow<ServiceLog?>(null)
+    val logToDelete: StateFlow<ServiceLog?> = _logToDelete.asStateFlow()
 
     private val _dialogMode = MutableStateFlow(ServiceDialogMode.HIDDEN)
     val dialogMode: StateFlow<ServiceDialogMode> = _dialogMode.asStateFlow()
 
-    private val _selectedLog = MutableStateFlow<ServiceLogEntity?>(null)
-    val selectedLog: StateFlow<ServiceLogEntity?> = _selectedLog.asStateFlow()
+    private val _selectedLog = MutableStateFlow<ServiceLog?>(null)
+    val selectedLog: StateFlow<ServiceLog?> = _selectedLog.asStateFlow()
 
-    private val _selectedLogParts = MutableStateFlow<List<PartEntity>>(emptyList())
-    val selectedLogParts: StateFlow<List<PartEntity>> = _selectedLogParts.asStateFlow()
+    private val _selectedLogParts = MutableStateFlow<List<Part>>(emptyList())
+    val selectedLogParts: StateFlow<List<Part>> = _selectedLogParts.asStateFlow()
 
     fun clearFieldError(fieldName: String) {
         if (_formErrors.value.containsKey(fieldName)) {
@@ -164,7 +169,7 @@ class ServiceViewModel(
         }
     }
 
-    fun insertServiceLog(serviceLog: ServiceLogEntity) {
+    fun insertServiceLog(serviceLog: ServiceLog) {
         if (!validateServiceLogFields(
                 description = serviceLog.description,
                 mileage = serviceLog.mileage,
@@ -179,8 +184,8 @@ class ServiceViewModel(
      * Inserts service log with pieces (for revision type).
      */
     fun insertServiceLogWithPieces(
-        serviceLog: ServiceLogEntity,
-        piecesUsed: List<ServiceLogPieceCrossRef>
+        serviceLog: ServiceLog,
+        piecesUsed: List<ServiceLogCrossRef>
     ) {
         viewModelScope.launch {
             repository.insertServiceLogWithPieces(serviceLog, piecesUsed)
@@ -190,7 +195,7 @@ class ServiceViewModel(
     fun addTemporaryPart(name: String, quantity: Int, reference: String? = null) {
         if (name.isBlank() || quantity <= 0) return
         _temporaryParts.update { current ->
-            current + PartEntity(
+            current + Part(
                 id = UUID.randomUUID().toString(),
                 serviceLogId = "",
                 name = name.trim(),
@@ -209,7 +214,7 @@ class ServiceViewModel(
     /**
      * Inserts service log and its temporary parts.
      */
-    fun insertServiceLogWithParts(serviceLog: ServiceLogEntity) {
+    fun insertServiceLogWithParts(serviceLog: ServiceLog) {
         if (!validateServiceLogFields(
                 description = serviceLog.description,
                 mileage = serviceLog.mileage,
@@ -223,6 +228,20 @@ class ServiceViewModel(
             partsToInsert.forEach { repository.insertPart(it) }
             _temporaryParts.value = emptyList()
         }
+    }
+
+    /**
+     * Extracts canonical km from a vehicle's display mileage string.
+     * Falls back to mileageKm field if display string is not parseable.
+     */
+    private fun resolveCanonicalKm(vehicle: Vehicle): Double {
+        if (vehicle.mileageKm > 0.0) return vehicle.mileageKm
+        if (vehicle.mileage.isBlank()) return 0.0
+        val parsed = DistanceFormatter.parseUserInput(vehicle.mileage)
+        if (parsed <= 0.0) return 0.0
+        val isMiles = vehicle.mileage.contains("mi", ignoreCase = true) ||
+                      vehicle.mileage.contains("Miles", ignoreCase = true)
+        return if (isMiles) DistanceFormatter.forStorage(parsed, "MILES") else parsed
     }
 
     /**
@@ -251,22 +270,7 @@ class ServiceViewModel(
             DistanceFormatter.parseUserInput(mileage), resolvedUnit
         )
 
-        var vehicleCurrentMileageKm = _selectedVehicleWithServices.value?.vehicle?.mileageKm ?: 0.0
-        if (vehicleCurrentMileageKm <= 0.0 && _selectedVehicleWithServices.value?.vehicle != null) {
-            val currentVehicle = _selectedVehicleWithServices.value!!.vehicle
-            if (currentVehicle.mileage.isNotBlank()) {
-                val parsed = DistanceFormatter.parseUserInput(currentVehicle.mileage)
-                if (parsed > 0) {
-                    val isMiles = currentVehicle.mileage.contains("mi", ignoreCase = true) ||
-                                  currentVehicle.mileage.contains("Miles", ignoreCase = true)
-                    vehicleCurrentMileageKm = if (isMiles) {
-                        DistanceFormatter.forStorage(parsed, "MILES")
-                    } else {
-                        parsed
-                    }
-                }
-            }
-        }
+        var vehicleCurrentMileageKm = _selectedVehicleWithServices.value?.vehicle?.let { resolveCanonicalKm(it) } ?: 0.0
         if (vehicleCurrentMileageKm > 0.0 && inputKm < vehicleCurrentMileageKm) {
             _formErrors.update { it + ("mileage" to R.string.error_mileage_lower_than_current) }
             return
@@ -277,7 +281,7 @@ class ServiceViewModel(
 
             if (mode == ServiceDialogMode.EDIT) {
                 val editingId = _selectedLog.value?.id ?: return@launch
-                val updatedLog = ServiceLogEntity(
+                val updatedLog = ServiceLog(
                     id = editingId,
                     vehicleId = vehicleId!!,
                     date = date,
@@ -291,7 +295,7 @@ class ServiceViewModel(
                 }
                 repository.updateServiceLogWithParts(updatedLog, partsToSave)
             } else {
-                val newLog = ServiceLogEntity(
+                val newLog = ServiceLog(
                     id = UUID.randomUUID(),
                     vehicleId = vehicleId!!,
                     date = date,
@@ -309,16 +313,20 @@ class ServiceViewModel(
                 } else {
                     repository.insertServiceLog(newLog)
                 }
+            }
 
-                val currentVehicle = _selectedVehicleWithServices.value?.vehicle
-                if (currentVehicle != null) {
-                    val delta = (inputKm - vehicleCurrentMileageKm).toInt()
-                    if (delta > 0) {
-                        userPreferencesRepository.incrementUserMileage(delta)
-                    }
+            // Update vehicle mileage + next-service after any save (add or edit)
+            val currentVehicle = _selectedVehicleWithServices.value?.vehicle
+            if (currentVehicle != null) {
+                val delta = (inputKm - vehicleCurrentMileageKm).toInt()
+                if (delta > 0) {
+                    userPreferencesRepository.incrementUserMileage(delta)
+                }
 
+                val updatedVehicle = repository.getVehicleById(currentVehicle.id)
+                if (updatedVehicle != null) {
                     repository.updateVehicle(
-                        currentVehicle.copy(
+                        updatedVehicle.copy(
                             mileage = displayMileage,
                             mileageKm = inputKm
                         )
@@ -327,6 +335,7 @@ class ServiceViewModel(
             }
 
             clearFormState()
+            SyncWorker.enqueueOneTimeSync(application)
         }
     }
 
@@ -343,7 +352,7 @@ class ServiceViewModel(
         _formErrors.value = emptyMap()
     }
 
-    fun onLogLongPressed(serviceLog: ServiceLogEntity) {
+    fun onLogLongPressed(serviceLog: ServiceLog) {
         _selectedLogForOptions.value = serviceLog
     }
 
@@ -351,7 +360,7 @@ class ServiceViewModel(
         _selectedLogForOptions.value = null
     }
 
-    fun onSelectEdit(serviceLog: ServiceLogEntity) {
+    fun onSelectEdit(serviceLog: ServiceLog) {
         _selectedLogForOptions.value = null
         _selectedLog.value = serviceLog
         _editingLogId.value = serviceLog.id.toString()
@@ -359,7 +368,10 @@ class ServiceViewModel(
 
         _serviceDate.value = serviceLog.date
         _description.value = serviceLog.description
-        _mileage.value = serviceLog.mileage
+        _mileage.value = if (serviceLog.mileageKm > 0.0) {
+            val resolvedUnit = _resolvedDistanceUnit.value
+            DistanceFormatter.forDisplay(serviceLog.mileageKm, resolvedUnit).toLong().toString()
+        } else serviceLog.mileage.replace(",", "")
         _selectedType.value = serviceLog.type
         _formErrors.value = emptyMap()
 
@@ -378,25 +390,15 @@ class ServiceViewModel(
      */
     fun onAddFabClicked() {
         clearFormState()
+        val today = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date())
+        _serviceDate.value = today
         prefillCurrentMileage()
         _dialogMode.value = ServiceDialogMode.ADD
     }
 
     private fun prefillCurrentMileage() {
         val vehicle = _selectedVehicleWithServices.value?.vehicle ?: return
-        var canonicalKm = vehicle.mileageKm
-        if (canonicalKm <= 0.0 && vehicle.mileage.isNotBlank()) {
-            val parsed = DistanceFormatter.parseUserInput(vehicle.mileage)
-            if (parsed > 0) {
-                val isMiles = vehicle.mileage.contains("mi", ignoreCase = true)
-                        || vehicle.mileage.contains("Miles", ignoreCase = true)
-                canonicalKm = if (isMiles) {
-                    DistanceFormatter.forStorage(parsed, "MILES")
-                } else {
-                    parsed
-                }
-            }
-        }
+        val canonicalKm = resolveCanonicalKm(vehicle)
         if (canonicalKm > 0.0) {
             val resolvedUnit = _resolvedDistanceUnit.value
             val displayValue = DistanceFormatter.forDisplay(canonicalKm, resolvedUnit)
@@ -407,7 +409,7 @@ class ServiceViewModel(
     /**
      * Opens dialog in VIEW (read-only) mode for a service log.
      */
-    fun onLogClicked(serviceLog: ServiceLogEntity) {
+    fun onLogClicked(serviceLog: ServiceLog) {
         _selectedLog.value = serviceLog
         _dialogMode.value = ServiceDialogMode.VIEW
         _selectedLogParts.value = emptyList()
@@ -425,7 +427,7 @@ class ServiceViewModel(
         clearFormState()
     }
 
-    fun onSelectDelete(serviceLog: ServiceLogEntity) {
+    fun onSelectDelete(serviceLog: ServiceLog) {
         _selectedLogForOptions.value = null
         _logToDelete.value = serviceLog
     }
@@ -453,20 +455,7 @@ class ServiceViewModel(
             if (_selectedLog.value?.id == log.id) {
                 clearFormState()
             }
+            SyncWorker.enqueueOneTimeSync(application)
         }
-    }
-
-    companion object {
-        fun factory(
-            repository: VehicleRepository,
-            userPreferencesRepository: UserPreferencesRepository,
-            application: Application
-        ): ViewModelProvider.Factory =
-            object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return ServiceViewModel(repository, userPreferencesRepository, application) as T
-                }
-            }
     }
 }

@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -71,11 +72,10 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.AsyncImage
 import pt.ipt.dama2026.mygarage.R
-import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
+import pt.ipt.dama2026.mygarage.domain.model.Vehicle
 import pt.ipt.dama2026.mygarage.data.network.NetworkModule
 import pt.ipt.dama2026.mygarage.domain.locale.DistanceFormatter
-import pt.ipt.dama2026.mygarage.domain.locale.LocaleManager
-import pt.ipt.dama2026.mygarage.MyGarageApplication
+import pt.ipt.dama2026.mygarage.presentation.locale.LocaleManager
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 import pt.ipt.dama2026.mygarage.ui.components.rememberLocationPermissionHandler
 import pt.ipt.dama2026.mygarage.ui.components.LocationPermanentDenialDialog
@@ -107,9 +107,9 @@ private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun VehicleEditDialog(
-    vehicle: VehicleEntity?,
+    vehicle: Vehicle?,
     onDismiss: () -> Unit,
-    onConfirm: (VehicleEntity) -> Unit,
+    onConfirm: (Vehicle) -> Unit,
     onDelete: () -> Unit = {},
     selectedImageUri: String? = null,
     existingImageFileName: String? = null,
@@ -117,8 +117,9 @@ fun VehicleEditDialog(
     onImageSelected: (String) -> Unit = {},
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {},
-    resolvedDistanceUnit: String = "MILES",
-    existingVehicles: List<VehicleEntity> = emptyList()
+    resolvedDistanceUnit: String = "KILOMETERS",
+    existingVehicles: List<Vehicle> = emptyList(),
+    locationManager: pt.ipt.dama2026.mygarage.domain.location.LocationManager? = null
 ) {
     // Local picked Uri — avoids string round-trip permission loss
     var pickedUri by remember { mutableStateOf<Uri?>(null) }
@@ -126,7 +127,11 @@ fun VehicleEditDialog(
     var name by remember { mutableStateOf(vehicle?.name ?: "") }
     var plate by remember { mutableStateOf(vehicle?.plate ?: "") }
     var year by remember { mutableStateOf(vehicle?.year ?: "") }
-    var mileage by remember { mutableStateOf(vehicle?.mileage ?: "") }
+    val initMileage = if ((vehicle?.mileageKm ?: 0.0) > 0.0) {
+        DistanceFormatter.forDisplay(vehicle!!.mileageKm, resolvedDistanceUnit).toLong().toString()
+    } else ""
+    var mileage by remember { mutableStateOf(initMileage) }
+
     var inspectionDate by remember { mutableStateOf(vehicle?.inspectionDate ?: "") }
     var oilType by remember { mutableStateOf(vehicle?.oilType ?: "") }
     var owner by remember { mutableStateOf(vehicle?.owner ?: "") }
@@ -135,7 +140,6 @@ fun VehicleEditDialog(
     var fuelType by remember { mutableStateOf(vehicle?.fuelType ?: "") }
     var engineCapacity by remember { mutableStateOf(vehicle?.engineCapacity ?: "") }
     var iucValue by remember { mutableStateOf(vehicle?.iucValue ?: "") }
-    var mileageToNextService by remember { mutableStateOf(vehicle?.mileageToNextService ?: "") }
     var locationAddress by remember { mutableStateOf(vehicle?.locationAddress ?: "") }
     var latitude by remember { mutableStateOf(vehicle?.latitude) }
     var longitude by remember { mutableStateOf(vehicle?.longitude) }
@@ -232,15 +236,6 @@ fun VehicleEditDialog(
 
     fun parseMileageNumeric(raw: String): Double {
         return DistanceFormatter.parseUserInput(raw)
-    }
-
-    fun autoCalcNextService(currentMileageStr: String) {
-        val numeric = parseMileageNumeric(currentMileageStr)
-        if (numeric > 0) {
-            val next = numeric + 10000.0
-            val unitLabel = LocaleManager.unitLabel(resolvedDistanceUnit)
-            mileageToNextService = String.format(Locale.US, "%,.0f %s", next, unitLabel)
-        }
     }
 
     if (showDatePicker) {
@@ -595,7 +590,6 @@ fun VehicleEditDialog(
                 onValueChange = {
                     val filtered = it.filter { c -> c.isDigit() }
                     mileage = filtered
-                    autoCalcNextService(filtered)
                     clearFieldError("mileage")
                 },
                 label = { Text(stringResource(R.string.dialog_vehicle_mileage_label, mileageUnitName)) },
@@ -846,46 +840,19 @@ fun VehicleEditDialog(
                 singleLine = true
             )
 
-            // Mileage to Next Service - auto-calculated, read-only
-            OutlinedTextField(
-                value = mileageToNextService,
-                onValueChange = {},
-                placeholder = {
-                    val unitName = if (resolvedDistanceUnit == "KILOMETERS")
-                        stringResource(R.string.unit_kilometers)
-                    else stringResource(R.string.unit_miles)
-                    Text(stringResource(R.string.dialog_vehicle_mileage_next_service_label, unitName))
-                },
-                isError = allErrors.containsKey("mileageToNextService"),
-                colors = textFieldColors,
-                modifier = Modifier.fillMaxWidth(),
-                readOnly = true,
-                singleLine = true,
-                supportingText = {
-                    allErrors["mileageToNextService"]?.let { Text(stringResource(it)) }
-                        ?: run {
-                            val unitName = if (resolvedDistanceUnit == "KILOMETERS")
-                                stringResource(R.string.unit_kilometers)
-                            else stringResource(R.string.unit_miles)
-                            Text(stringResource(R.string.dialog_vehicle_auto_calc_hint, unitName), style = MaterialTheme.typography.labelSmall)
-                        }
-                }
-            )
-
             val scope = rememberCoroutineScope()
-            val app = context.applicationContext as MyGarageApplication
             val locationPermission = rememberLocationPermissionHandler(
                 onGranted = {
                     scope.launch {
-                        when (val result = app.locationManager.getCurrentLocation()) {
+                        when (val result = locationManager?.getCurrentLocation()) {
                             is pt.ipt.dama2026.mygarage.domain.location.LocationResult.Success -> {
                                 latitude = result.lat
                                 longitude = result.lng
-                                android.util.Log.d("MyGarage.Location", "Dialog GPS success: lat=${result.lat} lng=${result.lng}")
                             }
                             is pt.ipt.dama2026.mygarage.domain.location.LocationResult.Error -> {
                                 android.util.Log.e("MyGarage.Location", "Dialog GPS error: ${result.message}")
                             }
+                            null -> { /* locationManager unavailable */ }
                         }
                     }
                 }
@@ -940,6 +907,26 @@ fun VehicleEditDialog(
                             )
                         )
                     }
+                    IconButton(
+                        onClick = {
+                            latitude = null
+                            longitude = null
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp)
+                            .background(
+                                MyGarageColors.surfaceContainerLow.copy(alpha = 0.8f),
+                                RoundedCornerShape(50)
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.action_delete),
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             } else {
                 Box(
@@ -983,24 +970,6 @@ fun VehicleEditDialog(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            if (vehicle != null) {
-                Button(
-                    onClick = {
-                        onDelete()
-                        onDismiss()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MyGarageColors.surfaceContainerLow,
-                        contentColor = MaterialTheme.colorScheme.error
-                    ),
-                    shape = RoundedCornerShape(50),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(R.string.action_delete))
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1041,12 +1010,12 @@ fun VehicleEditDialog(
                             val rawMileageKm = DistanceFormatter.forStorage(
                                 parseMileageNumeric(mileage), resolvedDistanceUnit
                             )
-                            val result = VehicleEntity(
+                            val result = Vehicle(
                                 id = vehicle?.id ?: java.util.UUID.randomUUID().toString(),
                                 plate = plate,
                                 name = name,
                                 year = year,
-                                mileage = mileage,
+                                mileage = DistanceFormatter.formatDisplay(rawMileageKm, resolvedDistanceUnit),
                                 mileageKm = rawMileageKm,
                                 inspectionDate = inspectionDate.ifBlank { null },
                                 oilType = oilType.ifBlank { null },
@@ -1056,7 +1025,6 @@ fun VehicleEditDialog(
                                 fuelType = fuelType,
                                 engineCapacity = engineCapacity,
                                 iucValue = iucValue.ifBlank { null },
-                                mileageToNextService = mileageToNextService.ifBlank { null },
                                 locationAddress = locationAddress.ifBlank { null },
                                 latitude = latitude,
                                 longitude = longitude,

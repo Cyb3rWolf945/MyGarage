@@ -1,9 +1,9 @@
 package pt.ipt.dama2026.mygarage.presentation.auth
 
-import android.app.Application
 import android.util.Patterns
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,10 +11,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class AuthViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val authRepository = AuthRepository(application)
+@HiltViewModel
+class AuthViewModel @Inject constructor(
+    private val authRepository: AuthRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()

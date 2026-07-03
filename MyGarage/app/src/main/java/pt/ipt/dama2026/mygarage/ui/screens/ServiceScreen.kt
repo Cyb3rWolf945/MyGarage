@@ -54,38 +54,37 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import pt.ipt.dama2026.mygarage.R
-import pt.ipt.dama2026.mygarage.data.local.entity.PartEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.ServiceLogEntity
-import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
-import pt.ipt.dama2026.mygarage.data.local.relation.VehicleWithServices
+import pt.ipt.dama2026.mygarage.domain.model.Part
+import pt.ipt.dama2026.mygarage.domain.model.ServiceLog
+import pt.ipt.dama2026.mygarage.domain.model.Vehicle
+import pt.ipt.dama2026.mygarage.domain.model.VehicleWithServices
 import pt.ipt.dama2026.mygarage.ui.components.ServiceLogActionDialog
 import pt.ipt.dama2026.mygarage.ui.screens.servicelog.ServiceDialogMode
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
+import pt.ipt.dama2026.mygarage.presentation.service.ServiceTypeLabels
 
 /**
- * Maps a raw service type key (stored in Room as lowercase English, e.g. "regular")
- * to a localized, display-ready label by using string resources.
+ * Maps a raw service type key to a localized display label.
  */
 @Composable
-private fun serviceTypeLabel(type: String): String = when (type.lowercase()) {
-    "revision"   -> stringResource(R.string.service_type_revision)
-    "inspection" -> stringResource(R.string.service_type_inspection)
-    else         -> stringResource(R.string.service_type_regular)
+private fun serviceTypeLabel(type: String): String {
+    val resId = ServiceTypeLabels.labelFor(type, R.string.service_type_revision, R.string.service_type_inspection, R.string.service_type_regular)
+    return stringResource(resId)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ServiceScreen(
-    vehicles: List<VehicleEntity>,
+    vehicles: List<Vehicle>,
     selectedVehicleId: String?,
     selectedVehicleWithServices: VehicleWithServices?,
-    temporaryParts: List<PartEntity>,
+    temporaryParts: List<Part>,
     onVehicleSelected: (String) -> Unit,
     onAddTemporaryPart: (String, Int, String?) -> Unit,
     onRemoveTemporaryPart: (String) -> Unit,
     dialogMode: ServiceDialogMode = ServiceDialogMode.HIDDEN,
-    selectedLog: ServiceLogEntity? = null,
-    selectedLogParts: List<PartEntity> = emptyList(),
+    selectedLog: ServiceLog? = null,
+    selectedLogParts: List<Part> = emptyList(),
     formErrors: Map<String, Int> = emptyMap(),
     onFieldChanged: (String) -> Unit = {},
     serviceDate: String = "",
@@ -97,18 +96,18 @@ fun ServiceScreen(
     onMileageChanged: (String) -> Unit = {},
     onTypeChanged: (String) -> Unit = {},
     onAddFabClicked: () -> Unit = {},
-    onLogClicked: (ServiceLogEntity) -> Unit = {},
+    onLogClicked: (ServiceLog) -> Unit = {},
     onSave: () -> Unit = {},
     onDismissDialog: () -> Unit = {},
-    selectedLogForOptions: ServiceLogEntity? = null,
-    onLogLongPressed: (ServiceLogEntity) -> Unit = {},
+    selectedLogForOptions: ServiceLog? = null,
+    onLogLongPressed: (ServiceLog) -> Unit = {},
     onDismissOptionsMenu: () -> Unit = {},
-    onSelectEdit: (ServiceLogEntity) -> Unit = {},
-    onSelectDelete: (ServiceLogEntity) -> Unit = {},
-    logToDelete: ServiceLogEntity? = null,
+    onSelectEdit: (ServiceLog) -> Unit = {},
+    onSelectDelete: (ServiceLog) -> Unit = {},
+    logToDelete: ServiceLog? = null,
     onDismissDeleteDialog: () -> Unit = {},
     onConfirmDeleteLog: () -> Unit = {},
-    resolvedDistanceUnit: String = "MILES",
+    resolvedDistanceUnit: String = "KILOMETERS",
     modifier: Modifier = Modifier
 ) {
     Scaffold(
