@@ -66,20 +66,4 @@ export async function mergeGuestData(
   }
 }
 
-/**
- * GET /api/sync/pull-initial
- *
- * Returns all user data (no timestamp filter) for first-login scenario.
- */
-export async function pullInitial(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const data = await syncService.pullInitial(req.user.userId);
-    res.status(200).json(data);
-  } catch (err) {
-    next(err);
-  }
-}
+

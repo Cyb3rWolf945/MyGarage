@@ -234,8 +234,8 @@
     <string name="about_course_label">Course</string>
     <string name="about_curricular_unit_label">Curricular Unit</string>
     <string name="about_author_label">Author</string>
-    <string name="about_course_value">Mestrado: Engenharia Informática-Internet das Coisas</string>
-    <string name="about_unit_value">Desenvolvimento de Aplicações Móveis Avançadas</string>
+    <string name="about_course_value">Master\'s: Computer Engineering-Internet of Things</string>
+    <string name="about_unit_value">Advanced Mobile Application Development</string>
     <string name="about_architecture_header">ARCHITECTURE</string>
     <string name="about_architecture_body">Offline-First Foundation — Built on Room Database and DataStore for robust, immediate local persistence. The architecture cleanly separates concerns using Unidirectional Data Flow (UDF) with Jetpack Compose and Android ViewModels, ensuring a seamless transition to cloud synchronisation via a repository abstraction layer.</string>
     <string name="about_libraries_header">OPEN SOURCE LIBRARIES</string>

@@ -142,7 +142,7 @@ class SyncRepository @Inject constructor(
         if (pushResult.isFailure) return@withContext pushResult
 
         try {
-            val response = api.pullInitial(null)
+            val response = api.pull(null)
             if (!response.isSuccessful) {
                 return@withContext Result.failure(SyncException("Pull initial failed: ${response.code()}"))
             }
@@ -181,7 +181,7 @@ class SyncRepository @Inject constructor(
     suspend fun syncWithOfflineFallback(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val response = try {
-                api.pullInitial(null)
+                api.pull(null)
             } catch (e: Exception) {
                 return@withContext Result.success(Unit)
             }

@@ -147,8 +147,8 @@ class OfflineVehicleRepository @Inject constructor(
     }
 
     override suspend fun deleteServiceLog(serviceLog: ServiceLog) {
-        val entity = serviceLog.toEntity().copy(isDeleted = true, updatedAt = System.currentTimeMillis())
-        vehicleDao.updateServiceLog(entity)
+        val existing = vehicleDao.getServiceLogById(serviceLog.id) ?: return
+        vehicleDao.updateServiceLog(existing.copy(isDeleted = true, updatedAt = System.currentTimeMillis()))
     }
 
     /**
