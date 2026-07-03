@@ -62,7 +62,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
-import pt.ipt.dama2026.mygarage.MyGarageApplication
 import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.data.network.NetworkModule
 import pt.ipt.dama2026.mygarage.presentation.profile.ProfileUiState
@@ -88,11 +87,8 @@ fun ProfileScreen(
     val navigateToAuth by viewModel.navigateToAuth.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     val context = LocalContext.current
-    val app = context.applicationContext as MyGarageApplication
-    val imageStorageManager = app.imageStorageManager
 
-    // Resolve avatar file path from stored filename, fall back to proxy URL
-    val avatarPath = state.avatarFileName?.let { imageStorageManager.getImagePath(it) }
+    val avatarPath = state.avatarFileName?.let { viewModel.getAvatarPath(it) }
     val avatarProxyUrl = if (avatarPath == null && !state.avatarRemoteUrl.isNullOrBlank()) {
         NetworkModule.buildImageProxyUrl(context, state.avatarRemoteUrl?.replace("\"", ""))
     } else null
@@ -300,7 +296,7 @@ private fun ViewModeContent(
         BentoStatCard(
             modifier = Modifier.weight(1f),
             label = stringResource(id = R.string.profile_stat_total_mileage, unitName),
-            value = formatMileage(state.totalMileage),
+            value = formatMileage(state.totalMileage, state.resolvedDistanceUnit),
             icon = {
                 Text(
                     text = if (state.resolvedDistanceUnit == "KILOMETERS") stringResource(id = R.string.unit_label_km)
@@ -934,7 +930,7 @@ private fun DistanceUnitSelector(
     }
 }
 
-private fun formatMileage(value: Int): String {
-    val formatter = NumberFormat.getNumberInstance(Locale.US)
-    return formatter.format(value)
+private fun formatMileage(value: Int, resolvedUnit: String): String {
+    val converted = pt.ipt.dama2026.mygarage.domain.locale.DistanceFormatter.forDisplay(value.toDouble(), resolvedUnit)
+    return NumberFormat.getNumberInstance(Locale.US).format(converted.toLong())
 }

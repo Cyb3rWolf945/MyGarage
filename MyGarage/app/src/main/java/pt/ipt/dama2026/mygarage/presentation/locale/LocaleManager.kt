@@ -1,4 +1,4 @@
-package pt.ipt.dama2026.mygarage.domain.locale
+package pt.ipt.dama2026.mygarage.presentation.locale
 
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate

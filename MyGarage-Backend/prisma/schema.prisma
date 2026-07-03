@@ -46,7 +46,6 @@ model Vehicle {
   fuelType            String
   engineCapacity      String
   iucValue            String?
-  mileageToNextService String?
   locationAddress     String?
   latitude            Float?
   longitude           Float?

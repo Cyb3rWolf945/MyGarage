@@ -1,12 +1,14 @@
 package pt.ipt.dama2026.mygarage.data.repository
 
 import android.content.Context
-import pt.ipt.dama2026.mygarage.data.local.db.AppDatabase
+import dagger.hilt.android.qualifiers.ApplicationContext
+import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.data.model.AuthResponse
 import pt.ipt.dama2026.mygarage.data.model.ErrorResponse
 import pt.ipt.dama2026.mygarage.data.model.LoginRequest
 import pt.ipt.dama2026.mygarage.data.model.RegisterRequest
-import pt.ipt.dama2026.mygarage.data.network.NetworkModule
+import pt.ipt.dama2026.mygarage.data.local.dao.VehicleDao
+import pt.ipt.dama2026.mygarage.data.network.AuthApiService
 import pt.ipt.dama2026.mygarage.data.sync.SyncWorker
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -15,12 +17,16 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.security.MessageDigest
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class AuthRepository(private val context: Context) {
-
-    private val api = NetworkModule.createAuthApiService(context)
-    private val prefs = UserPreferencesRepository(context)
-    private val dao = AppDatabase.getDatabase(context).vehicleDao()
+@Singleton
+class AuthRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val api: AuthApiService,
+    private val prefs: UserPreferencesRepository,
+    private val dao: VehicleDao
+) {
     private val gson = Gson()
 
     val isLoggedIn: Flow<Boolean> = prefs.userPreferencesFlow.map { !it.authToken.isNullOrBlank() }
@@ -38,11 +44,11 @@ class AuthRepository(private val context: Context) {
                     Result.success(body)
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    val message = parseError(errorBody, "Invalid email or password")
+                    val message = parseError(errorBody, context.getString(R.string.auth_error_invalid_credentials))
                     Result.failure(AuthException(message))
                 }
             } catch (e: Exception) {
-                Result.failure(AuthException("Network error. Please check your connection."))
+                Result.failure(AuthException(context.getString(R.string.auth_error_network)))
             }
         }
 
@@ -63,11 +69,11 @@ class AuthRepository(private val context: Context) {
                     Result.success(body)
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    val message = parseError(errorBody, "Registration failed")
+                    val message = parseError(errorBody, context.getString(R.string.auth_error_network))
                     Result.failure(AuthException(message))
                 }
             } catch (e: Exception) {
-                Result.failure(AuthException("Network error. Please check your connection."))
+                Result.failure(AuthException(context.getString(R.string.auth_error_network)))
             }
         }
 

@@ -52,7 +52,7 @@ fun AboutScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-    val versionName = "1.0.0"
+    val versionName = pt.ipt.dama2026.mygarage.BuildConfig.VERSION_NAME
 
     Box(
         modifier = modifier

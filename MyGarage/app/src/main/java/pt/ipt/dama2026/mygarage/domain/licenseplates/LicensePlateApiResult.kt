@@ -3,8 +3,6 @@ package pt.ipt.dama2026.mygarage.domain.licenseplates
 sealed class LicensePlateApiResult {
     data class Success(val vehicleData: LicensePlateVehicleData) : LicensePlateApiResult()
     data class Error(val message: String, val errorType: ErrorType) : LicensePlateApiResult()
-    object Loading : LicensePlateApiResult()
-    object Idle : LicensePlateApiResult()
 }
 
 enum class ErrorType {

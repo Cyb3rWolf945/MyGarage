@@ -1,6 +1,5 @@
 package pt.ipt.dama2026.mygarage.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +26,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,12 +48,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextAlign
 import coil.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.launch
-import pt.ipt.dama2026.mygarage.MyGarageApplication
 import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.data.network.NetworkModule
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 import pt.ipt.dama2026.mygarage.ui.screens.vehicleprofile.VehicleProfileUiState
-import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
+import pt.ipt.dama2026.mygarage.domain.model.Vehicle
 import pt.ipt.dama2026.mygarage.ui.components.VehicleEditDialog
 import pt.ipt.dama2026.mygarage.ui.components.DeleteConfirmationDialog
 import pt.ipt.dama2026.mygarage.ui.components.rememberLocationPermissionHandler
@@ -82,10 +79,10 @@ import java.util.Locale
 @Composable
 fun VehicleProfileScreen(
     uiState: VehicleProfileUiState,
-    vehicleEntity: VehicleEntity,
+    vehicleEntity: Vehicle,
     onBackClick: () -> Unit,
     onNavigateToService: () -> Unit,
-    onUpdateVehicle: (VehicleEntity) -> Unit,
+    onUpdateVehicle: (Vehicle) -> Unit,
     onDeleteVehicle: () -> Unit = {},
     showDeleteConfirmation: Boolean = false,
     onDismissDeleteDialog: () -> Unit = {},
@@ -96,7 +93,9 @@ fun VehicleProfileScreen(
     carouselStartIndex: Int = 0,
     onOpenCarousel: (Int) -> Unit = {},
     onCloseCarousel: () -> Unit = {},
-    resolvedDistanceUnit: String = "MILES",
+    resolvedDistanceUnit: String = "KILOMETERS",
+    imageStorageManager: pt.ipt.dama2026.mygarage.domain.repository.ImageStorageManager? = null,
+    locationManager: pt.ipt.dama2026.mygarage.domain.location.LocationManager? = null,
     modifier: Modifier = Modifier
 ) {
     val unitName = if (resolvedDistanceUnit == "KILOMETERS")
@@ -109,10 +108,8 @@ fun VehicleProfileScreen(
     var showEditDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val app = context.applicationContext as MyGarageApplication
-    val imageStorageManager = app.imageStorageManager
     val resolvedImagePath = vehicleEntity.localImageFileNames.firstOrNull()?.let {
-        imageStorageManager.getImagePath(it)
+        imageStorageManager?.getImagePath(it)
     }
     // Fall back to remote URL when no local file exists (e.g. after reinstall)
     val remoteUrlClean = vehicleEntity.remoteImageUrl?.replace("\"", "")
@@ -136,8 +133,10 @@ fun VehicleProfileScreen(
             },
             existingImageFileName = vehicleEntity.localImageFileNames.firstOrNull(),
             imageStorageManager = imageStorageManager,
+            locationManager = locationManager,
             formErrors = uiState.formErrors,
-            onFieldChanged = onFieldChanged
+            onFieldChanged = onFieldChanged,
+            resolvedDistanceUnit = resolvedDistanceUnit
         )
     }
 
@@ -149,9 +148,8 @@ fun VehicleProfileScreen(
     }
 
     if (isCarouselVisible && hasCarouselImages) {
-        val imageStorageManager = app.imageStorageManager
         val resolvedPaths = vehicleEntity.localImageFileNames.mapNotNull { fileName ->
-            imageStorageManager.getImagePath(fileName)
+            imageStorageManager?.getImagePath(fileName)
         }
         // Fall back to remote URL if no local files resolved
         val displayPaths = if (resolvedPaths.isNotEmpty()) {
@@ -318,8 +316,8 @@ fun VehicleProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     BentoCell(
-                        label = stringResource(id = R.string.stat_mileage_to_next_service, unitName),
-                        value = uiState.mileageToNextService,
+                        label = stringResource(id = R.string.stat_year),
+                        value = uiState.year,
                         modifier = Modifier.weight(1f)
                     )
                     BentoCell(
@@ -422,12 +420,6 @@ private fun SpecsTabContent(uiState: VehicleProfileUiState) {
                 leftValue = uiState.oilType,
                 rightLabel = stringResource(id = R.string.spec_seat_count),
                 rightValue = uiState.seatCount
-            )
-            SpecsGridRow(
-                leftLabel = stringResource(id = R.string.spec_door_count),
-                leftValue = uiState.doorCount,
-                rightLabel = "",
-                rightValue = ""
             )
         }
     }

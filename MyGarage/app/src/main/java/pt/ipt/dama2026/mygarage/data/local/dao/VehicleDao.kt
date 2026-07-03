@@ -70,6 +70,9 @@ interface VehicleDao {
     @Update
     suspend fun updateServiceLog(serviceLog: ServiceLogEntity)
 
+    @Query("SELECT * FROM service_logs WHERE id = :id")
+    suspend fun getServiceLogById(id: UUID): ServiceLogEntity?
+
     @Query("DELETE FROM service_parts WHERE serviceLogId = :serviceId")
     suspend fun deletePartsByServiceId(serviceId: String)
 
