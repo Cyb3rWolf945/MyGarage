@@ -21,6 +21,19 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
+/**
+ * Módulo Hilt para a camada de rede (Retrofit + OkHttp).
+ *
+ * Providencia:
+ * - URL base da API (lido do AndroidManifest, fallback Railway).
+ * - OkHttpClient com interceptor de autenticação (adiciona header Authorization
+ *   com o token JWT do DataStore automaticamente em todos os pedidos).
+ * - Retrofit configurado com Gson (setLenient para tolerar JSON com pequenas
+ *   irregularidades como vírgulas extra, sem necessidade de parse estrito).
+ * - AuthApiService: endpoints de login/registo.
+ * - SyncApiService: endpoints de sincronização e perfil.
+ * - ImageUploadService: endpoint de upload de imagens (multipart).
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {

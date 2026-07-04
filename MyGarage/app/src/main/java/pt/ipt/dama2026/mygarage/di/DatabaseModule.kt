@@ -10,6 +10,13 @@ import pt.ipt.dama2026.mygarage.data.local.dao.VehicleDao
 import pt.ipt.dama2026.mygarage.data.local.db.AppDatabase
 import javax.inject.Singleton
 
+/**
+ * Módulo Hilt para a base de dados Room.
+ *
+ * Providencia:
+ * - AppDatabase: singleton criado via getDatabase() (com migrações e type converters).
+ * - VehicleDao: extraído da base de dados. Usado por OfflineVehicleRepository e SyncRepository.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
