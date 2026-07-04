@@ -50,6 +50,7 @@ import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.presentation.auth.AuthViewModel
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 
+/** Ecrã de autenticação (login/registo). Usa AuthViewModel para estado e validação. */
 @Composable
 fun AuthScreen(
     onAuthSuccess: () -> Unit,

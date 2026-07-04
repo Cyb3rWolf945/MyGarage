@@ -74,6 +74,7 @@ import java.io.File
 import java.text.NumberFormat
 import java.util.Locale
 
+/** Ecrã de perfil do utilizador: dados, avatar, idioma, sync e definições. */
 @Composable
 fun ProfileScreen(
     viewModel: ProfileViewModel,
@@ -145,9 +146,9 @@ fun ProfileScreen(
         )
     }
 
-    // Show error snackbar if delete failed
+    // Mostra snackbar de erro se a eliminação falhou
     LaunchedEffect(deleteAccountError) {
-        // Error is shown via state; clear after handling
+        // Erro já foi mostrado; limpa depois de tratado
     }
 
     Box(

@@ -63,18 +63,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Unified, multi-mode dialog for viewing, adding, or editing a service log.
- *
- * Its internal layout dynamically changes based on [dialogMode]:
- * - VIEW  → read-only summary with a Close button.
- * - ADD   → editable form with Save + Cancel buttons.
- * - EDIT  → editable form pre-populated with existing data + Save + Cancel.
- *
- * Visibility is driven by [dialogMode] — when it is [ServiceDialogMode.HIDDEN]
- * the dialog is not rendered.
- */
 @OptIn(ExperimentalMaterial3Api::class)
+/** Diálogo de adicionar/editar/ver serviço com data, quilometragem, peças e tipo. */
 @Composable
 fun ServiceLogActionDialog(
     dialogMode: ServiceDialogMode,
@@ -110,7 +100,7 @@ fun ServiceLogActionDialog(
     val isEditable = dialogMode == ServiceDialogMode.ADD || dialogMode == ServiceDialogMode.EDIT
     val isViewOnly = dialogMode == ServiceDialogMode.VIEW
 
-    // Shared text-field colors per DESIGN.md tonal layering
+    // Cores dos campos de texto (design system)
     val textFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MyGarageColors.primary,
         unfocusedBorderColor = MyGarageColors.surfaceContainerHigh,
@@ -313,7 +303,7 @@ fun ServiceLogActionDialog(
                         singleLine = true
                     )
 
-                    // Service Type Chips
+                    // Chips de tipo de serviço
                     Text(
                         text = stringResource(R.string.dialog_service_type_label),
                         style = MaterialTheme.typography.labelSmall,
@@ -358,7 +348,7 @@ fun ServiceLogActionDialog(
                         }
                     }
 
-                    // Parts Used Section (revision type only)
+                    // Peças usadas (só para revisões)
                     if (selectedType == "revision") {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -401,7 +391,7 @@ fun ServiceLogActionDialog(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Filtered Parts List
+                        // Lista de peças
                         val filteredParts = if (partsSearchQuery.isBlank()) {
                             temporaryParts
                         } else {
@@ -472,7 +462,7 @@ fun ServiceLogActionDialog(
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        // Add Part Button
+                        // Botão adicionar peça
                         Button(
                             onClick = { showAddPartDialog = true },
                             colors = ButtonDefaults.buttonColors(
@@ -552,9 +542,7 @@ fun ServiceLogActionDialog(
     }
 }
 
-/**
- * Renders a label-value pair for read-only view. Shows "N/A" if value blank.
- */
+/** Mostra um par label-valor no modo de visualização. "N/A" se vazio. */
 @Composable
 private fun ViewField(label: String, value: String) {
     val displayValue = value.ifBlank { stringResource(id = R.string.not_available) }
@@ -577,8 +565,7 @@ private fun ViewField(label: String, value: String) {
 }
 
 /**
- * Small inline dialog for adding a part while inside the service-log dialog.
- */
+/** Pequeno diálogo inline para adicionar uma peça durante o registo de serviço. */
 @Composable
 private fun AddPartDialogInline(
     onDismiss: () -> Unit,

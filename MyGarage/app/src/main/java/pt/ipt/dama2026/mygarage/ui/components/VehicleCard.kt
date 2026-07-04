@@ -33,12 +33,7 @@ import pt.ipt.dama2026.mygarage.data.network.NetworkModule
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 import java.io.File
 
-/**
- * vehicle card with photo header,
- * vehicle identity, and status badge.
- *
- * @param imagePath Absolute file path to the vehicle photo, or null.
- */
+/** Cartão de veículo com foto, nome, matrícula e badge de estado. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VehicleCard(

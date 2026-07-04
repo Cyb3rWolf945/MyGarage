@@ -24,9 +24,7 @@ import androidx.compose.ui.window.Dialog
 import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 
-/**
- * Confirmation dialog for deleting a vehicle.
- */
+/** Diálogo de confirmação para apagar um veículo. */
 @Composable
 fun DeleteConfirmationDialog(
     onDismiss: () -> Unit,

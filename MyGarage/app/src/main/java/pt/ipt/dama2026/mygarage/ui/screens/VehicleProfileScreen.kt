@@ -76,6 +76,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 
+/** Ecrã de perfil do veículo: detalhes, imagens, localização e histórico de serviços. */
 @Composable
 fun VehicleProfileScreen(
     uiState: VehicleProfileUiState,
@@ -111,7 +112,7 @@ fun VehicleProfileScreen(
     val resolvedImagePath = vehicleEntity.localImageFileNames.firstOrNull()?.let {
         imageStorageManager?.getImagePath(it)
     }
-    // Fall back to remote URL when no local file exists (e.g. after reinstall)
+    // Se não há ficheiro local, usa URL remoto (ex.: após reinstalar)
     val remoteUrlClean = vehicleEntity.remoteImageUrl?.replace("\"", "")
     val proxyUrl = NetworkModule.buildImageProxyUrl(context, remoteUrlClean)
     val displayImageModel: Any? = when {
@@ -119,7 +120,7 @@ fun VehicleProfileScreen(
         proxyUrl != null -> proxyUrl
         else -> null
     }
-    // Show carousel if we have local images OR a remote URL
+    // Mostra carrossel se há imagens locais ou URL remoto
     val hasCarouselImages = vehicleEntity.localImageFileNames.isNotEmpty() ||
         proxyUrl != null
 
@@ -151,7 +152,7 @@ fun VehicleProfileScreen(
         val resolvedPaths = vehicleEntity.localImageFileNames.mapNotNull { fileName ->
             imageStorageManager?.getImagePath(fileName)
         }
-        // Fall back to remote URL if no local files resolved
+        // Usa URL remoto se não há ficheiros locais
         val displayPaths = if (resolvedPaths.isNotEmpty()) {
             resolvedPaths
         } else if (proxyUrl != null) {
@@ -196,7 +197,7 @@ fun VehicleProfileScreen(
                         error = { GradientPlaceholder() }
                     )
                 } else {
-                    // Premium gradient placeholder
+                    // Placeholder com gradiente
                     Box(
                         modifier = Modifier
                             .fillMaxSize()

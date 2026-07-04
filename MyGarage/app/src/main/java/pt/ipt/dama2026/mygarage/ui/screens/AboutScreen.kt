@@ -38,13 +38,7 @@ import androidx.compose.ui.unit.dp
 import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 
-/**
- * Premium 'About' screen detailing the academic project, its architecture,
- * and the open-source libraries powering the application.
- *
- * Follows the 'Mechanical Atelier' design system: borderless cards,
- * tonal layering, elegant typography, no 1px borders.
- */
+/** Ecrã "Sobre" com detalhes do projeto académico, arquitetura e bibliotecas usadas. */
 @Composable
 fun AboutScreen(
     onBackClick: () -> Unit,

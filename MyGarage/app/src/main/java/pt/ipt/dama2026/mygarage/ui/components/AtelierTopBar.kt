@@ -30,6 +30,7 @@ import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 
 @OptIn(ExperimentalMaterial3Api::class)
+/** Barra superior com avatar e nome da garagem. */
 @Composable
 fun AtelierTopBar(
     garageName: String = "My Garage",

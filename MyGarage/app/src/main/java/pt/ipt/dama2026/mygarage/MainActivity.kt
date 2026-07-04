@@ -69,14 +69,25 @@ import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageTheme
 import kotlinx.coroutines.launch
 
+/** Ecrãs da navegação inferior com rota, label e ícone. */
 sealed class Screen(val route: String, val labelResId: Int, val iconResId: Int) {
     object Garage : Screen("garage", R.string.nav_garage, R.drawable.ic_garage)
     object Camera : Screen("camera", R.string.nav_camera, R.drawable.ic_camera)
     object Service : Screen("service", R.string.nav_service, R.drawable.ic_service)
 }
 
+/** Ícones da barra de navegação: Garagem, Câmara, Serviços. */
 private val bottomNavItems = listOf(Screen.Garage, Screen.Camera, Screen.Service)
 
+/**
+ * Activity principal da app. Ponto de entrada único (single-activity).
+ *
+ * Orquestra:
+ * - Splash → decide entre onboarding ou garagem (MainViewModel).
+ * - Navegação via NavHost + HorizontalPager com bottom nav.
+ * - Agendamento do sync periódico a cada 6h (SyncWorker).
+ * - Gestão de permissão de localização nos ecrãs que precisam.
+ */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
