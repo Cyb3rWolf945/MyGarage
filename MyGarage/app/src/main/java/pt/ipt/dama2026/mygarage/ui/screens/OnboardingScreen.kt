@@ -63,6 +63,7 @@ private const val PAGE_COUNT = 3
  * HorizontalPager com 3 páginas (WelcomePage, AuthForkPage, SetupPage).
  * Navegação apenas por botões — swipe desativado.
  */
+/** Ecrã de onboarding com 3 páginas: welcome, guest/formulário, e início de sessão. */
 @Composable
 fun OnboardingScreen(
     viewModel: OnboardingViewModel,
@@ -92,7 +93,7 @@ fun OnboardingScreen(
     val coroutineScope = rememberCoroutineScope()
     var showAuthOverlay by remember { mutableStateOf(false) }
 
-    // Programmatic scroll to setup page when "Continue as Guest" is selected
+    // Scroll programático para a página de configuração (guest)
     LaunchedEffect(advanceToSetupPage) {
         if (advanceToSetupPage) {
             pagerState.animateScrollToPage(PAGE_SETUP)
@@ -178,7 +179,7 @@ private fun WelcomePage(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Decorative Racing Blue accent strip
+        // Barra decorativa azul
         Box(
             modifier = Modifier
                 .width(48.dp)

@@ -1,7 +1,10 @@
 package pt.ipt.dama2026.mygarage.domain.model
 
 /**
- * Domain model for a part used during a service.
+ * Peça usada num serviço de manutenção.
+ *
+ * Modelo de domínio
+ * A conversão de/para PartEntity é feita pelos mappers em data/mapper/.
  */
 data class Part(
     val id: String,

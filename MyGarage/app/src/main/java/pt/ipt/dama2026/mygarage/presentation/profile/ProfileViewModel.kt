@@ -26,8 +26,14 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
- * ViewModel for the user profile screen. Manages preferences, avatar,
- * sync, auth, and account deletion.
+ * ViewModel do ecrã de perfil.
+ *
+ * Gere:
+ * - Preferências do utilizador (nome, garagem, idioma, unidades).
+ * - Upload e visualização do avatar.
+ * - Sincronização manual (pull-to-refresh).
+ * - Logout e eliminação de conta.
+ * - Navegação para autenticação/onboarding.
  */
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
@@ -98,6 +104,7 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** Alterar entre modo visualização e edição. Limpa erros ao ativar edição. */
     fun onEditToggled() {
         _uiState.value = _uiState.value.copy(
             isEditing = !_uiState.value.isEditing,
@@ -119,6 +126,7 @@ class ProfileViewModel @Inject constructor(
         )
     }
 
+    /** Valida nome e garagem. Se ok, guarda no DataStore e sai do modo edição. */
     fun onSaveProfile() {
         val state = _uiState.value
         val errors = mutableMapOf<String, Int>()
@@ -145,6 +153,7 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** Se guest → navega para login. Se autenticado → faz logout. */
     fun onAuthActionClicked() {
         if (_uiState.value.isGuestMode) {
             _navigateToAuth.value = true
@@ -159,6 +168,7 @@ class ProfileViewModel @Inject constructor(
         _navigateToAuth.value = false
     }
 
+    /** Dispara sync manual (fullSync) e mostra indicador de carregamento. */
     fun onSyncClicked() {
         _uiState.value = _uiState.value.copy(isSyncing = true)
         viewModelScope.launch(Dispatchers.IO) {
@@ -167,6 +177,7 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** Guarda imagem local, faz upload para o servidor e atualiza avatar na UI. */
     fun onAvatarSelected(uri: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = _uiState.value.copy(
@@ -207,6 +218,7 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** Muda idioma e atualiza unidade de distância (PT → km, EN → mi). */
     fun onLanguageChanged(language: String) {
         viewModelScope.launch(Dispatchers.IO) {
             userPreferencesRepository.updateAppLanguage(language)
@@ -224,6 +236,7 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    /** Guarda a unidade de distância escolhida (km ou milhas). */
     fun onDistanceUnitChanged(unit: String) {
         viewModelScope.launch {
             userPreferencesRepository.updateDistanceUnit(unit)
@@ -239,6 +252,7 @@ class ProfileViewModel @Inject constructor(
         _deleteAccountError.value = null
     }
 
+    /** Elimina conta no servidor, limpa BD local e redireciona para onboarding. */
     fun onConfirmDeleteAccount() {
         _showDeleteAccountDialog.value = false
         _isDeletingAccount.value = true

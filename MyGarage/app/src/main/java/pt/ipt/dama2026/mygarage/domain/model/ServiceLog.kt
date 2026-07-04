@@ -3,7 +3,9 @@ package pt.ipt.dama2026.mygarage.domain.model
 import java.util.UUID
 
 /**
- * Domain model for a service log / maintenance event.
+ *
+ * Modelo de domínio
+ * O type indica o tipo de serviço: "Inspection", "revision", "regular".
  */
 data class ServiceLog(
     val id: UUID = UUID.randomUUID(),

@@ -49,11 +49,8 @@ import pt.ipt.dama2026.mygarage.ui.components.VehicleCard
 import pt.ipt.dama2026.mygarage.ui.components.VehicleEditDialog
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 
-/**
- * Screen displaying the list of all registered vehicles with long-press options
- * and add/edit/delete capabilities via Unidirectional Data Flow (UDF).
- */
 @OptIn(ExperimentalMaterial3Api::class)
+/** Ecrã principal com a lista de veículos, FAB para adicionar e diálogo de edição. */
 @Composable
 fun GarageScreen(
     vehicles: List<Vehicle>,
@@ -253,7 +250,7 @@ fun GarageScreen(
 }
 
 /**
- * Empty-state composable shown when garage has no vehicles.
+/** Mostrado quando a garagem está vazia. */
  */
 
 @Composable

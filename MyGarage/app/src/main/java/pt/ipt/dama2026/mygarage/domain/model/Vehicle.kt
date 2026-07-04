@@ -1,7 +1,10 @@
 package pt.ipt.dama2026.mygarage.domain.model
 
 /**
- * Domain model for a vehicle. Supports offline-first images.
+ * Veículo.
+ *
+ * Modelo de domínio
+ * A conversão de/para VehicleEntity é feita pelos mappers em data/mapper/.
  */
 data class Vehicle(
     val id: String,

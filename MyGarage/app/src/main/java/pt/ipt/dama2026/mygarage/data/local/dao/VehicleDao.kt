@@ -16,7 +16,11 @@ import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
 /**
- * Data Access Object for vehicle, service log, and part operations.
+ * DAO central para veículos, serviços e peças.
+ * As funções com suspend servem para que o codigo possa correr em background numa thread a parte pelo Room.
+ * As que devolvem Flow são reativas: emitem atualizações sempre que a tabela muda,
+ * para que a UI atualize o seu estado.
+ * O filtro isDeleted = 0 esconde registos apagados da UI sem os remover da BD ( soft-delete ).
  */
 @Dao
 interface VehicleDao {

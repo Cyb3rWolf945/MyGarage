@@ -23,8 +23,17 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Data-layer implementation of [VehicleRepository] using Room [VehicleDao].
- * Maps between domain models and Room entities at the boundary.
+ * Implementação local do repositório de veículos, usando Room.
+ *
+ * É a ponte entre a UI e a base de dados:
+ * - A UI chama métodos com modelos de domínio (Vehicle, ServiceLog, Part).
+ * - Este repositório converte para entidades Room (via mappers), chama o DAO,
+ *   e converte os resultados de volta para modelos de domínio.
+ * - A UI nunca vê uma entidade Room — não sabe que a BD existe.
+ *
+ * Também trata de regras de negócio:
+ * - Soft-delete (marca isDeleted em vez de apagar).
+ * - Efeitos colaterais de serviços (ex.: inspeção avança a data da próxima em 1 ano).
  */
 @Singleton
 class OfflineVehicleRepository @Inject constructor(
@@ -32,10 +41,15 @@ class OfflineVehicleRepository @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository? = null
 ) : VehicleRepository {
 
+    /** Converte o modelo de domínio para entidade e insere na BD. */
     override suspend fun insertVehicle(vehicle: Vehicle) {
         vehicleDao.insertVehicle(vehicle.toEntity())
     }
 
+    /**
+     * Se o veículo já existe, faz copy com os novos dados e atualiza o timestamp.
+     * Se não existe, insere como novo.
+     */
     override suspend fun updateVehicle(vehicle: Vehicle) {
         val existing = vehicleDao.getVehicleById(vehicle.id)
         val entity = if (existing != null) {
@@ -66,15 +80,18 @@ class OfflineVehicleRepository @Inject constructor(
         vehicleDao.updateVehicle(entity)
     }
 
+    /** Marca o veículo como apagado (isDeleted = true) e regista o ID para o sync ignorar. */
     override suspend fun deleteVehicle(vehicle: Vehicle) {
         userPreferencesRepository?.markVehicleDeleted(vehicle.id)
         val existing = vehicleDao.getVehicleById(vehicle.id) ?: return
         vehicleDao.updateVehicle(existing.copy(isDeleted = true, updatedAt = System.currentTimeMillis()))
     }
 
+    /** Pesquisa veículo por ID e converte para modelo de domínio. */
     override suspend fun getVehicleById(vehicleId: String): Vehicle? {
         return vehicleDao.getVehicleById(vehicleId)?.toDomain()
     }
+
 
     override fun getAllVehicles(): Flow<List<Vehicle>> {
         return vehicleDao.getAllVehicles().map { list -> list.map { it.toDomain() } }
@@ -84,12 +101,14 @@ class OfflineVehicleRepository @Inject constructor(
         return vehicleDao.getVehicleWithServices(vehicleId).map { it.toDomain() }
     }
 
+    /** Insere serviço e aplica efeitos colaterais (ex.: avançar data de inspeção). */
     override suspend fun insertServiceLog(serviceLog: ServiceLog) {
         val entity = serviceLog.toEntity()
         vehicleDao.insertServiceLog(entity)
         handleServiceLogSideEffects(entity)
     }
 
+    /** Insere uma peça associada a um serviço. */
     override suspend fun insertPart(part: Part) {
         vehicleDao.insertPart(part.toEntity())
     }
@@ -98,6 +117,9 @@ class OfflineVehicleRepository @Inject constructor(
         return vehicleDao.getServiceLogWithParts(serviceLogId).map { it.toDomain() }
     }
 
+    /**
+     * Atualiza o serviço, apaga as peças antigas (soft-delete) e insere as novas.
+     */
     override suspend fun updateServiceLogWithParts(
         serviceLog: ServiceLog,
         parts: List<Part>
@@ -117,12 +139,12 @@ class OfflineVehicleRepository @Inject constructor(
             serviceLog.toEntity().copy(updatedAt = System.currentTimeMillis())
         }
         vehicleDao.updateServiceLog(entity)
-        // Soft-delete all existing parts, then upsert the current ones
         vehicleDao.softDeletePartsByServiceId(serviceLog.id.toString())
         parts.forEach { vehicleDao.insertPart(it.toEntity()) }
         handleServiceLogSideEffects(entity)
     }
 
+    /** Marca o serviço e as peças como apagados (soft-delete). */
     override suspend fun deleteServiceLog(serviceLog: ServiceLog) {
         val existing = vehicleDao.getServiceLogById(serviceLog.id) ?: return
         vehicleDao.updateServiceLog(existing.copy(isDeleted = true, updatedAt = System.currentTimeMillis()))
@@ -130,8 +152,10 @@ class OfflineVehicleRepository @Inject constructor(
     }
 
     /**
-     * Applies business rules based on service log type:
-     * - Inspection: advances inspectionDate by 1 year
+     * Aplica regras de negócio com base no tipo de serviço.
+     * Chamada após um insert de uma manutenção nova ou update.
+     *
+     * Se for "Inspection", avança a data da próxima inspeção do veículo em 1 ano.
      */
     private suspend fun handleServiceLogSideEffects(serviceLog: ServiceLogEntity) {
         val vehicle = vehicleDao.getVehicleById(serviceLog.vehicleId) ?: return

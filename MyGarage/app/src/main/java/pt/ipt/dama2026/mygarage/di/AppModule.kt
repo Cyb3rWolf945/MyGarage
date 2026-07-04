@@ -16,6 +16,16 @@ import pt.ipt.dama2026.mygarage.domain.location.LocationManager
 import pt.ipt.dama2026.mygarage.domain.repository.ImageStorageManager
 import javax.inject.Singleton
 
+/**
+ * Módulo Hilt.
+ *
+ * Providencia:
+ * - UserPreferencesRepository (precisa de Context para o DataStore).
+ * - ImageStorageManager → LocalImageStorageManager (armazenamento de imagens).
+ * - LocationManager → AndroidLocationManager (GPS).
+ * - LicensePlateApiService → LicensePlateNetworkService (lê a chave MATRICULA_USERNAME
+ *   do AndroidManifest para autenticação no serviço SOAP).
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {

@@ -6,10 +6,14 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 
 /**
- * Formats numeric input with thousand separators (commas) for visual display only.
- *
- * Example: raw "15500" is rendered as "15,500" without modifying the underlying
- * text buffer, so the cursor tracks the raw index correctly.
+ * Insere vírgulas a cada 3 dígitos só para mostrar (não altera o texto real).
+ * VisualTransformation é uma interface do Jetpack Compose que permite alterar a forma como o texto é exibido, sem modificar o valor real do texto.
+ * Isso é útil para formatação de entrada, como números de telefone, códigos postais ou, neste caso, quilometragem de veículos.
+ * A implementação de [OffsetMapping] garante que o cursor e a seleção de texto funcionem corretamente, mapeando as posições do texto original para o texto transformado e vice-versa.
+ * A função [filter] é chamada sempre que o texto muda, e ela retorna um [TransformedText] que contém o texto transformado e o mapeamento de deslocamento.
+ * A função [addCommas] é usada para construir a string transformada de forma eficiente, inserindo vírgulas a cada três dígitos.
+ * O mapeamento de deslocamento é calculado com base na quantidade de vírgulas inseridas, garantindo que o cursor se comporte de maneira intuitiva para o usuário.
+ * A transformação é puramente visual; o valor real do texto permanece inalterado, permitindo que a lógica de negócios e a validação de entrada funcionem com o valor original.
  */
 object MileageVisualTransformation : VisualTransformation {
 

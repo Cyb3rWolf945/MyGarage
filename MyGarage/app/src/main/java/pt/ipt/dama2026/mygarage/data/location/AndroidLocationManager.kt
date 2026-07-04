@@ -11,12 +11,26 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import pt.ipt.dama2026.mygarage.domain.location.LocationManager
+import pt.ipt.dama2026.mygarage.domain.location.LocationResult as DomainLocationResult
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 /**
- * Android implementation of [LocationManager] using FusedLocationProviderClient.
- * Uses a single high-accuracy location request suspended via coroutine.
+ * Obtém a localização GPS do dispositivo (uma única vez).
+ *
+ * Fluxo das permissões e obtenção da localização:
+ * 1. A UI verifica se a permissão de localização foi concedida.
+ *    Se não -> mostra diálogo a pedir permissão.
+ *    Se sim -> chama getCurrentLocation().
+ * 2. getCurrentLocation() suspende a coroutine e pede 1 update ao GPS.
+ * 3. Ao receber o resultado:
+ *    Se localização disponível -> devolve Success(lat, lng).
+ *    Se não -> devolve Error.
+ *
+ * Nota: hasLocationPermission devolve sempre true. A razão é que a interface
+ * LocationManager exige este método, mas a verificação real da permissão
+ * (ACCESS_FINE_LOCATION) já foi feita antes na UI (AndroidX Activity Result API).
+ * Quando o código chega a esta classe, a permissão já está garantida.
  */
 class AndroidLocationManager(context: Context) : LocationManager {
 
@@ -28,7 +42,7 @@ class AndroidLocationManager(context: Context) : LocationManager {
     }
 
     @SuppressLint("MissingPermission")
-    override suspend fun getCurrentLocation(): pt.ipt.dama2026.mygarage.domain.location.LocationResult =
+    override suspend fun getCurrentLocation(): DomainLocationResult =
         suspendCoroutine { continuation ->
             val locationRequest = LocationRequest.Builder(
                 Priority.PRIORITY_HIGH_ACCURACY, 5_000L
@@ -42,14 +56,14 @@ class AndroidLocationManager(context: Context) : LocationManager {
                     val location: Location? = result.lastLocation
                     if (location != null) {
                         continuation.resume(
-                            pt.ipt.dama2026.mygarage.domain.location.LocationResult.Success(
+                            DomainLocationResult.Success(
                                 lat = location.latitude,
                                 lng = location.longitude
                             )
                         )
                     } else {
                         continuation.resume(
-                            pt.ipt.dama2026.mygarage.domain.location.LocationResult.Error(
+                            DomainLocationResult.Error(
                                 "No location available"
                             )
                         )

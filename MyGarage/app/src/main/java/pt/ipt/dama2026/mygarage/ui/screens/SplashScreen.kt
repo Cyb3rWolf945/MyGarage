@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 
+/** Ecrã inicial com o ícone da app enquanto o MainViewModel decide a rota. */
 @Composable
 fun SplashScreen() {
     val ctx = LocalContext.current

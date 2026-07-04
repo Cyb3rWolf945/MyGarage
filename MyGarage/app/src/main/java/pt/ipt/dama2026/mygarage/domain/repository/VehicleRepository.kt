@@ -8,7 +8,13 @@ import pt.ipt.dama2026.mygarage.domain.model.VehicleWithServices
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Domain layer repository interface — depends only on domain models.
+ * Interface de domínio para operações com veículos, serviços e peças.
+ *
+ * Define o contrato que a camada de dados tem de cumprir.
+ * Só depende de modelos de domínio — nunca de entidades Room.
+ *
+ * Implementação concreta: OfflineVehicleRepository.
+ * Ligação feita via Hilt no RepositoryModule (@Binds).
  */
 interface VehicleRepository {
 

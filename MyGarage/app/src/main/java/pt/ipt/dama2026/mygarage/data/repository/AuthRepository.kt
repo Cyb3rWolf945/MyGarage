@@ -20,6 +20,22 @@ import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Trata de tudo relacionado com autenticação: login, registo e logout.
+ *
+ * Quando o utilizador faz login ou registo com sucesso:
+ * 1. O token JWT e os dados do utilizador são guardados no DataStore.
+ * 2. O onboarding é marcado como concluído.
+ * 3. Decide-se o tipo de sincronização:
+ *    - Se havia dados em modo guest → agenda um "guest merge" (junta os dados
+ *      locais do guest com a conta nova).
+ *    - Se não → faz apenas um sync normal.
+ *
+ * Em caso de erro, tenta ler a mensagem do corpo da resposta. Se não conseguir,
+ * usa uma mensagem genérica.
+ *
+ * O logout simplesmente apaga o token e volta ao modo guest.
+ */
 @Singleton
 class AuthRepository @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -29,9 +45,15 @@ class AuthRepository @Inject constructor(
 ) {
     private val gson = Gson()
 
+    /** True se existir token JWT guardado (utilizador autenticado). */
     val isLoggedIn: Flow<Boolean> = prefs.userPreferencesFlow.map { !it.authToken.isNullOrBlank() }
+    /** Email do utilizador autenticado, ou null se estiver em modo guest. */
     val userEmail: Flow<String?> = prefs.userPreferencesFlow.map { it.userEmail }
 
+    /**
+     * Envia email + password para a API. Se ok, guarda token, perfil e agenda sync.
+     * Se a conta já existia no servidor, faz push ou merge dos dados locais.
+     */
     suspend fun login(email: String, password: String): Result<AuthResponse> =
         withContext(Dispatchers.IO) {
             try {
@@ -52,6 +74,10 @@ class AuthRepository @Inject constructor(
             }
         }
 
+    /**
+     * Cria conta nova na API. Lógica pós-registo idêntica ao login:
+     * guarda token, marca onboarding, agenda sync.
+     */
     suspend fun register(
         email: String,
         password: String,
@@ -77,10 +103,19 @@ class AuthRepository @Inject constructor(
             }
         }
 
+    /** Apaga token e email do DataStore, voltando ao modo guest. :) */
     suspend fun logout() {
         prefs.clearAuth()
     }
 
+    /**
+     * Decide o tipo de sync pós-autenticação:
+     * - Se havia veículos em modo guest → gera uma assinatura SHA-256 (nome + garagem)
+     *   que serve como "impressão digital" da sessão guest. Isto garante que só os dados
+     *   desta sessão específica são enviados no merge, evitando injeção de dados de outro
+     *   dispositivo. Depois agenda o guest merge.
+     * - Caso contrário → sync normal.
+     */
     private suspend fun triggerSyncBasedOnGuestData(userName: String?, garageName: String?) {
         val currentPrefs = prefs.userPreferencesFlow.firstOrNull() ?: return
         val hasGuestData = currentPrefs.isGuestMode && dao.getAllVehiclesList().isNotEmpty()
@@ -95,12 +130,17 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    /** Gera hash SHA-256 de uma string (usado como assinatura dos dados de guest). */
     private fun sha256(input: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
         val hashBytes = digest.digest(input.toByteArray())
         return hashBytes.joinToString("") { "%02x".format(it) }
     }
 
+    /**
+     * Tenta extrair a mensagem de erro do JSON da resposta.
+     * Se o corpo estiver vazio ou o parse falhar, usa a mensagem de fallback.
+     */
     private fun parseError(errorBody: String?, fallback: String): String {
         if (errorBody.isNullOrBlank()) return fallback
         return try {
@@ -111,5 +151,6 @@ class AuthRepository @Inject constructor(
         }
     }
 
+    /** Exceção lançada quando a autenticação falha (credenciais inválidas, rede, etc.). */
     class AuthException(message: String) : Exception(message)
 }

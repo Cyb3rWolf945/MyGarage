@@ -43,14 +43,7 @@ import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 
 private const val TAG = "MyGarage.Location"
 
-/**
- * Holds location-permission state for the UI to consume.
- *
- * @param isGranted Whether location permission is currently held.
- * @param showSettingsDialog Whether the "Go to Settings" dialog should be visible.
- * @param launchPermissionRequest Always launches the OS permission prompt first.
- * @param dismissSettingsDialog Closes the settings-redirect dialog.
- */
+/** Estado da permissão de localização para a UI consumir. */
 class LocationPermissionState(
     val isGranted: Boolean,
     val showSettingsDialog: Boolean,
@@ -58,12 +51,7 @@ class LocationPermissionState(
     val dismissSettingsDialog: () -> Unit
 )
 
-/**
- * Composable that remembers location-permission state.
- *
- * @param onGranted Called when the user grants location permission via the OS prompt.
- */
-
+/** Gere o estado da permissão de localização. Mostra diálogo se negada permanentemente. */
 @Composable
 fun rememberLocationPermissionHandler(
     onGranted: () -> Unit = {}
@@ -124,14 +112,7 @@ fun rememberLocationPermissionHandler(
     )
 }
 
-/**
- * Premium dialog shown when the user has permanently denied location permission.
- * The user can dismiss it or tap "Open Settings" to navigate to the app's system settings.
- *
- * @param showDialog Controls visibility of the dialog.
- * @param onDismiss Sets [showDialog] to false (wired to Cancel button and back-press).
- * @param onOpenSettings Opens the Android OS Application Settings for this app.
- */
+/** Diálogo mostrado quando o user negou permanentemente a permissão de localização. */
 @Composable
 fun LocationPermanentDenialDialog(
     showDialog: Boolean,

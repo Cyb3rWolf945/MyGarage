@@ -13,6 +13,22 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * ViewModel do ecrã de autenticação (login/registo).
+ *
+ * Gere o estado do formulário (AuthUiState) e orquestra a submissão:
+ * 1. Valida campos (email, password, confirmação).
+ * 2. Se login → AuthRepository.login().
+ * 3. Se registo → AuthRepository.register().
+ * 4. Em caso de sucesso, emite authSuccess = true (a UI reage e navega).
+ *
+ * Usa MutableStateFlow para o estado — um contentor que guarda um valor
+ * e notifica a UI sempre que ele muda. A UI observa o StateFlow (versão
+ * só de leitura) e redesenha-se automaticamente.
+ *
+ * Cada campo tem um onXxxChanged (ex.: onEmailChanged). Quando o user
+ * escreve, atualiza o estado e limpa o erro desse campo.
+ */
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository
@@ -54,6 +70,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    /** Alterna entre login e registo. Limpa erros e campos específicos do registo. */
     fun onToggleMode() {
         _uiState.update { state ->
             state.copy(
@@ -67,6 +84,12 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Valida todos os campos e submete.
+     * - Login: email + password.
+     * - Registo: email + password + confirmação + nome + garagem.
+     * Password tem de ter >=6 caracteres, 1 maiúscula e 1 símbolo.
+     */
     fun onSubmit() {
         val state = _uiState.value
         val errors = mutableMapOf<String, Int>()
@@ -120,10 +143,12 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    /** Reseta a flag de sucesso (usado após navegação). */
     fun clearAuthSuccess() {
         _authSuccess.value = false
     }
 
+    /** Exige pelo menos 1 maiúscula e 1 símbolo. */
     private fun isPasswordStrong(password: String): Boolean {
         val hasUpperCase = password.any { it.isUpperCase() }
         val hasSymbol = password.any { !it.isLetterOrDigit() }

@@ -12,7 +12,17 @@ import java.net.URL
 import java.util.UUID
 
 /**
- * Stores images in app internal storage under "vehicle_images".
+ * Guarda e carrega imagens no armazenamento interno da app.
+ * As imagens ficam no armazenamento privado da app em si, na pasta "files/vehicle_images".
+ * Esta pasta é privada — outras apps não lhe acedem.
+ *
+ * Três operações:
+ * - saveImage: copia um ficheiro local (URI) para a pasta interna com nome único.
+ * - downloadImage: descarrega uma imagem de um URL remoto e guarda localmente.
+ * - getImagePath: devolve o caminho absoluto do ficheiro, ou null se não existir.
+ *
+ * Usado pelo SyncRepository (download de imagens remotas) e pelos ViewModels
+ * (guardar fotos escolhidas da galeria).
  */
 class LocalImageStorageManager(
     private val context: Context
@@ -23,6 +33,10 @@ class LocalImageStorageManager(
             if (!dir.exists()) dir.mkdirs()
         }
 
+    /**
+     * Copia uma imagem da galeria (URI) para a pasta interna da app.
+     * Gera um nome único (UUID.jpg). Devolve o nome do ficheiro ou null se falhar.
+     */
     override suspend fun saveImage(uri: String): String? = withContext(Dispatchers.IO) {
         try {
             val sourceUri = Uri.parse(uri)
@@ -45,6 +59,13 @@ class LocalImageStorageManager(
         }
     }
 
+    /**
+     * Descarrega uma imagem de um URL (via HTTP GET) e guarda na pasta interna.
+     * Timeout de 15s para ligar e 30s para ler. Se o código não for 200, devolve null.
+     *
+     * Usa HttpURLConnection em vez de Retrofit porque é um download simples
+     * O Retrofit seria desnecessário aqui — só precisamos de um GET e guardar os bytes num ficheiro.
+     */
     override suspend fun downloadImage(url: String): String? = withContext(Dispatchers.IO) {
         try {
             val connection = URL(url).openConnection() as HttpURLConnection
@@ -76,6 +97,7 @@ class LocalImageStorageManager(
         }
     }
 
+    /** Devolve o caminho absoluto do ficheiro se existir, ou null. */
     override fun getImagePath(fileName: String): String? {
         val file = File(imagesDir, fileName)
         return if (file.exists()) file.absolutePath else null

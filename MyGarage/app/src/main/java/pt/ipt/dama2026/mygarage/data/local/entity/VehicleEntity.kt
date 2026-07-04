@@ -5,9 +5,10 @@ import androidx.room.PrimaryKey
 import java.util.UUID
 
 /**
- * Represents a vehicle in the local database.
- * Attributes match [pt.ipt.dama2026.mygarage.ui.screens.vehicleprofile.VehicleProfileUiState]
- * to ensure Unidirectional Data Flow (UDF) is clean and direct.
+ * Veículo na base de dados local. Tabela "vehicles".
+ * Data class para ter copy() disponível nos updates parciais do repositório.
+ * Guarda dados da matrícula (plate, nome, ano, quilometragem, combustível, etc.),
+ * localização GPS, imagens locais/remotas, e metadados de sync (updatedAt, isDeleted).
  */
 @Entity(tableName = "vehicles")
 data class VehicleEntity(

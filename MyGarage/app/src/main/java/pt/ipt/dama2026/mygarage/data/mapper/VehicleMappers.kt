@@ -11,8 +11,16 @@ import pt.ipt.dama2026.mygarage.domain.model.ServiceLogWithParts
 import pt.ipt.dama2026.mygarage.domain.model.Vehicle
 import pt.ipt.dama2026.mygarage.domain.model.VehicleWithServices
 
+/**
+ * Funções de extensão para converter entre entidades Room (data layer)
+ * e modelos de domínio (domain layer).
+ *
+ * Usadas pelo OfflineVehicleRepository para isolar a camada de dados da de domínio.
+ */
+
 // ── Vehicle ──────────────────────────────────────────────────────
 
+/** Entity → Domain */
 fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     id = id,
     plate = plate,
@@ -35,6 +43,7 @@ fun VehicleEntity.toDomain(): Vehicle = Vehicle(
     remoteImageUrl = remoteImageUrl
 )
 
+/** Domain → Entity */
 fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
     id = id,
     plate = plate,
@@ -59,6 +68,7 @@ fun Vehicle.toEntity(): VehicleEntity = VehicleEntity(
 
 // ── ServiceLog ───────────────────────────────────────────────────
 
+/** Entity → Domain */
 fun ServiceLogEntity.toDomain(): ServiceLog = ServiceLog(
     id = id,
     vehicleId = vehicleId,
@@ -69,6 +79,7 @@ fun ServiceLogEntity.toDomain(): ServiceLog = ServiceLog(
     type = type
 )
 
+/** Domain → Entity */
 fun ServiceLog.toEntity(): ServiceLogEntity = ServiceLogEntity(
     id = id,
     vehicleId = vehicleId,
@@ -81,6 +92,7 @@ fun ServiceLog.toEntity(): ServiceLogEntity = ServiceLogEntity(
 
 // ── Part ─────────────────────────────────────────────────────────
 
+/** Entity → Domain */
 fun PartEntity.toDomain(): Part = Part(
     id = id,
     serviceLogId = serviceLogId,
@@ -89,6 +101,7 @@ fun PartEntity.toDomain(): Part = Part(
     reference = reference
 )
 
+/** Domain → Entity */
 fun Part.toEntity(): PartEntity = PartEntity(
     id = id,
     serviceLogId = serviceLogId,
@@ -99,11 +112,13 @@ fun Part.toEntity(): PartEntity = PartEntity(
 
 // ── Relations ────────────────────────────────────────────────────
 
+/** Entity → Domain. Filtra serviços com isDeleted = true. */
 fun EntityVehicleWithServices.toDomain(): VehicleWithServices = VehicleWithServices(
     vehicle = vehicle.toDomain(),
     services = services.filter { !it.isDeleted }.map { it.toDomain() }
 )
 
+/** Entity → Domain. Filtra peças com isDeleted = true. */
 fun EntityServiceLogWithParts.toDomain(): ServiceLogWithParts = ServiceLogWithParts(
     serviceLog = serviceLog.toDomain(),
     parts = parts.filter { !it.isDeleted }.map { it.toDomain() }

@@ -19,6 +19,17 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Esta é a classe que o AuthRepository vai usar para realizar a sincronização entre a BD local e o servidor.
+ *
+ * Tipos de sync:
+ * - fullSync: push → pull, usado no sync periódico normal.
+ * - syncWithGuestMerge: push + pull completo + merge (quando há dados de guest).
+ * - syncWithOfflineFallback: pull sem timestamp, ignora erros de rede.
+ *
+ * Também trata do sync de perfil (nome, garagem, avatar) e download
+ * de imagens remotas que ainda não existem em localmente.
+ */
 @Singleton
 class SyncRepository @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -27,6 +38,16 @@ class SyncRepository @Inject constructor(
     private val prefs: UserPreferencesRepository,
     private val imageStorage: ImageStorageManager
 ) {
+    /**
+     * Local → Servidor
+     *
+     * Recolhe todas as entidades locais (veículos, serviços, peças),
+     * converte cada uma para o formato JSON esperado pelo servidor
+     * e envia tudo num único pedido. Se uma lista estiver vazia,
+     * envia null em vez de array vazio.
+     * Dispatchers.IO vai garantir que o pedido de rede não bloqueia a UI.
+     * Em caso de erro, devolve Result.failure com SyncException.
+     */
     suspend fun pushAll(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val body = SyncPushBody(
@@ -42,6 +63,16 @@ class SyncRepository @Inject constructor(
         }
     }
 
+    /**
+     * Servidor → Local
+     *
+     * Pede ao servidor apenas os dados alterados desde o último sync
+     * (usa o timestamp guardado no DataStore). Filtra veículos que o
+     * utilizador apagou localmente para não os restaurar. No final,
+     * insere ou atualiza tudo na BD local com upsert.
+     * Dispatchers.IO vai garantir que o pedido de rede não bloqueia a UI.
+     * Em caso de erro, devolve Result.failure com SyncException.
+     */
     suspend fun pullAll(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val timestamp: Long? = runBlocking { prefs.lastSyncTimestampFlow.firstOrNull() }
@@ -68,6 +99,14 @@ class SyncRepository @Inject constructor(
         }
     }
 
+    /**
+     * Local ↔ Servidor
+     *
+     * Sync normal (usado periodicamente e após login sem dados guest).
+     * Ordem: envia locais → envia perfil → recebe remotos → download
+     * de imagens em falta → puxa perfil do servidor. Se qualquer passo
+     * falhar, para e devolve o erro. No final, atualiza o timestamp.
+     */
     suspend fun fullSync(): Result<Unit> {
         val pushResult = pushAll()
         if (pushResult.isFailure) return pushResult
@@ -85,6 +124,15 @@ class SyncRepository @Inject constructor(
         return Result.success(Unit)
     }
 
+    /**
+     * Local → Servidor
+     *
+     * Lê os dados atuais do perfil no DataStore (nome, garagem, avatar)
+     * e envia para o servidor. Se não houver dados de perfil, devolve
+     * sucesso sem fazer nada.
+     * Dispatchers.IO vai garantir que o pedido de rede não bloqueia a UI.
+     * Em caso de erro, devolve Result.failure com SyncException.
+     */
     private suspend fun pushUserProfile(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val prefsData = prefs.userPreferencesFlow.firstOrNull() ?: return@withContext Result.success(Unit)
@@ -102,7 +150,15 @@ class SyncRepository @Inject constructor(
     }
 
     /**
-     * Pulls user profile from backend and downloads avatar if missing locally.
+     * Servidor → Local
+     *
+     * Pede o perfil ao servidor (nome, garagem, avatar).
+     * Se o avatar remoto existir, guarda o URL no DataStore.
+     * Depois verifica se já há ficheiro local em cache — se não houver,
+     * faz download através do proxy do backend e guarda o nome do ficheiro.
+     * Erros são ignorados (não bloqueiam o sync).
+     * Dispatchers.IO vai garantir que o pedido de rede não bloqueia a UI.
+     * Em caso de erro, devolve Result.failure com SyncException.
      */
     suspend fun pullAndSyncUserProfile(): Unit = withContext(Dispatchers.IO) {
         try {
@@ -133,6 +189,21 @@ class SyncRepository @Inject constructor(
         }
     }
 
+    /**
+     * Local ↔ Servidor
+     *
+     * Sync para utilizadores que criaram dados em modo guest e depois
+     * fizeram login/registo.
+     *
+     * Passos:
+     * 1. Local → Servidor: envia todos os dados locais.
+     * 2. Servidor → Local: puxa TUDO do servidor (sem timestamp).
+     * 3. Junta local + remoto com ConflictResolver (last-write-wins).
+     * 4. Envia perfil, descarrega imagens, puxa perfil remoto.
+     * 5. Limpa a flag requiresGuestMerge e atualiza o timestamp.
+     * Dispatchers.IO vai garantir que o pedido de rede não bloqueia a UI.
+     * Em caso de erro, devolve Result.failure com SyncException.
+     */
     suspend fun syncWithGuestMerge(): Result<Unit> = withContext(Dispatchers.IO) {
         val pushResult = pushAll()
         if (pushResult.isFailure) return@withContext pushResult
@@ -168,6 +239,18 @@ class SyncRepository @Inject constructor(
         }
     }
 
+    /**
+     * Servidor → Local
+     *
+     * Sync para o primeiro login (quando não há timestamp de sync anterior).
+     * Tenta fazer pull completo do servidor. Se não houver rede ou o pedido
+     * falhar, simplesmente devolve sucesso — a app continua a funcionar offline.
+     * Se o pull funcionar, aplica merge e atualiza perfil + imagens.
+     * NUNCA devolve erro, porque o utilizador não deve ser bloqueado por
+     * falhas de rede no primeiro login.
+     * Dispatchers.IO vai garantir que o pedido de rede não bloqueia a UI.
+     * Em caso de erro, devolve Result.failure com SyncException.
+     */
     suspend fun syncWithOfflineFallback(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val response = try {
@@ -205,7 +288,16 @@ class SyncRepository @Inject constructor(
     private fun iso8601(epochMillis: Long): String = DateFormats.ISO_8601.format(java.util.Date(epochMillis))
 
     /**
-     * Downloads remote vehicle images that have no local cache yet.
+     * Servidor → Local
+     *
+     * Encontra veículos que têm imagem remota (remoteImageUrl) mas ainda
+     * não têm o ficheiro descarregado localmente. Para cada um:
+     * 1. Constrói URL de proxy (para não expor o bucket S3).
+     * 2. Faz download e guarda em internal storage.
+     * 3. Atualiza a entidade com o nome do ficheiro local.
+     * Erros são ignorados — se uma imagem falhar, tenta no próximo sync.
+     * Dispatchers.IO vai garantir que o pedido de rede não bloqueia a UI.
+     * Em caso de erro, devolve Result.failure com SyncException.
      */
     suspend fun downloadMissingImages(): Unit = withContext(Dispatchers.IO) {
         try {
@@ -233,5 +325,6 @@ class SyncRepository @Inject constructor(
         }
     }
 
+    /** Exceção tipificada para erros de sincronização. */
     class SyncException(message: String) : Exception(message)
 }

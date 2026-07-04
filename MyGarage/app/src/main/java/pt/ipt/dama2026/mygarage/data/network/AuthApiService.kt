@@ -7,6 +7,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
 
+/** Interface Retrofit para os endpoints de autenticação (login/registo). */
 interface AuthApiService {
 
     @POST("api/auth/login")

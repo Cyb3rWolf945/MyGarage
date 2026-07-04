@@ -1,7 +1,11 @@
 package pt.ipt.dama2026.mygarage.domain.engine
 
 /**
- * Rounds raw engine capacity values to nearest standardized option (cc).
+ * Helper para normalizar a cilindrada do motor.
+ *
+ * Opções disponíveis: 1000, 1200, 1400, 1600, 2000, 2500, 3000, 3500, 4000 cc.
+ * Aceita formatos como "1587", "1587cc" ou "1.6L" e converte para o valor
+ * mais próximo da lista (ex.: "2000 cc").
  */
 object EngineCapacityHelper {
 
@@ -11,8 +15,9 @@ object EngineCapacityHelper {
     )
 
     /**
-     * Rounds raw engine capacity string to nearest standard option.
-     * Handles formats: "1587", "1587cc", "1.6L".
+     * Arredonda a cilindrada para a opção mais próxima da lista.
+     * Extrai o valor numérico do texto (ex.: "1.6L" → 1600, "1587cc" → 1587),
+     * depois encontra a opção com menor diferença.
      */
     fun roundToNearestOption(rawValue: String): String {
         return try {
@@ -29,7 +34,12 @@ object EngineCapacityHelper {
     }
 
     /**
-     * Extracts numeric cc value from engine capacity string.
+     * Extrai o valor numérico em cc de uma string de cilindrada.
+     *
+     * Lógica:
+     * 1. Remove tudo o que não for dígito ou ponto (ex.: "1.6L" → "1.6", "1587cc" → "1587").
+     * 2. Se contiver ".", assume que está em litros e multiplica por 1000 (ex.: "1.6" → 1600).
+     * 3. Se não, assume que já está em cc (ex.: "1587" → 1587).
      */
     private fun extractNumeric(value: String): Int {
         try {
@@ -50,7 +60,9 @@ object EngineCapacityHelper {
     }
 
     /**
-     * Checks if value is one of the supported options.
+     * Confirma se uma string de cilindrada (ex.: "2000 cc") corresponde
+     * a uma das opções da lista. Usado para validar input do utilizador
+     * antes de guardar.
      */
     fun isValidOption(value: String): Boolean {
         return try {
@@ -61,7 +73,7 @@ object EngineCapacityHelper {
     }
 
     /**
-     * Returns all capacity options as display strings.
+     * Devolve a lista de cilindradas para mostrar no dropdown de adicionar ou editar veículos.
      */
     fun getAllOptions(): List<String> {
         return capacityOptions.map { "$it cc" }

@@ -29,10 +29,7 @@ import androidx.compose.ui.unit.dp
 import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 
-/**
- * Terms & Conditions screen — required by Google Play Store policy.
- * Displays the app's terms in a scrollable, premium-styled layout.
- */
+/** Ecrã de Termos e Condições (requisito da Google Play Store). */
 @Composable
 fun TermsScreen(
     onBackClick: () -> Unit,

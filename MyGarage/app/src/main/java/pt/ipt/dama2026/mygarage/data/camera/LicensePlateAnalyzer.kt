@@ -9,6 +9,11 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.Closeable
 import java.util.Locale
 
+/**
+ * Analisa frames da câmara via ML Kit para detetar matrículas portuguesas.
+ * Requer 3 leituras consecutivas iguais antes de notificar o callback para reduzir falsos positivos.
+ * O limite de 3 está definido na constante REQUIRED_CONSECUTIVE_MATCHES no companion object
+ */
 class LicensePlateAnalyzer(
     private val onPlateFound: (String) -> Unit
 ) : ImageAnalysis.Analyzer, Closeable {
@@ -17,6 +22,7 @@ class LicensePlateAnalyzer(
     private var lastDetectedPlate: String? = null
     private var consecutiveMatches = 0
 
+    /** Processa cada frame: extrai texto, aplica regex de matrícula e contabiliza matches consecutivos. */
     override fun analyze(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image
         if (mediaImage == null) {
@@ -50,10 +56,12 @@ class LicensePlateAnalyzer(
             }
     }
 
+    /** Liberta o recognizer ML Kit. */
     override fun close() {
         textRecognizer.close()
     }
 
+    /** Aplica os padrões de matrícula portuguesa ao texto normalizado e devolve o primeiro match. */
     private fun extractLicensePlate(rawText: String): String? {
         val normalizedText = rawText.uppercase(Locale.ROOT)
 
@@ -64,6 +72,7 @@ class LicensePlateAnalyzer(
             ?.normalizePlate()
     }
 
+    /** Normaliza separadores: espaços/pontos → hífen, remove duplos hífenes e hífenes nas extremidades. */
     private fun String.normalizePlate(): String {
         return replace(SEPARATOR_REGEX, "-")
             .replace("--", "-")

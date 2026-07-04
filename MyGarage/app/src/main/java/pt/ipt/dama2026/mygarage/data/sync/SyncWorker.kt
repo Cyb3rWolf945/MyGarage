@@ -17,6 +17,7 @@ import pt.ipt.dama2026.mygarage.data.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.firstOrNull
 import java.util.concurrent.TimeUnit
 
+/** Ponto de entrada Hilt para injetar dependências no Worker. */
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface SyncWorkerEntryPoint {
@@ -24,6 +25,28 @@ interface SyncWorkerEntryPoint {
     fun prefsRepo(): UserPreferencesRepository
 }
 
+/**
+ * Worker do WorkManager que executa a sincronização em background.
+ *
+ * É agendado de várias formas (ver companion object):
+ * - Uma vez (após login/registo).
+ * - Uma vez com tag "guest_merge" (após login com dados de guest).
+ * - Uma vez com tag "offline_reinit" (reconexão após offline).
+ * - Periodicamente a cada 6 horas.
+ *
+ * O doWork decide o tipo de sync com base no estado atual:
+ * - requiresGuestMerge → syncWithGuestMerge (fundir dados guest).
+ * - Sem timestamp de sync mas autenticado → syncWithOfflineFallback (primeiro sync).
+ * - Caso normal → fullSync (push + pull).
+ *
+ * Se falhar, re-tenta até 3 vezes (runAttemptCount < 3).
+ * No final, se o utilizador estiver autenticado, sincroniza o perfil.
+ *
+ * O agendamento periódico funciona mesmo com a app fechada:
+ * o WorkManager regista o alarme no sistema (AlarmManager/JobScheduler).
+ * Passadas 6 horas, o sistema acorda a app e executa o worker.
+ * Apenas um force-stop (Definições → Forçar Paragem) cancela os workers.
+ */
 class SyncWorker(
     context: Context,
     params: WorkerParameters
@@ -61,6 +84,7 @@ class SyncWorker(
         private const val TAG = "SyncWorker"
         private const val UNIQUE_WORK_NAME = "mygarage_sync"
 
+        /** Agenda um sync único (usado após login/registo sem dados guest). */
         fun enqueueOneTimeSync(context: Context) {
             val request = OneTimeWorkRequestBuilder<SyncWorker>()
                 .build()
@@ -72,6 +96,7 @@ class SyncWorker(
                 )
         }
 
+        /** Agenda o sync de merge de dados guest (após login com veículos criados offline). */
         fun enqueueGuestMergeSyncWorker(context: Context) {
             val request = OneTimeWorkRequestBuilder<SyncWorker>()
                 .addTag("guest_merge")
@@ -84,6 +109,7 @@ class SyncWorker(
                 )
         }
 
+        /** Agenda um sync quando o dispositivo volta a ter rede (offline → online). */
         fun enqueueOfflineReinitSyncWorker(context: Context) {
             val request = OneTimeWorkRequestBuilder<SyncWorker>()
                 .addTag("offline_reinit")
@@ -96,6 +122,7 @@ class SyncWorker(
                 )
         }
 
+        /** Agenda sync recorrente a cada 6 horas. */
         fun enqueuePeriodicSync(context: Context) {
             val request = PeriodicWorkRequestBuilder<SyncWorker>(
                 6, TimeUnit.HOURS

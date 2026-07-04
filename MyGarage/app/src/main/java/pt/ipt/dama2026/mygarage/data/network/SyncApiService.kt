@@ -12,12 +12,14 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Query
 
+/** Payload para atualização do perfil do utilizador no backend. */
 data class UserProfileUpdate(
     @SerializedName("name") val name: String?,
     @SerializedName("garageName") val garageName: String?,
     @SerializedName("avatarUrl") val avatarUrl: String? = null
 )
 
+/** Resposta do endpoint de perfil do utilizador. */
 data class UserProfileResponse(
     @SerializedName("id") val id: String,
     @SerializedName("email") val email: String,
@@ -26,6 +28,18 @@ data class UserProfileResponse(
     @SerializedName("avatarUrl") val avatarUrl: String?
 )
 
+/**
+ * Interface Retrofit para os endpoints de sincronização e perfil.
+ *
+ * Sincronização:
+ * - push: envia dados locais para o servidor.
+ * - pull: recebe dados remotos mais recentes que o timestamp local.
+ * - mergeGuestData: envia dados de guest para fundir com conta recém-criada.
+ *
+ * Perfil do utilizador:
+ * - updateProfile / getProfile: nome, garagem e avatar.
+ * - deleteAccount: apaga a conta do utilizador no servidor.
+ */
 interface SyncApiService {
 
     @POST("api/sync/push")

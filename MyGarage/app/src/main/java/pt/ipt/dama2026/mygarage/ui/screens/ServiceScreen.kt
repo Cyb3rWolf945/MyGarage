@@ -74,6 +74,7 @@ private fun serviceTypeLabel(type: String): String {
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+/** Ecrã de serviços: seleção de veículo, histórico e diálogo de adicionar/editar. */
 @Composable
 fun ServiceScreen(
     vehicles: List<Vehicle>,
