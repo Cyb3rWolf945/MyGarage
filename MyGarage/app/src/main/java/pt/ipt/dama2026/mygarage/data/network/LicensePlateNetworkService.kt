@@ -13,6 +13,23 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
+/**
+ * Serviço de consulta de matrículas portuguesas via SOAP.
+ *
+ * Fluxo completo:
+ * 1. lookupVehicle recebe a matrícula.
+ *    - Valida o formato (5–7 caracteres alfanuméricos, sem separadores).
+ *    - Se inválido → devolve erro INVALID_PLATE.
+ * 2. Normaliza a matrícula (só letras e dígitos, maiúsculas).
+ * 3. Constrói envelope SOAP XML e envia pedido HTTP POST.
+ *    - Em caso de falha de rede → erro NETWORK_ERROR.
+ *    - Se o servidor devolver SOAP Fault → null (tratado como NOT_FOUND).
+ * 4. Extrai o JSON dentro da tag <vehicleJson> do envelope SOAP.
+ * 5. Desserializa com Gson para LicensePlateApiResponse.
+ * 6. Se tiver ABICode → sucesso, mapeia para o modelo de domínio.
+ *    - Se não → erro NOT_FOUND (matrícula não encontrada).
+ * 7. Qualquer exceção inesperada → erro UNKNOWN.
+ */
 class LicensePlateNetworkService(
     private val username: String
 ) : LicensePlateApiService {
@@ -113,7 +130,6 @@ class LicensePlateNetworkService(
             val responseBody = responseStream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: ""
             Log.d(TAG, "Response body:\n$responseBody")
 
-            // Check for SOAP Fault
             if (responseBody.contains("<soap:Fault>") || responseBody.contains("faultstring")) {
                 val faultMessage = extractFaultMessage(responseBody)
                 Log.e(TAG, "SOAP Fault: $faultMessage")
@@ -169,7 +185,6 @@ class LicensePlateNetworkService(
         return try {
             val gson = Gson()
 
-            // JSON is in <vehicleJson> tags within the SOAP response
             val startIdx = xmlResponse.indexOf("<vehicleJson>") + "<vehicleJson>".length
             val endIdx = xmlResponse.indexOf("</vehicleJson>")
 

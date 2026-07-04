@@ -7,8 +7,11 @@ import androidx.room.PrimaryKey
 import java.util.UUID
 
 /**
- * Represents a service log/maintenance event for a vehicle.
- * Configured with a foreign key referencing [VehicleEntity] with cascade deletion.
+ * Registo de serviço de manutenção de um veículo. Tabela "service_logs".
+ * Data class para ter copy() disponível nos updates parciais do repositório.
+ * Chave estrangeira para VehicleEntity com CASCADE: ao apagar o veículo,
+ * os seus serviços são automaticamente removidos. O índice em vehicleId acelera queries por veículo.
+ * O campo type categoriza o serviço (ex.: "Inspection", "revision", "regular").
  */
 @Entity(
     tableName = "service_logs",

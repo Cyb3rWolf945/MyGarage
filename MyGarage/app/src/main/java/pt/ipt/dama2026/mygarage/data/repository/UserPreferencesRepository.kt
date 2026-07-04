@@ -17,6 +17,18 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
 
+/**
+ * Gere as preferências do utilizador com Jetpack DataStore.
+ *
+ * A UI observa as preferências e atualiza-se automaticamente quando mudam.
+ * As gravações são feitas de uma só vez e correm em background sem bloquear a interface.
+ *
+ * Usado por:
+ * - AuthRepository: token, email, modo guest.
+ * - SyncRepository: timestamp de sync, IDs apagados, flag de merge.
+ * - LocaleManager: idioma e unidade de distância.
+ * - ProfileViewModel: nome, garagem, avatar.
+ */
 class UserPreferencesRepository(private val context: Context) {
 
     companion object {
@@ -72,6 +84,7 @@ class UserPreferencesRepository(private val context: Context) {
         preferences[KEY_TOTAL_USER_MILEAGE] ?: 0
     }.distinctUntilChanged()
 
+    /** Soma delta à quilometragem total acumulada do utilizador. */
     suspend fun incrementUserMileage(delta: Int) {
         context.dataStore.edit { preferences ->
             val current = preferences[KEY_TOTAL_USER_MILEAGE] ?: 0
@@ -79,18 +92,21 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
+    /** Atualiza o nome de perfil do utilizador. */
     suspend fun updateUserName(name: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_USER_NAME] = name
         }
     }
 
+    /** Atualiza o nome da garagem. */
     suspend fun updateGarageName(name: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_GARAGE_NAME] = name
         }
     }
 
+    /** Ativa/desativa modo guest. Se ativar, remove token e email. */
     suspend fun setGuestMode(isGuest: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_IS_GUEST_MODE] = isGuest
@@ -101,6 +117,7 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
+    /** Guarda token, email, nome e garagem. Força isGuestMode = false. */
     suspend fun saveAuth(token: String, email: String, name: String? = null, garageName: String? = null) {
         context.dataStore.edit { preferences ->
             preferences[KEY_AUTH_TOKEN] = token
@@ -111,6 +128,7 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
+    /** Remove token e email. Volta a isGuestMode = true. */
     suspend fun clearAuth() {
         context.dataStore.edit { preferences ->
             preferences.remove(KEY_AUTH_TOKEN)
@@ -119,12 +137,14 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
+    /** Guarda o timestamp do último sync bem-sucedido. */
     suspend fun setLastSyncTimestamp(timestampMillis: Long) {
         context.dataStore.edit { preferences ->
             preferences[KEY_LAST_SYNC_TIMESTAMP] = timestampMillis
         }
     }
 
+    /** Adiciona o ID à lista de veículos apagados (separados por vírgula). Evita que o pull os restaure. */
     suspend fun markVehicleDeleted(vehicleId: String) {
         context.dataStore.edit { preferences ->
             val current = preferences[KEY_DELETED_VEHICLE_IDS] ?: ""
@@ -134,6 +154,7 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
+    /** Devolve os IDs dos veículos apagados localmente como um Set. */
     suspend fun getDeletedVehicleIds(): Set<String> {
         val raw = context.dataStore.data.map { preferences ->
             preferences[KEY_DELETED_VEHICLE_IDS] ?: ""
@@ -141,6 +162,7 @@ class UserPreferencesRepository(private val context: Context) {
         return raw.split(",").filter { it.isNotBlank() }.toSet()
     }
 
+    /** Guarda nome e garagem e marca hasCompletedOnboarding = true. */
     suspend fun completeOnboarding(userName: String, garageName: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_USER_NAME] = userName
@@ -149,6 +171,7 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
+    /** Guarda ou remove o nome do ficheiro do avatar local. */
     suspend fun updateAvatarFileName(fileName: String?) {
         context.dataStore.edit { preferences ->
             if (fileName != null) {
@@ -159,36 +182,42 @@ class UserPreferencesRepository(private val context: Context) {
         }
     }
 
+    /** Guarda o idioma escolhido ("SYSTEM", "PORTUGUESE", "ENGLISH"). */
     suspend fun updateAppLanguage(language: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_APP_LANGUAGE] = language
         }
     }
 
+    /** Guarda a unidade de distância ("SYSTEM", "KILOMETERS", "MILES"). */
     suspend fun updateDistanceUnit(unit: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_DISTANCE_UNIT] = unit
         }
     }
 
+    /** Guarda a assinatura SHA-256 da sessão guest para o merge. */
     suspend fun setGuestDataSignature(signature: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_GUEST_DATA_SIGNATURE] = signature
         }
     }
 
+    /** Marca se é preciso fazer guest merge no próximo sync. */
     suspend fun setRequiresGuestMerge(required: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_REQUIRES_GUEST_MERGE] = required
         }
     }
 
+    /** Marca hasCompletedOnboarding = true (sem alterar nome/garagem). */
     suspend fun markOnboardingComplete() {
         context.dataStore.edit { preferences ->
             preferences[KEY_HAS_COMPLETED_ONBOARDING] = true
         }
     }
 
+    /** Guarda ou remove o URL remoto do avatar. */
     suspend fun updateAvatarRemoteUrl(url: String?) {
         context.dataStore.edit { preferences ->
             if (url != null) {
@@ -200,10 +229,9 @@ class UserPreferencesRepository(private val context: Context) {
     }
 
     /**
-     * Clears all user data from DataStore. Used after account deletion.
-     * Note: hasCompletedOnboarding is intentionally NOT cleared here —
-     * the app will show onboarding again because isGuestMode becomes true
-     * and hasCompletedOnboarding is set to false.
+     * Apaga TODOS os dados do DataStore (usado ao eliminar conta).
+     * Com isto, isGuestMode volta ao default (true) e o onboarding será
+     * mostrado novamente no próximo arranque.
      */
     suspend fun clearAllUserData() {
         context.dataStore.edit { it.clear() }

@@ -7,8 +7,11 @@ import androidx.room.PrimaryKey
 import java.util.UUID
 
 /**
- * Represents a part used during a specific service log.
- * Foreign key to [ServiceLogEntity] with cascade deletion.
+ * Peça usada num serviço de manutenção. Tabela "service_parts".
+ * Data class para ter copy() disponível nos updates parciais do repositório.
+ * Chave estrangeira para ServiceLogEntity com CASCADE: ao apagar o serviço, ou seja,
+ * as peças associadas são removidas automaticamente.
+ * O índice em serviceLogId acelera queries por serviço.
  */
 @Entity(
     tableName = "service_parts",

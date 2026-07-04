@@ -5,7 +5,11 @@ import org.json.JSONArray
 import java.util.UUID
 
 /**
- * Room type converters for UUID and List<String> to/from SQLite strings.
+ * Converte tipos não suportados nativamente pelo SQLite como UUID e List<String>
+ * para String ao persistir e reconverte ao ler. Registada globalmente no AppDatabase
+ * via @TypeConverters. Usada sempre que o Room lê ou escreve entidades com esses tipos
+ * (ex.: VehicleEntity.localImageFileNames, ServiceLogEntity.id).
+ * Em caso de erro de parse JSON, devolve uma lista vazia.
  */
 class Converters {
     @TypeConverter

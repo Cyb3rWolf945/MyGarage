@@ -2,6 +2,19 @@ package pt.ipt.dama2026.mygarage.data.model
 
 import com.google.gson.annotations.SerializedName
 
+/**
+ * Modelos para desserializar a resposta do serviço SOAP de matrículas (regcheck.org.uk).
+ *
+ * Fluxo:
+ * 1. LicensePlateNetworkService extrai o JSON dentro de <vehicleJson> da resposat SOAP.
+ * 2. O Gson desserializa para LicensePlateApiResponse.
+ * 3. LicensePlateMapper converte para LicensePlateVehicleData (modelo de domínio).
+ *
+ * Campos TextValueField: a API encapsula certos valores (marca, modelo, combustível)
+ * dentro de um objeto com a chave "CurrentTextValue", exigindo esta estrutura intermédia.
+ */
+
+/** Resposta JSON extraída do envelope SOAP do serviço de matrículas (regcheck.org.uk). */
 data class LicensePlateApiResponse(
     @SerializedName("ABICode")
     val abiCode: String? = null,
@@ -42,6 +55,13 @@ data class LicensePlateApiResponse(
     val error: String? = null
 )
 
+/**
+ * A API não devolve "FuelType": "Gasolina", mas sim:
+ * "FuelType": { "CurrentTextValue": "Gasolina" }
+ * então temos de utilizar esta estrutura intermédia para campos que a API devolve como objeto em vez de string.
+ *
+ * Esta classe, vai permitir que a biblioteca Gson consiga fazer o parse da resposta.
+ */
 data class TextValueField(
     @SerializedName("CurrentTextValue")
     val currentTextValue: String? = null

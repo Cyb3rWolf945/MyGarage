@@ -6,6 +6,7 @@ import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 
+/** Interface Retrofit para upload de imagens (multipart). */
 interface ImageUploadService {
     @Multipart
     @POST("/api/images/upload")
@@ -15,6 +16,7 @@ interface ImageUploadService {
     ): ImageUploadResponse
 }
 
+/** Resposta do endpoint de upload de imagem. */
 data class ImageUploadResponse(
     val ok: Boolean,
     val imageUrl: String?,

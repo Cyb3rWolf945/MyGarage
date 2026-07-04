@@ -1,5 +1,17 @@
 package pt.ipt.dama2026.mygarage.data.model
 
+/**
+ * Estado completo das preferências do utilizador, guardado no DataStore do Jetpack.
+ *
+ * Inclui:
+ * - Perfil (nome, garagem, avatar).
+ * - Autenticação (token JWT, email, modo guest).
+ * - Definições da app (idioma, unidade de distância, onboarding).
+ * - Sincronização (timestamp do último sync, merge de dados guest).
+ *
+ * O UserPreferencesRepository lê/escreve este modelo e expõe flows reativos
+ * para a UI reagir a alterações (ex.: login/logout, mudança de idioma).
+ */
 data class UserPreferences(
     val userName: String = "Driver",
     val garageName: String = "My Garage",

@@ -7,6 +7,22 @@ import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
 import pt.ipt.dama2026.mygarage.domain.locale.DateFormats
 import java.util.UUID
 
+/**
+ * Modelos para troca de dados com o servidor durante a sincronização.
+ *
+ * Envio (push): ( Sincronização local -> API )
+ * 1. O repositório junta todos os veículos, serviços e peças locais.
+ * 2. Converte cada entidade para o formato que o servidor espera (datas em texto).
+ * 3. Envia tudo num único payload.
+ *
+ * Receção (pull): ( Sincronização API -> Local )
+ * 1. O servidor devolve os dados mais recentes que os locais.
+ * 2. Converte de volta para entidades locais (datas em número).
+ * 3. O resolvedor de conflitos decide o que fica (versão mais recente ganha a partir do timestamp).
+ *
+ */
+
+/** Payload JSON para envio de veículo no sync. */
 data class VehiclePayload(
     @SerializedName("id") val id: String,
     @SerializedName("plate") val plate: String,
@@ -28,9 +44,10 @@ data class VehiclePayload(
     @SerializedName("localImageFileNames") val localImageFileNames: List<String> = emptyList(),
     @SerializedName("remoteImageUrl") val remoteImageUrl: String? = null,
     @SerializedName("isDeleted") val isDeleted: Boolean = false,
-    @SerializedName("updatedAt") val updatedAt: String // ISO-8601
+    @SerializedName("updatedAt") val updatedAt: String // formato ISO-8601
 )
 
+/** Payload JSON para envio de registo de serviço no sync. */
 data class ServiceLogPayload(
     @SerializedName("id") val id: String,
     @SerializedName("vehicleId") val vehicleId: String,
@@ -43,6 +60,7 @@ data class ServiceLogPayload(
     @SerializedName("updatedAt") val updatedAt: String
 )
 
+/** Payload JSON para envio de peça no sync. */
 data class PartPayload(
     @SerializedName("id") val id: String,
     @SerializedName("serviceLogId") val serviceLogId: String,
@@ -53,22 +71,26 @@ data class PartPayload(
     @SerializedName("updatedAt") val updatedAt: String
 )
 
+/** Corpo do pedido push (envio de dados locais para o servidor). */
 data class SyncPushBody(
     @SerializedName("vehicles") val vehicles: List<VehiclePayload>? = null,
     @SerializedName("services") val services: List<ServiceLogPayload>? = null,
     @SerializedName("parts") val parts: List<PartPayload>? = null
 )
 
+/** Resposta genérica de operação sync (ok/erro). */
 data class SyncResponse(
     @SerializedName("ok") val ok: Boolean
 )
 
+/** Resposta do pull: dados remotos mais recentes que o timestamp local. */
 data class SyncPullResponse(
     @SerializedName("vehicles") val vehicles: List<VehiclePayload> = emptyList(),
     @SerializedName("services") val services: List<ServiceLogPayload> = emptyList(),
     @SerializedName("parts") val parts: List<PartPayload> = emptyList()
 )
 
+/** Converte entidade VehicleEntity → payload JSON para envio ao servidor. */
 fun VehicleEntity.toPayload(): VehiclePayload = VehiclePayload(
     id = id,
     plate = plate,
@@ -93,6 +115,7 @@ fun VehicleEntity.toPayload(): VehiclePayload = VehiclePayload(
     updatedAt = iso8601(updatedAt)
 )
 
+/** Converte entidade ServiceLogEntity → payload JSON para envio ao servidor. */
 fun ServiceLogEntity.toPayload(): ServiceLogPayload = ServiceLogPayload(
     id = id.toString(),
     vehicleId = vehicleId,
@@ -105,6 +128,7 @@ fun ServiceLogEntity.toPayload(): ServiceLogPayload = ServiceLogPayload(
     updatedAt = iso8601(updatedAt)
 )
 
+/** Converte entidade PartEntity → payload JSON para envio ao servidor. */
 fun PartEntity.toPayload(): PartPayload = PartPayload(
     id = id,
     serviceLogId = serviceLogId,
@@ -115,6 +139,7 @@ fun PartEntity.toPayload(): PartPayload = PartPayload(
     updatedAt = iso8601(updatedAt)
 )
 
+/** Converte payload recebido do servidor → entidade Room. */
 fun VehiclePayload.toEntity(): VehicleEntity = VehicleEntity(
     id = id,
     plate = plate,
@@ -139,6 +164,7 @@ fun VehiclePayload.toEntity(): VehicleEntity = VehicleEntity(
     isDeleted = isDeleted
 )
 
+/** Converte payload recebido do servidor → entidade Room. */
 fun ServiceLogPayload.toEntity(): ServiceLogEntity = ServiceLogEntity(
     id = UUID.fromString(id),
     vehicleId = vehicleId,
@@ -151,6 +177,7 @@ fun ServiceLogPayload.toEntity(): ServiceLogEntity = ServiceLogEntity(
     isDeleted = isDeleted
 )
 
+/** Converte payload recebido do servidor → entidade Room. */
 fun PartPayload.toEntity(): PartEntity = PartEntity(
     id = id,
     serviceLogId = serviceLogId,
@@ -161,6 +188,8 @@ fun PartPayload.toEntity(): PartEntity = PartEntity(
     isDeleted = isDeleted
 )
 
+/** Formata epoch millis → ISO-8601 para transporte JSON. */
 private fun iso8601(epochMillis: Long): String = DateFormats.ISO_8601.format(java.util.Date(epochMillis))
 
+/** Converte ISO-8601 → epoch millis. Retorna 0 em caso de erro de parse. */
 fun parseIso8601(isoString: String): Long = DateFormats.ISO_8601.parse(isoString)?.time ?: 0L
