@@ -564,8 +564,7 @@ private fun ViewField(label: String, value: String) {
     }
 }
 
-/**
-/** Pequeno diálogo inline para adicionar uma peça durante o registo de serviço. */
+/** Pequeno diálogo inline para adicionar uma peça (nome, quantidade, referência). */
 @Composable
 private fun AddPartDialogInline(
     onDismiss: () -> Unit,

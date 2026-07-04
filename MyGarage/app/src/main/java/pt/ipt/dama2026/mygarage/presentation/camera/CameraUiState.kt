@@ -12,6 +12,7 @@ import pt.ipt.dama2026.mygarage.domain.licenseplates.LicensePlateApiResult
  * 4. API consulta matrícula → isLoading → licensePlateApiResult.
  * 5. Resultado mostrado em diálogo → showLookupResultDialog.
  */
+data class CameraUiState(
     val isCameraPermissionGranted: Boolean = false,
     val isCameraActive: Boolean = false,
     val detectedPlate: String? = null,
