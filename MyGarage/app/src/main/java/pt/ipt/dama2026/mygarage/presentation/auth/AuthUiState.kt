@@ -10,6 +10,7 @@ package pt.ipt.dama2026.mygarage.presentation.auth
  *
  * Gerido pelo AuthViewModel e observado pelo AuthScreen.
  */
+data class AuthUiState(
     val isLogin: Boolean = true,
     val name: String = "",
     val garageName: String = "",
