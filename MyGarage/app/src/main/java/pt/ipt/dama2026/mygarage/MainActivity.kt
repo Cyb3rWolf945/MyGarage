@@ -370,7 +370,7 @@ fun MainScreen(
                                         plate = vehicleData.plate,
                                         name = vehicleData.vehicleModel ?: "",
                                         year = vehicleData.year ?: "",
-                                        fuelType = vehicleData.fuelType ?: "",
+                                        fuelType = pt.ipt.dama2026.mygarage.domain.fuel.FuelTypeLabels.canonicalKey(vehicleData.fuelType ?: ""),
                                         engineCapacity = vehicleData.engineCapacity ?: ""
                                     )
                                     coroutineScope.launch {
@@ -460,7 +460,10 @@ fun MainScreen(
                             owner = ws.vehicle.owner,
                             seatCount = ws.vehicle.seatCount,
                             doorCount = ws.vehicle.doorCount,
-                            fuelType = ws.vehicle.fuelType,
+                            fuelType = run {
+                                val key = pt.ipt.dama2026.mygarage.domain.fuel.FuelTypeLabels.canonicalKey(ws.vehicle.fuelType)
+                                context.getString(pt.ipt.dama2026.mygarage.domain.fuel.FuelTypeLabels.labelFor(key, R.string.fuel_gasoline, R.string.fuel_diesel, R.string.fuel_electric))
+                            },
                             engineCapacity = ws.vehicle.engineCapacity,
                             iucValue = ws.vehicle.iucValue,
 
@@ -476,13 +479,14 @@ fun MainScreen(
                                     log.date
                                 }
                                 val historyMileage = DistanceFormatter.formatDisplay(log.mileageKm, profileResolvedUnit)
+                                val typeLabel = context.getString(pt.ipt.dama2026.mygarage.presentation.service.ServiceTypeLabels.labelFor(log.type, R.string.service_type_revision, R.string.service_type_inspection, R.string.service_type_regular))
                                 ServiceHistoryItem(
                                     title = log.description,
                                     subtitle = context.getString(
                                         R.string.timeline_subtitle,
                                         historyMileage,
                                         serviceDate,
-                                        log.type
+                                        typeLabel
                                     )
                                 )
                             },
