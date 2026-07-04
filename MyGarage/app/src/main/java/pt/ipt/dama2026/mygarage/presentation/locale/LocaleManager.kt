@@ -6,13 +6,15 @@ import androidx.core.os.LocaleListCompat
 import java.util.Locale
 
 /**
- * Handles dynamic app-language switching via AppCompatDelegate.
+ * Gere a mudança de idioma da app e a unidade de distância.
+ *
+ * applyLanguage: aplica o idioma escolhido usando AppCompatDelegate.
+ * resolveDistanceUnit: decide km ou mi com base na preferência ou no SO.
+ * unitLabel: devolve "km" ou "mi" para mostrar na UI.
  */
 object LocaleManager {
 
-    /**
-     * Applies BCP-47 language tag. Pass "SYSTEM" or empty to revert to OS default.
-     */
+    /** Aplica o idioma. "SYSTEM" ou vazio → usa o idioma do telemóvel. */
     fun applyLanguage(languageTag: String?) {
         val tag = when (languageTag?.uppercase()) {
             "ENGLISH"    -> "en"
@@ -32,10 +34,7 @@ object LocaleManager {
         AppCompatDelegate.setApplicationLocales(localeList)
     }
 
-    /**
-     * Resolves distance unit from preference + OS locale.
-     * Returns "KILOMETERS" or "MILES".
-     */
+    /** Decide km ou milhas: preferência do user → idioma do SO → MILES por defeito. */
     fun resolveDistanceUnit(distanceUnit: String, context: Context): String {
         if (distanceUnit == "KILOMETERS") return "KILOMETERS"
         if (distanceUnit == "MILES") return "MILES"
@@ -48,9 +47,7 @@ object LocaleManager {
         return if (osLocale.language.equals("pt", ignoreCase = true)) "KILOMETERS" else "MILES"
     }
 
-    /**
-     * Returns unit label: "km" or "mi".
-     */
+    /** Devolve "km" para KILOMETERS, "mi" para MILES. */
     fun unitLabel(resolvedUnit: String): String {
         return if (resolvedUnit == "KILOMETERS") "km" else "mi"
     }

@@ -29,8 +29,13 @@ import java.util.UUID
 import javax.inject.Inject
 
 /**
- * ViewModel for the service screen. Manages service logs, parts,
- * vehicle selection, and CRUD operations for service records.
+ * ViewModel do ecrã de serviços.
+ *
+ * Gere:
+ * - CRUD de registos de serviço e peças usadas.
+ * - Diálogo de adicionar/editar serviço (ServiceDialogMode).
+ * - Conversão de unidades de distância (km/milhas).
+ * - Validação de campos do formulário de serviço.
  */
 @HiltViewModel
 class ServiceViewModel @Inject constructor(
@@ -129,9 +134,7 @@ class ServiceViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Validates service log fields. Returns true if valid.
-     */
+    /** Valida campos obrigatórios do serviço (veículo, descrição, quilometragem). */
     private fun validateServiceLogFields(
         description: String,
         mileage: String,
@@ -145,9 +148,7 @@ class ServiceViewModel @Inject constructor(
         return errors.isEmpty()
     }
 
-    /**
-     * Selects a vehicle and fetches its service history.
-     */
+    /** Seleciona um veículo e carrega o histórico de serviços. */
     fun selectVehicle(vehicleId: String) {
         _selectedVehicleId.value = vehicleId
         _temporaryParts.value = emptyList()
@@ -190,9 +191,7 @@ class ServiceViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Inserts service log and its temporary parts.
-     */
+    /** Insere o serviço e as peças temporárias associadas. */
     fun insertServiceLogWithParts(serviceLog: ServiceLog) {
         if (!validateServiceLogFields(
                 description = serviceLog.description,
@@ -209,10 +208,7 @@ class ServiceViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Extracts canonical km from a vehicle's display mileage string.
-     * Falls back to mileageKm field if display string is not parseable.
-     */
+    /** Obtém a quilometragem em km: primeiro tenta mileageKm, senão faz parse da string. */
     private fun resolveCanonicalKm(vehicle: Vehicle): Double {
         if (vehicle.mileageKm > 0.0) return vehicle.mileageKm
         if (vehicle.mileage.isBlank()) return 0.0
@@ -224,8 +220,9 @@ class ServiceViewModel @Inject constructor(
     }
 
     /**
-     * Saves service log (add or edit). Validates fields, converts units,
-     * enforces mileage not lower than vehicle, updates vehicle mileage.
+     * Guarda o serviço (novo ou editado).
+     * Valida campos, converte unidades, impede quilometragem inferior à atual,
+     * atualiza a quilometragem do veículo e agenda sync.
      */
     fun onSaveServiceLog() {
         val mode = _dialogMode.value
@@ -255,7 +252,9 @@ class ServiceViewModel @Inject constructor(
             return
         }
 
-        // Snapshot temporary parts BEFORE launching coroutine to avoid any race
+        // Tira uma snapshot das peças, antes de entrar na coroutine.
+        // Se não fizesse isto, o user podia alterar a lista enquanto
+        // o serviço ainda está a ser guardado e os dados ficavam inconsistentes.
         val capturedParts = _temporaryParts.value.toList()
 
         viewModelScope.launch {
@@ -298,7 +297,7 @@ class ServiceViewModel @Inject constructor(
                 }
             }
 
-            // Update vehicle mileage + next-service after any save (add or edit)
+            // Atualiza a quilometragem do veículo após guardar o serviço
             val currentVehicle = _selectedVehicleWithServices.value?.vehicle
             if (currentVehicle != null) {
                 val delta = (inputKm - vehicleCurrentMileageKm).toInt()
@@ -371,9 +370,7 @@ class ServiceViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Opens dialog in ADD mode with pre-filled mileage.
-     */
+    /** Abre o diálogo em modo ADD com a data de hoje e a quilometragem atual. */
     fun onAddFabClicked() {
         clearFormState()
         val today = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(java.util.Date())
@@ -392,9 +389,7 @@ class ServiceViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Opens dialog in VIEW (read-only) mode for a service log.
-     */
+    /** Abre o diálogo em modo de visualização (só leitura). */
     fun onLogClicked(serviceLog: ServiceLog) {
         _selectedLog.value = serviceLog
         _dialogMode.value = ServiceDialogMode.VIEW
@@ -422,10 +417,7 @@ class ServiceViewModel @Inject constructor(
         _logToDelete.value = null
     }
 
-    /**
-     * Deletes the selected service log. Clears UI state references before DB
-     * operation to prevent rendering deleted entity during Flow re-emission.
-     */
+    /** Elimina o serviço e limpa o estado da UI antes da operação na BD. */
     fun onConfirmDeleteLog() {
         val log = _logToDelete.value ?: return
 

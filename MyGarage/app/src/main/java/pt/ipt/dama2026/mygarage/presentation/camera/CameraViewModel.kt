@@ -12,6 +12,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * ViewModel do ecrã da câmara para leitura de matrículas.
+ *
+ * Fluxo:
+ * 1. User ativa câmara → LicensePlateAnalyzer deteta matrícula.
+ * 2. onPlateDetected → guarda matrícula e para câmara.
+ * 3. User confirma → lookupVehicle chama API SOAP.
+ * 4. Resultado mostrado em diálogo com opção de voltar a tentar.
+ */
 @HiltViewModel
 class CameraViewModel @Inject constructor(
     private val licensePlateApiService: LicensePlateApiService
@@ -20,6 +29,7 @@ class CameraViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(CameraUiState())
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
 
+    /** Guarda o resultado do pedido de permissão da câmara. */
     fun onPermissionResult(granted: Boolean) {
         _uiState.value = _uiState.value.copy(
             isCameraPermissionGranted = granted,
@@ -27,6 +37,7 @@ class CameraViewModel @Inject constructor(
         )
     }
 
+    /** Ativa a câmara (se a permissão já tiver sido concedida). */
     fun onActivateCameraTapped() {
         if (!_uiState.value.isCameraPermissionGranted) {
             return
@@ -35,6 +46,7 @@ class CameraViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(isCameraActive = true)
     }
 
+    /** Chamado pelo LicensePlateAnalyzer quando uma matrícula é detetada. */
     fun onPlateDetected(plate: String) {
         if (_uiState.value.isPlateConfirmed) return
         _uiState.value = _uiState.value.copy(
@@ -44,6 +56,7 @@ class CameraViewModel @Inject constructor(
         )
     }
 
+    /** User confirmou a matrícula. Chama a API para obter dados do veículo. */
     fun onConfirmPlate() {
         val plate = _uiState.value.detectedPlate ?: return
 
@@ -54,6 +67,7 @@ class CameraViewModel @Inject constructor(
         fetchCarInfo(plate)
     }
 
+    /** User cancelou — limpa a matrícula detetada e volta a ativar a câmara. */
     fun onCancelPlate() {
         _uiState.value = _uiState.value.copy(
             detectedPlate = null,
@@ -63,10 +77,12 @@ class CameraViewModel @Inject constructor(
         )
     }
 
+    /** Fecha o diálogo de resultado da consulta. */
     fun onResultDialogDismissed() {
         _uiState.value = _uiState.value.copy(showLookupResultDialog = false)
     }
 
+    /** Chama a API SOAP e atualiza o estado com o resultado (sucesso ou erro). */
     private fun fetchCarInfo(plate: String) {
         viewModelScope.launch {
             try {

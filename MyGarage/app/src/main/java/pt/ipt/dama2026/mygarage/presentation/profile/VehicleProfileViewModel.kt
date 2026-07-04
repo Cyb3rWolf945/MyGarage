@@ -30,8 +30,13 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
- * ViewModel for a single vehicle's profile. Manages vehicle details,
- * image upload, location fetch, and delete.
+ * ViewModel do perfil de um veículo.
+ *
+ * Gere:
+ * - Visualização e edição dos detalhes do veículo.
+ * - Upload de imagens e visualização (Coil via proxy).
+ * - Obtenção de localização GPS.
+ * - Eliminação do veículo (soft-delete).
  */
 @HiltViewModel
 class VehicleProfileViewModel @Inject constructor(
@@ -76,6 +81,7 @@ class VehicleProfileViewModel @Inject constructor(
     private val _carouselStartIndex = MutableStateFlow(0)
     val carouselStartIndex: StateFlow<Int> = _carouselStartIndex.asStateFlow()
 
+    /** Mostra diálogo de confirmação para apagar o veículo. */
     fun showDeleteDialog() {
         _showDeleteConfirmation.value = true
     }
@@ -84,6 +90,7 @@ class VehicleProfileViewModel @Inject constructor(
         _showDeleteConfirmation.value = false
     }
 
+    /** Abre o carrossel de imagens na posição indicada. */
     fun openCarousel(startIndex: Int = 0) {
         _carouselStartIndex.value = startIndex
         _isCarouselVisible.value = true
@@ -93,6 +100,7 @@ class VehicleProfileViewModel @Inject constructor(
         _isCarouselVisible.value = false
     }
 
+    /** Executa o soft-delete do veículo e agenda sync. */
     fun confirmDelete() {
         val vehicleWithServices = _uiState.value ?: return
         viewModelScope.launch {
@@ -112,9 +120,7 @@ class VehicleProfileViewModel @Inject constructor(
         _deleteCompleted.value = false
     }
 
-    /**
-     * Loads vehicle and its services from Room.
-     */
+    /** Carrega o veículo e o histórico de serviços da BD. */
     fun loadVehicle(vehicleId: String) {
         _formErrors.value = emptyMap()
         viewModelScope.launch {
@@ -132,9 +138,7 @@ class VehicleProfileViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Validates mandatory vehicle fields. Returns true if valid.
-     */
+    /** Valida campos obrigatórios do veículo via VehicleValidator. */
     private fun validateVehicle(vehicle: Vehicle): Boolean {
         val errors = VehicleValidator.validate(vehicle.toEntity())
         _formErrors.value = errors
@@ -149,6 +153,7 @@ class VehicleProfileViewModel @Inject constructor(
         return if (uploadResult.isSuccess) vehicle.copy(remoteImageUrl = uploadResult.getOrNull()) else vehicle
     }
 
+    /** Valida, faz upload da primeira imagem (se houver) e guarda o veículo. */
     fun updateVehicle(vehicle: Vehicle) {
         if (!validateVehicle(vehicle)) return
         viewModelScope.launch {
@@ -157,10 +162,7 @@ class VehicleProfileViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Fetches the device's current GPS location and persists the coordinates
-     * on the currently loaded vehicle entity in Room.
-     */
+    /** Pede localização GPS e guarda as coordenadas no veículo atual. */
     fun onFetchLocationClicked() {
         Log.d("MyGarage.Location", "onFetchLocationClicked() called")
         val currentVehicle = _uiState.value?.vehicle

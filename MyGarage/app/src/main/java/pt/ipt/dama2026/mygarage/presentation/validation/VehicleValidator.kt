@@ -4,7 +4,9 @@ import pt.ipt.dama2026.mygarage.R
 import pt.ipt.dama2026.mygarage.data.local.entity.VehicleEntity
 
 /**
- * Shared vehicle field validation used by GarageViewModel and VehicleProfileViewModel.
+ * Valida campos obrigatórios de um veículo.
+ * Devolve mapa campo → ID do erro. Se vazio, está tudo ok.
+ * Usado por GarageViewModel e VehicleProfileViewModel.
  */
 object VehicleValidator {
 

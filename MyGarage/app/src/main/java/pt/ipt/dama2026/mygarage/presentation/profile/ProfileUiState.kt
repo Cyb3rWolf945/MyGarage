@@ -1,5 +1,9 @@
 package pt.ipt.dama2026.mygarage.presentation.profile
 
+/**
+ * Estado do ecrã de perfil do utilizador.
+ * isEditing: alterna entre modo de visualização e edição.
+ */
 data class ProfileUiState(
     val userName: String = "Driver",
     val garageName: String = "My Garage",

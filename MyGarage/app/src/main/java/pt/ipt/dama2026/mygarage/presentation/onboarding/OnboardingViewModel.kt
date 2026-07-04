@@ -12,9 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * UI state for onboarding.
- */
+/** Estado do ecrã de onboarding (nome + garagem). */
 data class OnboardingUiState(
     val userName: String = "",
     val garageName: String = "",
@@ -22,8 +20,8 @@ data class OnboardingUiState(
 )
 
 /**
- * ViewModel for the 3-step onboarding flow. Validates inputs, persists
- * preferences, emits navigation events.
+ * ViewModel do fluxo de onboarding.
+ * Valida nome e garagem, guarda no DataStore e emite evento de navegação.
  */
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
@@ -60,28 +58,22 @@ class OnboardingViewModel @Inject constructor(
         }
     }
 
-    /**
-     * User chose to authenticate. Emits a navigation event
-     * that the UI layer uses to route to the auth graph.
-     */
+    /** Utilizador escolheu autenticar-se. Emite evento para navegar para o ecrã de login. */
     fun onSignInClicked() {
         _navigateToAuth.value = true
     }
 
-    /**
-     * User chose to continue without signing in.
-     * Emits a signal for the UI to programmatically
-     * advance the pager to the setup (guest) screen.
-     */
+    /** Utilizador escolheu continuar como guest. Avança para o ecrã de configuração. */
     fun onContinueAsGuest() {
         _advanceToSetupPage.value = true
     }
 
-    /** Reset so the user can re-enter the guest form after going back. */
+    /** Reseta a flag para permitir voltar ao formulário guest. */
     fun onAdvanceToSetupConsumed() {
         _advanceToSetupPage.value = false
     }
 
+    /** Valida nome e garagem, guarda no DataStore e emite onboardingCompleted. */
     fun onFinishClicked() {
         val state = _uiState.value
         val errors = mutableMapOf<String, Int>()

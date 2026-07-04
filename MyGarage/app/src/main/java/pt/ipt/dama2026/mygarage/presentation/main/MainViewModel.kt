@@ -20,8 +20,8 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
- * Resolves initial navigation destination based on onboarding state.
- * Also applies stored language preference and provides avatar info.
+ * ViewModel principal. Decide o ecrã inicial (onboarding ou garagem),
+ * aplica idioma guardado e carrega avatar.
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -45,7 +45,7 @@ class MainViewModel @Inject constructor(
     private val _avatarLocalFile = MutableStateFlow<java.io.File?>(null)
     val avatarLocalFile: StateFlow<java.io.File?> = _avatarLocalFile.asStateFlow()
 
-    /** Exposed for MainScreen to observe auth state without creating its own UserPreferencesRepository. */
+    /** Exposto para o MainScreen observar se o user está autenticado. */
     val authToken: StateFlow<String?> = userPreferencesRepository.userAuthTokenFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
@@ -69,6 +69,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    /** Puxa o perfil do utilizador do servidor (avatar, nome, garagem). */
     fun pullUserProfile() {
         viewModelScope.launch(Dispatchers.IO) {
             syncRepository.pullAndSyncUserProfile()

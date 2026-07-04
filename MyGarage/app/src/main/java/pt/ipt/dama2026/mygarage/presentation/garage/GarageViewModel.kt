@@ -28,8 +28,14 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
- * ViewModel for the garage screen. Manages vehicle CRUD, image upload,
- * form validation, and long-press options.
+ * ViewModel do ecrã principal (garagem).
+ *
+ * Gere:
+ * - CRUD de veículos (adicionar, editar, apagar).
+ * - Upload de imagens para veículos novos.
+ * - Obtenção de localização GPS ao criar veículo.
+ * - Validação de formulário (via VehicleValidator).
+ * - Arredondamento de cilindrada (via EngineCapacityHelper).
  */
 @HiltViewModel
 class GarageViewModel @Inject constructor(
@@ -76,6 +82,7 @@ class GarageViewModel @Inject constructor(
         }
     }
 
+    /** Mostra menu de opções (editar/apagar) ao fazer long-press num veículo. */
     fun onVehicleLongPressed(vehicle: Vehicle) {
         _selectedVehicleForOptions.value = vehicle
     }
@@ -84,6 +91,7 @@ class GarageViewModel @Inject constructor(
         _selectedVehicleForOptions.value = null
     }
 
+    /** Prepara a edição: guarda o veículo a editar e carrega a imagem existente. */
     fun onSelectEdit(vehicle: Vehicle) {
         _selectedVehicleForOptions.value = null
         _vehicleToEdit.value = vehicle
@@ -95,6 +103,7 @@ class GarageViewModel @Inject constructor(
         showDeleteDialog(vehicle)
     }
 
+    /** Mostra diálogo de confirmação para apagar o veículo. */
     fun showDeleteDialog(vehicle: Vehicle) {
         _vehicleToDelete.value = vehicle
         _showDeleteConfirmation.value = true
@@ -105,6 +114,7 @@ class GarageViewModel @Inject constructor(
         _vehicleToDelete.value = null
     }
 
+    /** Soft-delete do veículo, fecha diálogo e agenda sync. */
     fun confirmDelete() {
         val vehicle = _vehicleToDelete.value ?: return
         viewModelScope.launch {
@@ -133,17 +143,13 @@ class GarageViewModel @Inject constructor(
         _uiState.update { it.copy(selectedImageUri = null, existingImageFileName = null) }
     }
 
-    /**
-     * Saves selected image to internal storage. Returns file name or null.
-     */
+    /** Guarda a imagem selecionada no armazenamento interno. Devolve o nome do ficheiro ou null. */
     private suspend fun saveSelectedImage(): String? {
         val uri = _uiState.value.selectedImageUri ?: return null
         return imageStorageManager.saveImage(uri)
     }
 
-    /**
-     * Uploads the first local image of a vehicle. Returns updated vehicle with remoteUrl.
-     */
+    /** Faz upload da primeira imagem local do veículo. Devolve o veículo com remoteUrl atualizado. */
     private suspend fun uploadFirstImage(vehicle: Vehicle): Vehicle {
         val imageFileName = vehicle.localImageFileNames.firstOrNull() ?: return vehicle
         val imagePath = imageStorageManager.getImagePath(imageFileName) ?: return vehicle
@@ -152,7 +158,7 @@ class GarageViewModel @Inject constructor(
         return if (uploadResult.isSuccess) vehicle.copy(remoteImageUrl = uploadResult.getOrNull()) else vehicle
     }
 
-    /** Persists vehicle (insert or update), uploads image, clears form, enqueues sync. */
+    /** Insere ou atualiza o veículo, faz upload da imagem, limpa formulário e agenda sync. */
     private suspend fun saveVehicle(vehicle: Vehicle, isNew: Boolean) {
         val updated = uploadFirstImage(vehicle)
         if (isNew) repository.insertVehicle(updated) else repository.updateVehicle(updated)
@@ -172,15 +178,18 @@ class GarageViewModel @Inject constructor(
         return errors.isEmpty()
     }
 
+    /** Guarda as alterações do veículo editado. */
     fun confirmEdit(vehicle: Vehicle) {
         viewModelScope.launch { saveVehicle(vehicle, isNew = false) }
     }
 
+    /** Valida e insere um veículo novo. Faz upload da imagem se existir. */
     fun insertVehicle(vehicle: Vehicle) {
         if (!validateVehicle(vehicle)) return
         viewModelScope.launch { saveVehicle(vehicle, isNew = true) }
     }
 
+    /** Abre o diálogo de novo veículo com dados pré-preenchidos (ex.: da matrícula). */
     fun openAddDialogWithData(
         plate: String,
         name: String,
