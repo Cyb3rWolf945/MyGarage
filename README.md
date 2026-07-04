@@ -1,10 +1,10 @@
-# 🚗 MyGarage
+# MyGarage
 
 **MyGarage** is a mobile app vehicle management built for drivers who want full control over their fleet. Scan license plates with your camera, log services, manage parts, and sync everything to the cloud — all from a modern, offline-first Android app backed by a robust REST API.
 
 ---
 
-## 🧱 Architecture
+## Architecture
 
 ```
 ┌──────────────────────────────┐     ┌──────────────────────────────┐
@@ -34,7 +34,7 @@
 
 ---
 
-## 📱 Android App (`MyGarage/`)
+## Android App (`MyGarage/`)
 
 ### Tech Stack
 
@@ -93,7 +93,7 @@ Default API URL: `https://mygaragebackend-production.up.railway.app`
 
 ---
 
-## 🖥️ Backend (`MyGarage-Backend/`)
+## Backend (`MyGarage-Backend/`)
 
 ### Tech Stack
 
@@ -202,7 +202,7 @@ npm run dev
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 ### Railway (Recommended)
 
@@ -227,7 +227,7 @@ The backend is pre-configured for [Railway](https://railway.app):
 
 ---
 
-## 🧑‍💻 Author
+## Author
 
 Built with ❤️ by **Cyb3rWolf** (@Cyb3rWolf945)
 
