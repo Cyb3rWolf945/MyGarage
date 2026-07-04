@@ -5,6 +5,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import pt.ipt.dama2026.mygarage.R
+/** Cores  */
 object MyGarageColors {
     val primary: Color
         @Composable

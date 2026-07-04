@@ -28,6 +28,7 @@ import coil.compose.SubcomposeAsyncImage
 import androidx.compose.ui.unit.dp
 import java.io.File
 
+/** Carrossel de imagens em ecrã completo com paginação. */
 @Composable
 fun FullScreenImageCarousel(
     imageFilePaths: List<String>,
@@ -56,7 +57,7 @@ fun FullScreenImageCarousel(
                 modifier = Modifier.fillMaxSize()
             ) { page ->
                 val path = imageFilePaths[page]
-                // Support both local file paths and remote URLs
+                // Suporta ficheiros locais e URLs remotos
                 val model: Any = if (path.startsWith("http://") || path.startsWith("https://")) {
                     path
                 } else {

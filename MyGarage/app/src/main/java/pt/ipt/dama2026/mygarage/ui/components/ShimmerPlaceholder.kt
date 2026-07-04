@@ -16,9 +16,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-/**
- * Loading placeholder that animates a gradient.
- */
+/** Placeholder animado com gradiente para estados de carregamento. */
 @Composable
 fun ShimmerPlaceholder(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "shimmer")
@@ -51,9 +49,7 @@ fun ShimmerPlaceholder(modifier: Modifier = Modifier) {
     )
 }
 
-/**
- * Static gradient placeholder for when no image is available (empty state).
- */
+/** Placeholder estático para quando não há imagem disponível. */
 @Composable
 fun GradientPlaceholder(modifier: Modifier = Modifier) {
     Box(

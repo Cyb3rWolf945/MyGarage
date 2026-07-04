@@ -65,6 +65,7 @@ import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+/** Ecrã da câmara para leitura de matrículas via ML Kit e consulta SOAP. */
 @Composable
 fun CameraScreen(
     modifier: Modifier = Modifier,

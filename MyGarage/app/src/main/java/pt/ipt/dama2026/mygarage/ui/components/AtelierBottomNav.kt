@@ -16,6 +16,7 @@ import pt.ipt.dama2026.mygarage.Screen
 import pt.ipt.dama2026.mygarage.ui.theme.MyGarageColors
 
 import androidx.compose.foundation.pager.PagerState
+/** Barra de navegação inferior com ícones e títulos dos ecrãs principais. */
 @Composable
 fun AtelierBottomNav(
     items: List<Screen>,

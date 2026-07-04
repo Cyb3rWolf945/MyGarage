@@ -1,5 +1,6 @@
 package pt.ipt.dama2026.mygarage.ui.screens.vehicleprofile
 
+/** Estado do ecrã de perfil do veículo com todos os campos e histórico de serviços. */
 data class VehicleProfileUiState(
     val name: String,
     val year: String,

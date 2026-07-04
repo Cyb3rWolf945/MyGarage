@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+/** Tema da aplicação com as cores*/
 @Composable
 fun MyGarageTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

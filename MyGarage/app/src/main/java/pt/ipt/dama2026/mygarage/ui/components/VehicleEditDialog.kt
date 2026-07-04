@@ -102,10 +102,8 @@ private val doorCountOptions = listOf("2", "3", "4", "5")
 private val seatCountOptions = listOf("2", "3", "4", "5", "7", "9")
 private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
-/**
- * Dialog for adding a new vehicle or editing properties of an existing one.
- */
 @OptIn(ExperimentalMaterial3Api::class)
+/** Diálogo de edição/criação de veículo com todos os campos do formulário. */
 @Composable
 fun VehicleEditDialog(
     vehicle: Vehicle?,
@@ -122,7 +120,7 @@ fun VehicleEditDialog(
     existingVehicles: List<Vehicle> = emptyList(),
     locationManager: pt.ipt.dama2026.mygarage.domain.location.LocationManager? = null
 ) {
-    // Local picked Uri — avoids string round-trip permission loss
+    // URI local da imagem escolhida (evita perda de permissão ao converter para string)
     var pickedUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
     var name by remember { mutableStateOf(vehicle?.name ?: "") }
@@ -145,27 +143,26 @@ fun VehicleEditDialog(
     var latitude by remember { mutableStateOf(vehicle?.latitude) }
     var longitude by remember { mutableStateOf(vehicle?.longitude) }
 
-    // Local validation errors merged with ViewModel errors for display
+    // Erros de validação locais, juntos com os do ViewModel para mostrar no ecrã
     var localErrors by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     val allErrors = localErrors + formErrors
 
-    // Track existing images that should be kept (for progressive deletion)
+    // Imagens existentes que o user quer manter
     var keptImageFileNames by remember {
         mutableStateOf(vehicle?.localImageFileNames ?: emptyList())
     }
 
-    // Track newly picked images (temporary) before save
+    // Imagens novas que o user adicionou (ainda não guardadas)
     var newlyAddedImageFileNames by remember {
         mutableStateOf<List<String>>(emptyList())
     }
 
-    // Snapshot initial image count so we can detect user-initiated deletions.
-    // When the user deletes images, we suppress the remote-URL fallback —
-    // otherwise the same image would reappear from S3 via proxy.
+    // Total inicial de imagens. Se o user apagar imagens, não mostramos
+    // o fallback remoto (senão a imagem voltava a aparecer do S3).
     val initialTotalImages = remember {
         (vehicle?.localImageFileNames?.size ?: 0)
     }
-    // Track whether the user explicitly deleted the remote-only image
+    // Se o user apagou a imagem que só existia remotamente
     var userMarkedRemoteDeleted by remember { mutableStateOf(false) }
     val hasDeletedImages = userMarkedRemoteDeleted ||
         ((newlyAddedImageFileNames.size + keptImageFileNames.size) < initialTotalImages)
@@ -184,8 +181,8 @@ fun VehicleEditDialog(
     fun onDeleteExistingImage(index: Int) {
         if (index >= 0 && index < keptImageFileNames.size) {
             keptImageFileNames = keptImageFileNames.filterIndexed { i, _ -> i != index }
-            // If this was the last local image and a remote copy exists,
-            // auto-mark it deleted too — one tap removes both.
+            // Se era a última imagem local e há cópia remota,
+            // marca as duas como apagadas.
             if (keptImageFileNames.isEmpty() && newlyAddedImageFileNames.isEmpty() &&
                 !vehicle?.remoteImageUrl.isNullOrEmpty()
             ) {
@@ -216,10 +213,10 @@ fun VehicleEditDialog(
         }
     }
 
-    // Track last processed URI to prevent duplicates
+    // Última URI processada para evitar duplicados
     var lastProcessedUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Save picked image immediately so the filename is ready when Save is tapped
+    // Guarda a imagem assim que é escolhida, para o ficheiro estar pronto ao gravar
     LaunchedEffect(pickedUri) {
         val uri = pickedUri
         if (uri != null && uri != lastProcessedUri && imageStorageManager != null) {
@@ -228,9 +225,9 @@ fun VehicleEditDialog(
             }
             if (fileName != null) {
                 lastProcessedUri = uri
-                // Add to newly picked images list (not replacing)
+                // Adiciona à lista de novas imagens
                 newlyAddedImageFileNames = newlyAddedImageFileNames + fileName
-                pickedUri = null // Clear to allow picking again
+                pickedUri = null // Limpa para permitir escolher outra
             }
         }
     }
@@ -274,8 +271,7 @@ fun VehicleEditDialog(
         ) {
             val context = LocalContext.current
             val imageModel = remember(newlyAddedImageFileNames, keptImageFileNames, vehicle?.remoteImageUrl, hasDeletedImages) {
-                // Resolve the best available image to display, trying each source
-                // and falling through if the local file doesn't actually exist on disk.
+                // Decide qual imagem mostrar: nova → existente → remota (proxy)
                 fun resolvePath(fileName: String?): java.io.File? {
                     if (fileName == null) return null
                     val path = imageStorageManager?.getImagePath(fileName) ?: return null
@@ -283,11 +279,11 @@ fun VehicleEditDialog(
                     return if (file.exists()) file else null
                 }
 
-                // 1. Newly picked images (saved in this edit session)
+                // 1. Imagens novas (desta sessão de edição)
                 resolvePath(newlyAddedImageFileNames.firstOrNull())
-                // 2. Kept images from previous sessions (may be stale after reinstall)
+                // 2. Imagens mantidas de sessões anteriores
                 ?: resolvePath(keptImageFileNames.firstOrNull())
-                // 3. Remote URL via proxy — only if user hasn't just deleted local images
+                // 3. URL remoto via proxy (só se o user não apagou imagens)
                 ?: if (!hasDeletedImages) {
                     vehicle?.remoteImageUrl
                         ?.replace("\"", "")
@@ -322,7 +318,7 @@ fun VehicleEditDialog(
                                 }
                             )
                         } else {
-                                // Premium empty-state placeholder
+                                // Placeholder quando não há imagem
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.Center
@@ -370,7 +366,7 @@ fun VehicleEditDialog(
             val remoteThumbCount = if (!hasDeletedImages && !vehicle?.remoteImageUrl.isNullOrEmpty() && keptImageFileNames.isEmpty()) 1 else 0
             val thumbnailCount = newlyAddedImageFileNames.size + keptImageFileNames.size + remoteThumbCount
             if (thumbnailCount > 0) {
-                // Build proxy URL once for remote fallback thumbnails
+                // URL do proxy para thumbnails remotos
                 val remoteThumbUrl = remember(vehicle?.remoteImageUrl) {
                     vehicle?.remoteImageUrl
                         ?.replace("\"", "")
@@ -383,7 +379,7 @@ fun VehicleEditDialog(
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(horizontal = 0.dp)
                 ) {
-                    // Newly added images (with green accent)
+                    // Imagens novas (borda verde)
                     itemsIndexed(newlyAddedImageFileNames) { index, fileName ->
                         Box(
                             modifier = Modifier
@@ -422,8 +418,7 @@ fun VehicleEditDialog(
                         }
                     }
 
-                    // Existing images (no accent) — fall back to proxy URL
-                    // if the local file doesn't exist (e.g., after reinstall)
+                    // Imagens existentes. Se o ficheiro local não existir, usa proxy
                     itemsIndexed(keptImageFileNames) { index, fileName ->
                         Box(
                             modifier = Modifier
@@ -468,8 +463,7 @@ fun VehicleEditDialog(
                         }
                     }
 
-                    // Remote-only thumbnail: deletable — marks the remote image
-                    // as removed so it won't reappear after save.
+                    // Thumbnail remoto (sem cópia local). Apagável.
                     if (keptImageFileNames.isEmpty() && remoteThumbUrl != null && !hasDeletedImages) {
                         item {
                             Box(
@@ -522,7 +516,7 @@ fun VehicleEditDialog(
                 unfocusedContainerColor = MyGarageColors.surfaceContainerLow
             )
 
-            // Name
+            // Nome
             OutlinedTextField(
                 value = name,
                 onValueChange = {
@@ -537,7 +531,7 @@ fun VehicleEditDialog(
                 singleLine = true
             )
 
-            // License Plate — raw storage, hyphens injected via VisualTransformation
+            // Matrícula — texto puro, os hífens são visuais (VisualTransformation)
             OutlinedTextField(
                 value = plate,
                 onValueChange = { raw ->
@@ -564,7 +558,7 @@ fun VehicleEditDialog(
                 )
             )
 
-            // Year - numeric only, 4-char limit
+            // Ano — só números, máximo 4 caracteres
             OutlinedTextField(
                 value = year,
                 onValueChange = {
@@ -582,7 +576,7 @@ fun VehicleEditDialog(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            // Mileage with auto-calc
+            // Quilometragem
             val mileageUnitName = if (resolvedDistanceUnit == "KILOMETERS")
                 stringResource(R.string.unit_kilometers)
             else stringResource(R.string.unit_miles)
@@ -748,7 +742,7 @@ fun VehicleEditDialog(
                 }
             }
 
-            // Fuel Type — Dropdown using canonical keys with localized display
+            // Combustível — dropdown com chaves canónicas
             var fuelTypeExpanded by remember { mutableStateOf(false) }
             val fuelTypeKeys = listOf("gasoline", "diesel", "electric")
             val fuelTypeDisplayValue = if (fuelType.isNotBlank()) {
@@ -998,7 +992,7 @@ fun VehicleEditDialog(
                         if (fuelType.isBlank()) errors["fuelType"] = R.string.error_field_required
                         if (engineCapacity.isBlank()) errors["engineCapacity"] = R.string.error_field_required
 
-                        // Check for duplicate license plate
+                        // Verifica matrícula duplicada
                         val isDuplicatePlate = existingVehicles.any {
                             it.plate.equals(plate, ignoreCase = true) && it.id != vehicle?.id
                         }
