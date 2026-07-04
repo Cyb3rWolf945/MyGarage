@@ -72,6 +72,7 @@ import androidx.compose.ui.window.Dialog
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.AsyncImage
 import pt.ipt.dama2026.mygarage.R
+import pt.ipt.dama2026.mygarage.domain.fuel.FuelTypeLabels
 import pt.ipt.dama2026.mygarage.domain.model.Vehicle
 import pt.ipt.dama2026.mygarage.data.network.NetworkModule
 import pt.ipt.dama2026.mygarage.domain.locale.DistanceFormatter
@@ -98,7 +99,7 @@ private val engineCapacityOptions = listOf(
     "2000 cc", "2500 cc", "3000 cc", "3500 cc", "4000 cc"
 )
 private val doorCountOptions = listOf("2", "3", "4", "5")
-private val seatCountOptions = listOf("2", "4", "5", "7", "9")
+private val seatCountOptions = listOf("2", "3", "4", "5", "7", "9")
 private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
 /**
@@ -137,7 +138,7 @@ fun VehicleEditDialog(
     var owner by remember { mutableStateOf(vehicle?.owner ?: "") }
     var seatCount by remember { mutableStateOf(vehicle?.seatCount ?: "") }
     var doorCount by remember { mutableStateOf(vehicle?.doorCount ?: "") }
-    var fuelType by remember { mutableStateOf(vehicle?.fuelType ?: "") }
+    var fuelType by remember { mutableStateOf(FuelTypeLabels.canonicalKey(vehicle?.fuelType ?: "")) }
     var engineCapacity by remember { mutableStateOf(vehicle?.engineCapacity ?: "") }
     var iucValue by remember { mutableStateOf(vehicle?.iucValue ?: "") }
     var locationAddress by remember { mutableStateOf(vehicle?.locationAddress ?: "") }
@@ -747,19 +748,18 @@ fun VehicleEditDialog(
                 }
             }
 
-            // Fuel Type — Dropdown with string resource options
+            // Fuel Type — Dropdown using canonical keys with localized display
             var fuelTypeExpanded by remember { mutableStateOf(false) }
-            val fuelTypeOptions = listOf(
-                stringResource(id = R.string.fuel_gasoline),
-                stringResource(id = R.string.fuel_diesel),
-                stringResource(id = R.string.fuel_electric)
-            )
+            val fuelTypeKeys = listOf("gasoline", "diesel", "electric")
+            val fuelTypeDisplayValue = if (fuelType.isNotBlank()) {
+                stringResource(FuelTypeLabels.labelFor(fuelType, R.string.fuel_gasoline, R.string.fuel_diesel, R.string.fuel_electric))
+            } else ""
             ExposedDropdownMenuBox(
                 expanded = fuelTypeExpanded,
                 onExpandedChange = { fuelTypeExpanded = it }
             ) {
                 OutlinedTextField(
-                    value = fuelType,
+                    value = fuelTypeDisplayValue,
                     onValueChange = {},
                     readOnly = true,
                     placeholder = { Text(stringResource(id = R.string.fuel_type)) },
@@ -776,11 +776,12 @@ fun VehicleEditDialog(
                     expanded = fuelTypeExpanded,
                     onDismissRequest = { fuelTypeExpanded = false }
                 ) {
-                    fuelTypeOptions.forEach { option ->
+                    fuelTypeKeys.forEach { key ->
+                        val label = stringResource(FuelTypeLabels.labelFor(key, R.string.fuel_gasoline, R.string.fuel_diesel, R.string.fuel_electric))
                         DropdownMenuItem(
-                            text = { Text(option) },
+                            text = { Text(label) },
                             onClick = {
-                                fuelType = option
+                                fuelType = key
                                 fuelTypeExpanded = false
                                 clearFieldError("fuelType")
                             }
