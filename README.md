@@ -1,246 +1,147 @@
-# MyGarage
+```markdown
+# 🚙 MyGarage
 
-**MyGarage** is a mobile app vehicle management built for drivers who want full control over their fleet. Scan license plates with your camera, log services, manage parts, and sync everything to the cloud — all from a modern, offline-first Android app backed by a robust REST API.
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.9+-7F52FF.svg?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Compose](https://img.shields.io/badge/Jetpack_Compose-Material_3-4285F4.svg?style=flat&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Backend](https://img.shields.io/badge/Backend-Node.js_||_Express-339933.svg?style=flat&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL_16-4169E1.svg?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org)
 
----
-
-## Architecture
-
-```
-┌──────────────────────────────┐     ┌──────────────────────────────┐
-│        MyGarage (Android)     │────▶│    MyGarage-Backend (API)    │
-│  • Kotlin + Jetpack Compose   │     │  • Node.js + Express + TS     │
-│  • Room DB (offline-first)    │◀────│  • Prisma 7 + PostgreSQL 16   │
-│  • ML Kit / CameraX           │     │  • Docker + Railway Deploy    │
-│  • DataStore Preferences      │     │  • AWS S3 Image Storage       │
-└──────────────────────────────┘     └──────────────────────────────┘
-```
-
-### Key Features
-
-| Feature | Description |
-|---|---|
-| 📷 **License Plate Scanner** | Scan plates using the camera — powered by Google ML Kit Text Recognition |
-| 🚙 **Vehicle Management** | Track plate, model, year, mileage, fuel type, engine capacity, inspection dates, IUC, and more |
-| 🔧 **Service Logs** | Keep a full maintenance history with parts, prices, and quantities |
-| 🛒 **Parts Inventory** | Manage reusable parts across service entries |
-| 📍 **Location Awareness** | Tag vehicles with GPS location and street address |
-| 🖼️ **Image Attachments** | Capture and attach photos to each vehicle (local + S3 cloud storage) |
-| 🔐 **User Authentication** | JWT-based auth with multi-tenancy — your data is yours alone |
-| 🔄 **Offline-First Sync** | Full CRUD locally via Room, then sync to the cloud when connected |
-| 🌐 **REST API** | Complete backend with auth, vehicles, service logs, parts, and sync endpoints |
-| 🐳 **Dockerized** | One-command `docker compose up` for PostgreSQL + API |
-| 🚂 **Railway Ready** | Pre-configured for [Railway](https://railway.app) deployment |
+**MyGarage** é uma solução completa e nativa para a gestão inteligente de frotas e veículos. Desenvolvida com foco na eficiência do condutor, a aplicação permite digitalizar matrículas em tempo real através da câmara, registar manutenções detalhadas, gerir inventário de peças e sincronizar dados com a cloud através de uma arquitetura robusta **offline-first**.
 
 ---
 
-## Android App (`MyGarage/`)
+## 🏗️ Arquitetura do Sistema
 
-### Tech Stack
+O ecossistema divide-se numa aplicação Android robusta que garante total usabilidade mesmo sem conectividade, comunicando nativamente com uma API REST escalável e contentorizada.
 
-- **Language:** Kotlin
-- **UI:** Jetpack Compose + Material 3
-- **Architecture:** MVVM + Repository Pattern
-- **Local DB:** Room (offline-first)
-- **DI / Async:** Coroutines + Flow
-- **Camera:** CameraX
-- **OCR:** Google ML Kit Text Recognition
-- **Preferences:** DataStore
-- **Location:** Fused Location Provider
 
-### Project Structure
+```
+
+┌────────────────────────────────────────┐       ┌────────────────────────────────────────┐
+│          MyGarage (Android App)        │       │         MyGarage-Backend (API)         │
+├────────────────────────────────────────┤       ├────────────────────────────────────────┤
+│  • Jetpack Compose & Material 3        │──────▶│  • Node.js, TypeScript 6 & Express 5   │
+│  • Room DB (Local Cache Engine)        │       │  • Prisma ORM 7 & PostgreSQL 16        │
+│  • Google ML Kit & CameraX (OCR)       │◀──────│  • Dockerized Infrastructure           │
+│  • Fused Location & DataStore          │       │  • AWS S3 Object Cloud Storage         │
+└────────────────────────────────────────┘       └────────────────────────────────────────┘
+
+```
+
+### ✨ Funcionalidades Chave
+
+*   📷 **Leitor de Matrículas (OCR):** Captura instantânea de matrículas através da câmara, processada localmente recorrendo ao *Google ML Kit Text Recognition*.
+*   🔄 **Sincronização Offline-First:** Operações CRUD completas gravadas localmente via *Room* e sincronizadas bidirecionalmente com o servidor assim que houver rede.
+*   🔧 **Histórico de Serviços:** Registo minucioso de ordens de reparação, associando peças, quantidades, preços e quilometragem do veículo.
+*   📍 **Geolocalização Automática:** Identificação do local de estacionamento ou avaria guardando coordenadas GPS reais (*Fused Location Provider*).
+*   🔐 **Autenticação Multi-Tenant:** Isolamento total de dados por utilizador via tokens estruturados JWT e encriptação *bcryptjs*.
+
+---
+
+## 🚨 CONFIGURAÇÃO DE SEGURANÇA CRÍTICA (Chaves de API)
+
+Para proteger a integridade do projeto e evitar a exposição pública de credenciais de produção (como no GitHub), todas as chaves privadas são injetadas dinamicamente em tempo de compilação.
+
+O ficheiro `local.properties` **NUNCA** deve ser enviado para o repositório remoto (já incluído no `.gitignore`).
+
+### Como configurar as tuas chaves locais:
+
+1. Na raiz do projeto Android (`MyGarage/`), cria ou abre o ficheiro `local.properties`.
+2. Adiciona as tuas credenciais seguindo o modelo abaixo:
+
+```properties
+# Configurações de Conectividade da API
+MYGARAGE_API_URL=[https://mygaragebackend-production.up.railway.app](https://mygaragebackend-production.up.railway.app)
+MATRICULA_USERNAME=teu_utilizador_da_api
+
+# 📍 GOOGLE MAPS API KEY (Obrigatório para o mapa funcionar)
+MAPS_API_KEY=AIzaSyCDWc4Benql0vKUjpJUbttnqgi1NppWxAs
+
+```
+
+> ⚠️ **Nota para Avaliação Académica:** Para submissão do trabalho, remova a linha `sdk.dir=...` do ficheiro `local.properties` para não quebrar o ambiente do avaliador, mantendo apenas as chaves (`MAPS_API_KEY`) necessárias para a execução imediata da correção.
+
+---
+
+## 📱 Aplicação Android (`MyGarage/`)
+
+### Estrutura do Projeto
 
 ```
 app/src/main/java/pt/ipt/dama2026/mygarage/
-├── MainActivity.kt              # Entry point, Compose + pager navigation
-├── MyGarageApplication.kt       # Application class
-├── data/                        # Data layer
-│   ├── local/                   # Room DAOs, database, entities
-│   ├── model/                   # API DTOs, sync models, auth models
-│   ├── remote/                  # Retrofit API service
-│   ├── storage/                 # Local image file management
-│   └── location/                # Android location provider
-├── domain/                      # Domain layer
-│   ├── model/                   # Vehicle & business models
-│   ├── repository/              # VehicleRepository, ImageStorageManager
-│   ├── camera/                  # LicensePlateAnalyzer (ML Kit)
-│   ├── engine/                  # EngineCapacityHelper
-│   ├── licenseplates/           # License plate API service
-│   ├── location/                # LocationManager, LocationResult
-│   └── locale/                  # DistanceFormatter, LocaleManager
-└── ui/                          # Presentation layer
-    ├── screens/                 # Garage, vehicle detail, service logs, etc.
-    ├── components/              # Reusable Compose components
-    ├── theme/                   # Material 3 theming
-    └── navigation/              # Nav graph & routes
+├── MainActivity.kt           # Ponto de entrada, Navigation Graph & Corrotinas
+├── MyGarageApplication.kt    # Inicialização global do contexto da App
+├── data/                     # Camada de Dados (Data Layer)
+│   ├── local/                # Base de dados Room, Entidades e DAOs
+│   ├── model/                # Modelos de transferência de dados (DTOs) e Sync
+│   ├── remote/               # Configuração e clientes de rede Retrofit
+│   ├── storage/              # Gestão de ficheiros de imagem em disco local
+│   └── location/             # Integração com os sensores de localização nativos
+├── domain/                   # Camada de Domínio (Business Logic)
+│   ├── model/                # Modelos de negócio puros (Vehicle, ServiceLog)
+│   ├── repository/           # Definição de contratos (Repository Pattern)
+│   ├── camera/               # Analisador de frames de imagem com CameraX e ML Kit
+│   └── location/             # Gestores de estados e respostas geográficas
+└── ui/                       # Camada de Apresentação (UI Layer)
+    ├── screens/              # Ecrãs Jetpack Compose (Garage, Details, Form)
+    ├── components/           # Componentes atómicos reutilizáveis
+    └── theme/                # Definição do Design System (Material 3)
+
 ```
 
-### Build & Run
+### Compilação Local
 
 ```bash
-# 1. Open in Android Studio (or use Gradle)
 cd MyGarage
-
-# 2. Set up local.properties (see local.properties.example)
-#    - MATRICULA_USERNAME=<your_username>
-#    - MYGARAGE_API_URL=<backend_url>
-
-# 3. Build & install
+# Certifica-te de que configuraste o local.properties conforme a secção de Segurança acima
 ./gradlew installDebug
-```
 
-Default API URL: `https://mygaragebackend-production.up.railway.app`
+```
 
 ---
 
-## Backend (`MyGarage-Backend/`)
+## 🽪 Servidor Backend (`MyGarage-Backend/`)
 
-### Tech Stack
+### Tech Stack do Servidor
 
-- **Runtime:** Node.js + Express 5
-- **Language:** TypeScript 6
-- **ORM:** Prisma 7
-- **Database:** PostgreSQL 16
-- **Auth:** JWT + bcryptjs
-- **Storage:** AWS S3 (image uploads)
-- **Image Processing:** Sharp
-- **Container:** Docker + Docker Compose
+* **Runtime & Engine:** Node.js + Express 5 (TypeScript 6)
+* **Persistência:** Prisma ORM 7 conectado a PostgreSQL 16
+* **Processamento de Imagem:** Sharp (Otimização e compressão de uploads)
+* **Infraestrutura:** Docker & Docker Compose para orquestração isolada
 
-### Project Structure
+### API Endpoints Disponíveis
 
-```
-MyGarage-Backend/
-├── src/
-│   ├── server.ts                # Entry point
-│   ├── app.ts                   # Express app config & middleware
-│   ├── prisma.ts                # Prisma client singleton
-│   ├── config/env.ts            # Environment variable validation
-│   ├── controllers/             # Route handlers
-│   │   ├── auth.controller.ts
-│   │   ├── images.controller.ts
-│   │   ├── sync.controller.ts
-│   │   └── user.controller.ts
-│   ├── services/                # Business logic
-│   │   ├── auth.service.ts
-│   │   ├── storage.service.ts
-│   │   ├── sync.service.ts
-│   │   └── user.service.ts
-│   ├── middleware/
-│   │   ├── auth.ts              # JWT verification middleware
-│   │   └── errorHandler.ts
-│   ├── routes/                  # Express route definitions
-│   ├── types/                   # TypeScript type definitions
-│   └── utils/jwt.ts             # JWT helper functions
-├── prisma/
-│   └── schema.prisma            # Database schema
-├── docker-compose.yml           # PostgreSQL + API
-├── Dockerfile
-├── docker-entrypoint.sh
-└── GUIDE.md                     # Full API & Docker guide
-```
+| Método | Endpoint | Autenticação | Descrição |
+| --- | --- | --- | --- |
+| `GET` | `/api/health` | ❌ | Estado de saúde da API e Base de Dados |
+| `POST` | `/api/auth/register` | ❌ | Criação de conta de utilizador |
+| `POST` | `/api/auth/login` | ❌ | Autenticação de utilizador (Retorna JWT) |
+| `GET/PUT` | `/api/user/profile` | ✅ | Gestão de dados do perfil |
+| `POST` | `/api/sync/push` | ✅ | Envio de alterações locais offline para a cloud |
+| `GET` | `/api/sync/pull` | ✅ | Obtenção de novos dados registados noutros dispositivos |
+| `POST` | `/api/images/upload` | ✅ | Upload de fotografias para o bucket AWS S3 |
 
-### Database Schema
-
-| Model | Description |
-|---|---|
-| `User` | User account with email, name, garage name, avatar |
-| `Vehicle` | Vehicle with plate, specs, mileage, location, images |
-| `ServiceLog` | Maintenance record linked to a vehicle |
-| `Part` | Part used in a service (name, quantity, reference) |
-| `Piece` | Reusable piece/component with price |
-| `ServiceLogPieceCrossRef` | Many-to-many: service logs ↔ pieces |
-
-All models include `userId` (multi-tenancy), `createdAt`, `updatedAt`, and `isDeleted` (soft-delete for sync).
-
-### Quick Start (Docker)
+### Inicialização Rápida (Ambiente Contentorizado)
 
 ```bash
 cd MyGarage-Backend
-
-# 1. Copy and configure environment
 cp .env.docker .env
-
-# 2. Start PostgreSQL + API
 docker compose up --build -d
 
-# 3. Verify
-curl http://localhost:3000/api/health
 ```
 
-### Local Development
+---
 
-```bash
-cd MyGarage-Backend
+## 🎓 Ficha Técnica e Autor
 
-# 1. Install dependencies
-npm install
+Trabalho desenvolvido no âmbito da Unidade Curricular de **Desenvolvimento de Aplicações Móveis Avançadas (DAMA)**.
 
-# 2. Set up .env with your DATABASE_URL and JWT_SECRET
-
-# 3. Run migrations
-npm run db:migrate
-
-# 4. Start dev server
-npm run dev
-```
-
-### API Endpoints
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/health` | ❌ | Health check |
-| `POST` | `/api/auth/register` | ❌ | Register new user |
-| `POST` | `/api/auth/login` | ❌ | Login, get JWT |
-| `GET` | `/api/user/profile` | ✅ | Get user profile |
-| `PUT` | `/api/user/profile` | ✅ | Update profile |
-| `POST` | `/api/sync/push` | ✅ | Push local changes to server |
-| `GET` | `/api/sync/pull` | ✅ | Pull server changes |
-| `POST` | `/api/images/upload` | ✅ | Upload vehicle images |
-| `GET` | `/api/images/:key` | ✅ | Get presigned image URL |
-
-> 📖 See [`GUIDE.md`](MyGarage-Backend/GUIDE.md) for full API documentation with `curl` examples.
+* **Autor:** António Gonçalves (Cyb3rWolf — @Cyb3rWolf945)
+* **Instituição:** IPT (Instituto Politécnico de Tomar)
+* **Ano Letivo:** 2026
 
 ---
 
-## Deployment
+## 📄 Licença
 
-### Railway (Recommended)
-
-The backend is pre-configured for [Railway](https://railway.app):
-
-1. Connect your GitHub repo
-2. Set environment variables in Railway dashboard
-3. Railway auto-detects the Dockerfile
-
-### Environment Variables
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `DATABASE_URL` | ✅ | — | PostgreSQL connection string |
-| `JWT_SECRET` | ✅ | — | Secret key for JWT signing |
-| `JWT_EXPIRES_IN` | ❌ | `7d` | Token expiration |
-| `PORT` | ❌ | `3000` | API server port |
-| `AWS_REGION` | ❌ | — | S3 bucket region |
-| `AWS_ACCESS_KEY_ID` | ❌ | — | S3 access key |
-| `AWS_SECRET_ACCESS_KEY` | ❌ | — | S3 secret key |
-| `AWS_S3_BUCKET` | ❌ | — | S3 bucket name |
-
----
-
-## Author
-
-Built with ❤️ by **Cyb3rWolf** (@Cyb3rWolf945)
-
-DAMA 2026 @ IPT (Instituto Politécnico de Tomar)
-
----
-
-## 📄 License
-
-This project is licensed under the terms of the [LICENSE](LICENSE) file.
-
----
-
-<p align="center">
-  <sub>🏍️ Keep your garage organized. Keep your rides on the road.</sub>
-</p>
+Este projeto está protegido sob os termos detalhados no ficheiro [LICENSE](https://www.google.com/search?q=LICENSE).
