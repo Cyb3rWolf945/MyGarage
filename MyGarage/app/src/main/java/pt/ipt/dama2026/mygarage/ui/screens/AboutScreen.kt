@@ -206,7 +206,13 @@ private fun AcademicCard() {
                 label = stringResource(R.string.about_author_label),
                 value = stringResource(R.string.about_author_value)
             )
-        }
+            HorizontalDivider(color = MyGarageColors.surfaceContainerHigh)
+
+            AcademicRow(
+                icon = Icons.Outlined.Star,
+                label = stringResource(R.string.about_academic_year_label),
+                value = stringResource(R.string.about_academic_year_value)
+            )        }
     }
 }
 
