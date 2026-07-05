@@ -11,7 +11,7 @@
 
 ## 🏗️ Arquitetura do Sistema
 
-O ecossistema divide-se numa aplicação Android robusta que garante total usabilidade mesmo sem conectividade, comunicando nativamente com uma API REST escalável e contentorizada.
+O ecossistema divide-se numa aplicação Android que garante total usabilidade mesmo sem conectividade, comunicando nativamente com uma API REST.
 
 ```
 ┌────────────────────────────────────────┐       ┌────────────────────────────────────────┐
@@ -29,8 +29,8 @@ O ecossistema divide-se numa aplicação Android robusta que garante total usabi
 *   📷 **Leitor de Matrículas (OCR):** Captura instantânea de matrículas através da câmara, processada localmente recorrendo ao *Google ML Kit Text Recognition*.
 *   🔄 **Sincronização Offline-First:** Operações CRUD completas gravadas localmente via *Room* e sincronizadas bidirecionalmente com o servidor assim que houver rede.
 *   🔧 **Histórico de Serviços:** Registo minucioso de ordens de reparação, associando peças, quantidades, preços e quilometragem do veículo.
-*   📍 **Geolocalização Automática:** Identificação do local de estacionamento ou avaria guardando coordenadas GPS reais (*Fused Location Provider*).
-*   🔐 **Autenticação Multi-Tenant:** Isolamento total de dados por utilizador via tokens estruturados JWT e encriptação *bcryptjs*.
+*   📍 **Geolocalização:** Identificação do local de estacionamento ou avaria guardando coordenadas GPS reais (*Fused Location Provider*).
+*   🔐 **Autenticação:** Isolamento total de dados por utilizador via tokens estruturados JWT e encriptação *bcryptjs*.
 
 ---
 
@@ -42,19 +42,11 @@ O ficheiro `local.properties` **NUNCA** deve ser enviado para o repositório rem
 
 ### Como configurar as tuas chaves locais:
 
-1. Na raiz do projeto Android (`MyGarage/`), cria ou abre o ficheiro `local.properties`.
-2. Adiciona as tuas credenciais seguindo o modelo abaixo:
+1. Na raiz do projeto Android (`MyGarage/`) vai estar o ficheiro `local.properties`.
+2. Abrir o projeto no Android Studio.
+3. O projeto está pronto a ser executado, com a chave do Google Maps configurada para a correção.
 
-```properties
-# Configurações de Conectividade da API
-MYGARAGE_API_URL=https://mygaragebackend-production.up.railway.app
-MATRICULA_USERNAME=teu_utilizador_da_api
-
-# 📍 GOOGLE MAPS API KEY (Obrigatório para o mapa funcionar)
-MAPS_API_KEY=AIzaSyCDWc4Benql0vKUjpJUbttnqgi1NppWxAs
-```
-
-> ⚠️ **Nota para Avaliação Académica:** Para submissão do trabalho, remova a linha `sdk.dir=...` do ficheiro `local.properties` para não quebrar o ambiente do avaliador, mantendo apenas as chaves (`MAPS_API_KEY`) necessárias para a execução imediata da correção.
+> ⚠️ **Nota para Avaliação Académica:** Para submissão do trabalho, foi removida a linha `sdk.dir=...` do ficheiro `local.properties` para não quebrar o ambiente do professor, mantendo apenas a chave (`MAPS_API_KEY`) necessária para a execução imediata da correção.
 
 ---
 
@@ -130,7 +122,7 @@ Trabalho desenvolvido no âmbito da Unidade Curricular de **Desenvolvimento de A
 
 * **Autor:** António Gonçalves (Cyb3rWolf — @Cyb3rWolf945)
 * **Instituição:** IPT (Instituto Politécnico de Tomar)
-* **Ano Letivo:** 2026
+* **Ano Letivo:** 2025/2026
 
 ---
 
