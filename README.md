@@ -1,4 +1,3 @@
-```markdown
 # 🚙 MyGarage
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9+-7F52FF.svg?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org)
@@ -14,9 +13,7 @@
 
 O ecossistema divide-se numa aplicação Android robusta que garante total usabilidade mesmo sem conectividade, comunicando nativamente com uma API REST escalável e contentorizada.
 
-
 ```
-
 ┌────────────────────────────────────────┐       ┌────────────────────────────────────────┐
 │          MyGarage (Android App)        │       │         MyGarage-Backend (API)         │
 ├────────────────────────────────────────┤       ├────────────────────────────────────────┤
@@ -25,7 +22,6 @@ O ecossistema divide-se numa aplicação Android robusta que garante total usabi
 │  • Google ML Kit & CameraX (OCR)       │◀──────│  • Dockerized Infrastructure           │
 │  • Fused Location & DataStore          │       │  • AWS S3 Object Cloud Storage         │
 └────────────────────────────────────────┘       └────────────────────────────────────────┘
-
 ```
 
 ### ✨ Funcionalidades Chave
@@ -38,7 +34,7 @@ O ecossistema divide-se numa aplicação Android robusta que garante total usabi
 
 ---
 
-## 🚨 CONFIGURAÇÃO DE SEGURANÇA CRÍTICA (Chaves de API)
+## 🚨 CONFIGURAÇÃO DE SEGURANÇA (Chaves de API)
 
 Para proteger a integridade do projeto e evitar a exposição pública de credenciais de produção (como no GitHub), todas as chaves privadas são injetadas dinamicamente em tempo de compilação.
 
@@ -51,12 +47,11 @@ O ficheiro `local.properties` **NUNCA** deve ser enviado para o repositório rem
 
 ```properties
 # Configurações de Conectividade da API
-MYGARAGE_API_URL=[https://mygaragebackend-production.up.railway.app](https://mygaragebackend-production.up.railway.app)
+MYGARAGE_API_URL=https://mygaragebackend-production.up.railway.app
 MATRICULA_USERNAME=teu_utilizador_da_api
 
 # 📍 GOOGLE MAPS API KEY (Obrigatório para o mapa funcionar)
 MAPS_API_KEY=AIzaSyCDWc4Benql0vKUjpJUbttnqgi1NppWxAs
-
 ```
 
 > ⚠️ **Nota para Avaliação Académica:** Para submissão do trabalho, remova a linha `sdk.dir=...` do ficheiro `local.properties` para não quebrar o ambiente do avaliador, mantendo apenas as chaves (`MAPS_API_KEY`) necessárias para a execução imediata da correção.
@@ -86,7 +81,6 @@ app/src/main/java/pt/ipt/dama2026/mygarage/
     ├── screens/              # Ecrãs Jetpack Compose (Garage, Details, Form)
     ├── components/           # Componentes atómicos reutilizáveis
     └── theme/                # Definição do Design System (Material 3)
-
 ```
 
 ### Compilação Local
@@ -95,12 +89,11 @@ app/src/main/java/pt/ipt/dama2026/mygarage/
 cd MyGarage
 # Certifica-te de que configuraste o local.properties conforme a secção de Segurança acima
 ./gradlew installDebug
-
 ```
 
 ---
 
-## 🽪 Servidor Backend (`MyGarage-Backend/`)
+## 🖥️ Servidor Backend (`MyGarage-Backend/`)
 
 ### Tech Stack do Servidor
 
@@ -127,7 +120,6 @@ cd MyGarage
 cd MyGarage-Backend
 cp .env.docker .env
 docker compose up --build -d
-
 ```
 
 ---
@@ -144,4 +136,4 @@ Trabalho desenvolvido no âmbito da Unidade Curricular de **Desenvolvimento de A
 
 ## 📄 Licença
 
-Este projeto está protegido sob os termos detalhados no ficheiro [LICENSE](https://www.google.com/search?q=LICENSE).
+Este projeto está protegido sob os termos detalhados no ficheiro [LICENSE](./LICENSE).
